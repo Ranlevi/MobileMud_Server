@@ -9,6 +9,9 @@
   "author": "Ran Levi",
   "license": "ISC",
   "dependencies": {
+    "@emotion/react": "^11.4.1",
+    "@emotion/styled": "^11.3.0",
+    "@mui/material": "^5.0.1",
     "express": "^4.17.1",
     "ws": "^8.2.2"
   }
