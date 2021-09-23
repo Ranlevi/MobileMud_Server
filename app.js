@@ -1,17 +1,16 @@
-'use strict';
+var express = require('express');
+const { WebSocketServer } = require('ws');
+var app = express();
 
-const express = require('express');
-const { Server } = require('ws');
+app.use(express.static('public'));
 
-const PORT = process.env.PORT || 3000;
-const INDEX = '/public/index.html';
-// app.use(express.static('public'));
+app.get('/', function(req, res){
+  res.sendFile('/public/index.html', { root: __dirname })
+});
 
-const server = express()
-  .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
-  .listen(PORT, () => console.log(`Listening on ${PORT}`));
+app.listen(3000);
 
-const wss = new Server({ server });
+const wss = new WebSocketServer({port: 8080});
 
 wss.on('connection', (ws) => {
   console.log('Client connected');

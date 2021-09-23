@@ -1,7 +1,4 @@
-
-
-// let HOST = location.origin.replace(/^http/, 'ws')
-let ws = new WebSocket('ws://localhost:3000');
+let ws = new WebSocket('ws://localhost:8080');
 let el;
 
 ws.onmessage = (event) => {
