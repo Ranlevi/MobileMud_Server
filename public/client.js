@@ -1,28 +1,20 @@
-import * as React from 'react';
-import { TextField } from '@mui/material';
-
-function App() {
-
-    function process_input(text){
-        console.log(text);
-    }
-
-    return (
-        <div>
-    <TextField fullWidth onChange={(event)=> process_input(event.target.value)}/>
-    </div>
-    )
-  }
-  
-ReactDOM.render(<App />, document.querySelector('#app'));
-
-
-
-
 let ws = new WebSocket('ws://localhost:8080');
-let el;
+let chat_display = document.getElementById('chat_display');
 
 ws.onmessage = (event) => {
-el = document.getElementById('server-time');
-el.innerHTML = 'Server time: ' + event.data;
+  console.log(event.data);
+  let div = document.createElement("div");
+  div.append(event.data);
+  chat_display.append(div);
 };
+
+
+let input_form  = document.getElementById('input_form');
+
+input_form.addEventListener('submit', (evt)=> {
+  evt.preventDefault();
+  let input_field = document.getElementById('input_field');
+  ws.send(input_field.value);
+  
+  input_field.value = '';
+})
