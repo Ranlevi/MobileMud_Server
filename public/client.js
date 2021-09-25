@@ -3,8 +3,10 @@ let chat_display = document.getElementById('chat_display');
 
 ws.onmessage = (event) => {
   console.log(event.data);
+  let msg = JSON.parse(event.data);
+  
   let div = document.createElement("div");
-  div.append(event.data);
+  div.append(`${msg.sender}: ${msg.content}`);
   chat_display.append(div);
 };
 

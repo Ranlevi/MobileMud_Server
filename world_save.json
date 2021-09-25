@@ -1,0 +1,24 @@
+{
+  "0": {
+    "type": "room",
+    "name": "Room 1",
+    "description": "This is the first room of the game.",    
+    "exits": {
+      "north": "1"
+    }
+  },
+  "1": {
+    "type": "room",
+    "name": "Room 2",
+    "description": "This is the 2nd room of the game.",
+    "exits": {
+      "south": "0"
+    }
+  },
+  "3": {
+    "type": "dog",
+    "name": "Archie",
+    "description": "It's a cute but silly dog.",
+    "room_id": "0"
+  }
+}
