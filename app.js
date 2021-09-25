@@ -94,9 +94,10 @@ class Message_Formatter {
 
   generate_look_room_msg(room_id, user_id){
     let room = world.get_instance(room_id);
-    let msg = 
-    `**[${room.name}]({type:"room", id:${room_id}})**  ${room.description}
-    Exits:  `;
+    
+    let msg = `**[${room.name}]({type:"room", id:${room_id}}, `;
+    msg += `lighting: ${room.lighting})**  ${room.description}  `;
+    msg += `Exits:  `;
 
     for (const [direction, next_room_id] of Object.entries(room.exits)){
       if (next_room_id!==null){
@@ -215,7 +216,8 @@ class Room extends BaseType {
       "east":  null,
       "up":    null,
       "down":  null
-    }
+    },
+    this.lighting = "white"; //CSS colors
   }
 
   add_exit(direction, next_room_id){
@@ -236,6 +238,10 @@ class Room extends BaseType {
       arr.push(entity_id);
     }
     return arr;
+  }
+
+  set_lighting(color){
+    this.lighting = color;
   }
 }
 
@@ -280,11 +286,12 @@ function generate_world(){
   let room = new Room(
     'Room 1',
     'This is the first room of the game.'
-  )
+  )  
 
   world.add_to_world(room);  
 
   room = world.add_room(room.id, 'north');
+  room.set_lighting('silver');
   //TODO: add room name/descripion
 
 }
@@ -300,9 +307,13 @@ function load_world(){
 
       if (instance_data.type==="room"){
         let room = new Room(instance_data.name, instance_data.description, id);
+        
+        room.set_lighting(instance_data.lighting);
+
         for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
           room.add_exit(direction, next_room_id);
         }
+
         world.add_to_world(room);
 
       } else {

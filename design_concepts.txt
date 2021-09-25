@@ -22,7 +22,7 @@ Game Design
 - Messages are sent async. Game has a 1 sec tick for entities.
 - Development phases:
   - Basic World, single user moving around. look command.
-    - chaning client backgroud dynamically.
+    - changing client backgroud dynamically.
     - assigning typography according to type.   
     - saving and loading users.
   - Add objects and basic interactions: look, get, drop, hold, use.

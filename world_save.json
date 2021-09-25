@@ -2,7 +2,8 @@
   "0": {
     "type": "room",
     "name": "Room 1",
-    "description": "This is the first room of the game.",    
+    "description": "This is the first room of the game.",
+    "lighting": "white",    
     "exits": {
       "north": "1"
     }
@@ -11,6 +12,7 @@
     "type": "room",
     "name": "Room 2",
     "description": "This is the 2nd room of the game.",
+    "lighting": "silver",    
     "exits": {
       "south": "0"
     }
