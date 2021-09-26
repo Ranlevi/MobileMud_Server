@@ -3,6 +3,8 @@ const { WebSocketServer }=  require('ws');
 var app=                    express();
 const wss=                  new WebSocketServer({port: 8080});
 const fs=                   require('fs');
+const { timeStamp } = require('console');
+const { getTableHeadUtilityClass } = require('@mui/material');
 
 const LOAD_WORLD_FROM_SAVE = true;
 let   FIRST_ROOM_ID        = '0';
@@ -34,6 +36,16 @@ let msg_sender=   null;
 let game_controller = null;
 let msg_formatter = null;
 
+class GameEvent {
+  constructor(due_in, event_data){
+    this.due_in = due_in;
+    this.event_data = event_data;
+  }
+  decrement_due_in(){
+    this.due_in -= 1;
+  }
+}
+
 class ID_Generator {
   constructor(){
     this.current_id = 0;
@@ -53,6 +65,11 @@ class ID_Generator {
 class Game_Controller {
   constructor(){
     //TBD    
+  }
+  
+  game_loop(){
+    //decrement events
+    world.advance_scheduled_events();
   }
 
   look_cmd(user_id){
@@ -164,6 +181,12 @@ class World {
     new_room.add_exit(get_opposite_direction(direction), current_room_id);
     return new_room.id;
   }
+
+  advance_scheduled_events(){
+    this.world.forEach(
+      (item) => item.decrement_scheduled_events_due_in();
+    );
+  }
 }
 
 class BaseType {
@@ -172,7 +195,25 @@ class BaseType {
     this.id= (id===null)? id_generator.get_new_id() : id;
     this.name=        name;
     this.description= description;
+    this.scheduled_event = null;
+
+    //An entity can schedule a single event for the future.
+    //each tick the due_in decreases, until it is 0 and then
+    //excecuted. 
+    //If something happens that influences the future event,
+    //the entity can discard it and schedule a new one. 
   }
+
+  decrement_scheduled_events_due_in(){
+    if (this.scheduled_event!==null){
+      this.scheduled_event.decrement_due_in();
+    }
+  }
+
+  process_tick(){
+    //do nothing unless overided by instance
+  }
+
 }
 
 class Entity extends BaseType {
@@ -202,6 +243,16 @@ class Dog extends NPC {
   constructor(name, description, id=null){
     super(name, description, id);
     this.type = "A Dog";
+  }
+
+  process_tick(){
+    //process the current event if available.
+    //then, schedule a new one if needed.
+
+    //dog state machine
+    //ST1: idle
+    //ST2: excited
+    //ST3: fearful
   }
 }
 
@@ -278,9 +329,13 @@ function init_game(){
   
 
   app.listen(3000); //Ready to recive connections.
+
+  setInterval(game_controller.game_loop, 1000);
 }
 
 init_game();
+
+
 
 function generate_world(){
   let room = new Room(
