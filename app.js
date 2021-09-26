@@ -80,7 +80,7 @@ class Game_Controller {
       sender: 'world',
       content: msg_formatter.generate_look_room_msg(room.id, user_id)
     }
-    msg_sender.send_message(user_id, message)
+    msg_sender.send_message_to_user(user_id, message)
   }
 
   move_cmd(direction, user_id){
@@ -97,7 +97,7 @@ class Game_Controller {
       content: `
         You travel ${direction} to ${new_room.name}.`        
     }
-    msg_sender.send_message(user_id, message)
+    msg_sender.send_message_to_user(user_id, message)
 
     this.look_cmd(user.id);
 
@@ -141,8 +141,13 @@ class Message_Formatter {
         msg += `${entity.type}`;
       }
     }
-    
+    return msg;
+  }
 
+  generate_action_msg(entity_id, content){
+    let entity = world.get_instance(entity_id);
+    let msg = `[${entity.name}]({type:${entity.type}, id:${entity_id}}) `;
+    msg += `${content}`;
     return msg;
   }
 }
@@ -184,7 +189,7 @@ class World {
 
   advance_scheduled_events(){
     this.world.forEach(
-      (item) => item.decrement_scheduled_events_due_in();
+      (item) => item.decrement_scheduled_events_due_in()
     );
   }
 }
@@ -196,7 +201,7 @@ class BaseType {
     this.name=        name;
     this.description= description;
     this.scheduled_event = null;
-
+    this.current_state = null;
     //An entity can schedule a single event for the future.
     //each tick the due_in decreases, until it is 0 and then
     //excecuted. 
@@ -212,6 +217,10 @@ class BaseType {
 
   process_tick(){
     //do nothing unless overided by instance
+  }
+
+  cleak_scheduled_event(){
+    this.scheduled_event=null;
   }
 
 }
@@ -246,9 +255,44 @@ class Dog extends NPC {
   }
 
   process_tick(){
+
+    if (this.scheduled_event===null){
+      this.scheduled_event = new GameEvent(5,{
+        action: "bark"
+      })
+    } else {
+      if (this.scheduled_event.due_in===0){
+        //bark
+        let msg = generate_action_msg(this.id, "barks");
+        msg_sender.send_message_to_room(this.current_room, msg);
+
+        this.scheduled_event = new GameEvent(5,{
+          action: "bark"
+        })
+      } 
+    } 
     //process the current event if available.
     //then, schedule a new one if needed.
+    //state machine progresses via ticks.
+    // switch(this.current_state){
+    //   case(null):
+    //     let event = new GameEvent(5,{
+    //       action: "next state"
+    //     })
+    //     this.current_state="Idle";
+    //     break;
+    //   case("Idle"):
 
+    //     this.current_state="Excited";
+    //     break;
+    //   case('Excited'):
+    //     this.current_state="Fearful";
+    //     break;
+    //   case('Fearful'):
+    //     this.current_state="Idle";
+    //     break;
+    //   }
+    
     //dog state machine
     //ST1: idle
     //ST2: excited
@@ -291,6 +335,17 @@ class Room extends BaseType {
     return arr;
   }
 
+  get_users(){
+    let arr = [];
+    for (let entity_id of this.entities){
+      let entity = world.get_instance(entity_id);
+      if (entity instanceof User){
+        arr.push(entity_id);
+      }
+    }
+    return arr;
+  }
+
   set_lighting(color){
     this.lighting = color;
   }
@@ -301,9 +356,17 @@ class Message_Sender {
     this.world = world;
   }
 
-  send_message(user_id, message){
+  send_message_to_user(user_id, message){
+    //TODO: why this.ws? probabaly errror, should be let ws
     this.ws_client = this.world.get_instance(user_id).ws_client;
     this.ws_client.send(JSON.stringify(message));
+  }
+
+  send_message_to_room(room_id, message){
+    let arr = world.get_instance(room_id).get_users();
+    for (const entity_id of arr){
+      this.world.get_instance(entity_id).ws_client.send(JSON.stringify(message));
+    }
   }
 
   broadcast_message(message){
@@ -400,7 +463,7 @@ function new_client_connected(ws_client){
     sender: "world",
     content: `Hi ${user.name}, your ID is ${user.id}`
   }
-  msg_sender.send_message(user.id, msg);
+  msg_sender.send_message_to_user(user.id, msg);
 
   game_controller.look_cmd(user.id);
 
