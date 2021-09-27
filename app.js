@@ -3,8 +3,6 @@ const { WebSocketServer }=  require('ws');
 var app=                    express();
 const wss=                  new WebSocketServer({port: 8080});
 const fs=                   require('fs');
-const { timeStamp } = require('console');
-const { getTableHeadUtilityClass } = require('@mui/material');
 
 const LOAD_WORLD_FROM_SAVE = true;
 let   FIRST_ROOM_ID        = '0';
@@ -16,25 +14,10 @@ app.get('/', function(req, res){
   res.sendFile('/public/index.html', { root: __dirname })
 });
 
-//-- WebSockets
-wss.on('connection', (ws_client) => {
-  
-  let user_id = new_client_connected(ws_client);  
-  ws_client.on('close', () => {
-    console.log(`Client User ID ${user_id}disconnected`);
-    //TODO: save user.
-  });
-
-  ws_client.onmessage = (event) => {
-    process_incoming_message(event, user_id);    
-  }
-});
-
-let world=        null;
-let id_generator= null;
-let msg_sender=   null;
-let game_controller = null;
-let msg_formatter = null;
+let world=            null;
+let id_generator=     null;
+let msg_sender=       null;
+let msg_formatter=    null;
 
 class GameEvent {
   constructor(due_in, event_data){
@@ -62,97 +45,6 @@ class ID_Generator {
   }
 }
 
-class Game_Controller {
-  constructor(){
-    //TBD    
-  }
-  
-  game_loop(){
-    //decrement events
-    world.advance_scheduled_events();
-  }
-
-  look_cmd(user_id){
-    let user = world.get_instance(user_id);
-    let room = world.get_instance(user.room_id);
-
-    let message = {
-      sender: 'world',
-      content: msg_formatter.generate_look_room_msg(room.id, user_id)
-    }
-    msg_sender.send_message_to_user(user_id, message)
-  }
-
-  move_cmd(direction, user_id){
-    let user=         world.get_instance(user_id);
-    let current_room= world.get_instance(user.room_id);
-    let new_room=     world.get_instance(current_room.exits[direction]);
-
-    user.room_id = new_room.id;
-    current_room.remove_entity(user.id);
-    new_room.add_entity(user_id);
-
-    let message = {
-      sender: 'world',
-      content: `
-        You travel ${direction} to ${new_room.name}.`        
-    }
-    msg_sender.send_message_to_user(user_id, message)
-
-    this.look_cmd(user.id);
-
-  }
-}
-
-class Message_Formatter {
-  constructor(){
-    //TBD
-  }
-
-  generate_look_room_msg(room_id, user_id){
-    let room = world.get_instance(room_id);
-    
-    let msg = `**[${room.name}]({type:"room", id:${room_id}}, `;
-    msg += `lighting: ${room.lighting})**  ${room.description}  `;
-    msg += `Exits:  `;
-
-    for (const [direction, next_room_id] of Object.entries(room.exits)){
-      if (next_room_id!==null){
-        msg += `[${direction}]({type:"command"}) `
-      }
-    }
-
-    msg += '  '; //new paragraph
-
-    let entities_arr = room.get_entities();
-    
-    if (entities_arr.length===1){
-      //Only the player is in the room.
-      msg += 'The room is empty.';
-    } else {
-
-      msg += 'With you in the room:  ';
-
-      for (const entity_id of entities_arr){
-        if (entity_id===user_id) continue; //skip the player.
-
-        let entity = world.get_instance(entity_id);
-        msg += `[${entity.name}]({type:${entity.type}, id:${entity_id}}), `;
-        msg += `${entity.type}`;
-      }
-    }
-    return msg;
-  }
-
-  generate_action_msg(entity_id, content){
-    let entity = world.get_instance(entity_id);
-    let msg = `[${entity.name}]({type:${entity.type}, id:${entity_id}}) `;
-    msg += `${content}`;
-    return msg;
-  }
-}
-
-//-------------
 class World {
   //World state.
   constructor(){
@@ -185,13 +77,7 @@ class World {
     current_room.add_exit(direction, new_room.id);
     new_room.add_exit(get_opposite_direction(direction), current_room_id);
     return new_room.id;
-  }
-
-  advance_scheduled_events(){
-    this.world.forEach(
-      (item) => item.decrement_scheduled_events_due_in()
-    );
-  }
+  }    
 }
 
 class BaseType {
@@ -201,7 +87,7 @@ class BaseType {
     this.name=        name;
     this.description= description;
     this.scheduled_event = null;
-    this.current_state = null;
+    // this.current_state = null;
     //An entity can schedule a single event for the future.
     //each tick the due_in decreases, until it is 0 and then
     //excecuted. 
@@ -252,25 +138,41 @@ class Dog extends NPC {
   constructor(name, description, id=null){
     super(name, description, id);
     this.type = "A Dog";
+    this.scheduled_event = new GameEvent(5,{action: "bark"});
   }
 
   process_tick(){
+    
+    if (this.scheduled_event.due_in===0){
 
-    if (this.scheduled_event===null){
-      this.scheduled_event = new GameEvent(5,{
-        action: "bark"
-      })
-    } else {
-      if (this.scheduled_event.due_in===0){
-        //bark
-        let msg = generate_action_msg(this.id, "barks");
-        msg_sender.send_message_to_room(this.current_room, msg);
+        if (this.scheduled_event.event_data.action==="bark"){
+          //Send a message to the room.
+          let msg = {
+            sender: 'world',
+            content: `${this.name} Barks!`
+          }
+          msg_sender.send_message_to_room(this.room_id, msg);
 
-        this.scheduled_event = new GameEvent(5,{
-          action: "bark"
-        })
-      } 
-    } 
+          //Schedule a new event.
+          this.scheduled_event = new GameEvent(5,{action: "bark"});
+        }        
+    }
+
+    // if (this.scheduled_event===null){
+    //   this.scheduled_event = new GameEvent(5,{
+    //     action: "bark"
+    //   })
+    // } else {
+    //   if (this.scheduled_event.due_in===0){
+    //     //bark
+    //     let msg = generate_action_msg(this.id, "barks");
+    //     msg_sender.send_message_to_room(this.current_room, msg);
+
+    //     this.scheduled_event = new GameEvent(5,{
+    //       action: "bark"
+    //     })
+    //   } 
+    // } 
     //process the current event if available.
     //then, schedule a new one if needed.
     //state machine progresses via ticks.
@@ -351,21 +253,69 @@ class Room extends BaseType {
   }
 }
 
-class Message_Sender {
-  constructor(world){
-    this.world = world;
+class Message_Formatter {
+  constructor(){
+    //TBD
   }
 
-  send_message_to_user(user_id, message){
-    //TODO: why this.ws? probabaly errror, should be let ws
-    this.ws_client = this.world.get_instance(user_id).ws_client;
-    this.ws_client.send(JSON.stringify(message));
+  generate_look_room_msg(room_id, user_id){
+    let room = world.get_instance(room_id);
+    
+    let msg = `**[${room.name}]({type:"room", id:${room_id}}, `;
+    msg += `lighting: ${room.lighting})**  ${room.description}  `;
+    msg += `Exits:  `;
+
+    for (const [direction, next_room_id] of Object.entries(room.exits)){
+      if (next_room_id!==null){
+        msg += `[${direction}]({type:"command"}) `
+      }
+    }
+
+    msg += '  '; //new paragraph
+
+    let entities_arr = room.get_entities();
+    
+    if (entities_arr.length===1){
+      //Only the player is in the room.
+      msg += 'The room is empty.';
+    } else {
+
+      msg += 'With you in the room:  ';
+
+      for (const entity_id of entities_arr){
+        if (entity_id===user_id) continue; //skip the player.
+
+        let entity = world.get_instance(entity_id);
+        msg += `[${entity.name}]({type:${entity.type}, id:${entity_id}}), `;
+        msg += `${entity.type}`;
+      }
+    }
+    return msg;
+  }
+
+  // generate_action_msg(entity_id, content){
+  //   let entity = world.get_instance(entity_id);
+  //   let msg = `[${entity.name}]({type:${entity.type}, id:${entity_id}}) `;
+  //   msg += `${content}`;
+  //   return msg;
+  // }
+}
+
+class Message_Sender {
+  constructor(){   
+    //TBD
+  }
+
+  send_message_to_user(user_id, message){    
+    let ws_client = world.get_instance(user_id).ws_client;
+    ws_client.send(JSON.stringify(message));
   }
 
   send_message_to_room(room_id, message){
-    let arr = world.get_instance(room_id).get_users();
-    for (const entity_id of arr){
-      this.world.get_instance(entity_id).ws_client.send(JSON.stringify(message));
+    let room = world.get_instance(room_id);
+    let arr = room.get_users()
+    for (const user_id of arr){
+      world.get_instance(user_id).ws_client.send(JSON.stringify(message));
     }
   }
 
@@ -373,155 +323,6 @@ class Message_Sender {
     //Broadcast a message to all connected clients.
     //To Be Implemented.
   }
-}
-
-/////////////////////////////////////////
-function init_game(){
-
-  id_generator= new ID_Generator();    
-  world=        new World();
-  msg_sender=   new Message_Sender(world);
-  game_controller = new Game_Controller();
-  msg_formatter = new Message_Formatter();
-
-  if (LOAD_WORLD_FROM_SAVE){
-    load_world();
-  } else {
-    generate_world();
-  }
-  
-
-  app.listen(3000); //Ready to recive connections.
-
-  setInterval(game_controller.game_loop, 1000);
-}
-
-init_game();
-
-
-
-function generate_world(){
-  let room = new Room(
-    'Room 1',
-    'This is the first room of the game.'
-  )  
-
-  world.add_to_world(room);  
-
-  room = world.add_room(room.id, 'north');
-  room.set_lighting('silver');
-  //TODO: add room name/descripion
-
-}
-
-function load_world(){
-  
-  if (fs.existsSync(`./world_save.json`)){
-    let current_id;
-    let data = JSON.parse(fs.readFileSync('./world_save.json'));
-
-    for (const [id, instance_data] of Object.entries(data)){
-      current_id = id;
-
-      if (instance_data.type==="room"){
-        let room = new Room(instance_data.name, instance_data.description, id);
-        
-        room.set_lighting(instance_data.lighting);
-
-        for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
-          room.add_exit(direction, next_room_id);
-        }
-
-        world.add_to_world(room);
-
-      } else {
-        //It's an npc
-        let entity = null;
-        switch(instance_data.type){
-          case ("dog"):
-            entity = new Dog(instance_data.name, instance_data.description, id);
-            break;
-        }
-
-        world.add_to_world(entity);
-        world.add_entity_to_room(entity.id, instance_data.room_id);
-      }
-    }
-
-    id_generator.set_new_current_id(current_id);
-
-  } else {
-    //TODO: fallback if no save exists
-  }
-}
-
-function new_client_connected(ws_client){
-  let user = new User('HaichiPapa', "It's you, bozo", ws_client);
-  world.add_to_world(user);
-  world.add_entity_to_room(user.id, FIRST_ROOM_ID);
-  let msg = {
-    sender: "world",
-    content: `Hi ${user.name}, your ID is ${user.id}`
-  }
-  msg_sender.send_message_to_user(user.id, msg);
-
-  game_controller.look_cmd(user.id);
-
-  // let room = world.get_instance(FIRST_ROOM_ID);
-  // msg = {
-  //   sender: 'world',
-  //   content: msg_formatter.generate_look_room_msg(room.id, user.id)
-  // }
-  // msg_sender.send_message(user.id, msg);
-
-  return user.id;
-}
-
-function process_incoming_message(event, user_id){
-  
-  let normalized_text= event.data.trim().toLowerCase();  
-  let re = /\s+/g; //search for all white spaces.
-  let input_arr = normalized_text.split(re);
-  
-  let cmd = input_arr[0];
-
-  switch(cmd){
-    case 'look':
-    case 'l':
-      game_controller.look_cmd(user_id);
-      break;
-
-    case 'north':
-    case 'n':
-      game_controller.move_cmd('north', user_id);
-      break;
-
-    case 'south':
-    case 's':
-      game_controller.move_cmd('south', user_id);
-      break;
-
-    case 'west':
-    case 'w':
-      game_controller.move_cmd('west', user_id);
-      break;
-
-    case 'east':
-    case 'e':
-      game_controller.move_cmd('east', user_id);
-      break;
-
-    case 'up':
-    case 'u':
-      game_controller.move_cmd('up', user_id);
-      break;
-
-    case 'down':
-    case 'd':
-      game_controller.move_cmd('down', user_id);
-      break;
-  }
-
 }
 
 function get_opposite_direction(direction){  
@@ -540,3 +341,212 @@ function get_opposite_direction(direction){
       return 'up';
   }
 }
+
+class Game_Controller {
+  constructor(){
+    this.init_game();
+  }
+
+  init_game(){
+    id_generator=   new ID_Generator();    
+    world=          new World();
+    msg_sender=     new Message_Sender();
+    msg_formatter=  new Message_Formatter();
+      
+    if (LOAD_WORLD_FROM_SAVE){
+      this.load_world();
+    } else {
+      this.generate_world();
+    }    
+  
+    app.listen(3000); //Ready to recive connections.
+  
+    setInterval(this.game_loop, 1000);
+  }
+
+  generate_world(){
+    let room = new Room(
+      'Room 1',
+      'This is the first room of the game.'
+    )  
+  
+    world.add_to_world(room);  
+  
+    room = world.add_room(room.id, 'north');
+    room.set_lighting('silver');
+    //TODO: add room name/descripion
+  
+  }
+  
+  load_world(){
+    
+    if (fs.existsSync(`./world_save.json`)){
+      let current_id;
+      let data = JSON.parse(fs.readFileSync('./world_save.json'));
+  
+      for (const [id, instance_data] of Object.entries(data)){
+        current_id = id;
+  
+        if (instance_data.type==="room"){
+          let room = new Room(instance_data.name, instance_data.description, id);
+          
+          room.set_lighting(instance_data.lighting);
+  
+          for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
+            room.add_exit(direction, next_room_id);
+          }
+  
+          world.add_to_world(room);
+  
+        } else {
+          //It's an npc
+          let entity = null;
+          switch(instance_data.type){
+            case ("dog"):
+              entity = new Dog(instance_data.name, instance_data.description, id);
+              break;
+          }
+  
+          world.add_to_world(entity);
+          world.add_entity_to_room(entity.id, instance_data.room_id);
+        }
+      }
+  
+      id_generator.set_new_current_id(current_id);
+  
+    } else {
+      //TODO: fallback if no save exists
+    }
+  }
+  
+  game_loop(){
+    
+    world.world.forEach(
+      (item) => item.decrement_scheduled_events_due_in()
+    );
+
+    world.world.forEach(
+      (item) => item.process_tick()
+    );
+
+  }
+
+  new_client_connected(ws_client){
+    let user = new User('HaichiPapa', "It's you, bozo", ws_client);
+    world.add_to_world(user);
+    world.add_entity_to_room(user.id, FIRST_ROOM_ID);
+    let msg = {
+      sender: "world",
+      content: `Hi ${user.name}, your ID is ${user.id}`
+    }
+    msg_sender.send_message_to_user(user.id, msg);  
+    this.look_cmd(user.id);      
+    return user.id;
+  }
+
+  process_incoming_message(event, user_id){
+  
+    let normalized_text= event.data.trim().toLowerCase();  
+    let re = /\s+/g; //search for all white spaces.
+    let input_arr = normalized_text.split(re);
+    
+    let cmd = input_arr[0];
+  
+    switch(cmd){
+      case 'look':
+      case 'l':
+        this.look_cmd(user_id);
+        break;
+  
+      case 'north':
+      case 'n':
+        this.move_cmd('north', user_id);
+        break;
+  
+      case 'south':
+      case 's':
+        this.move_cmd('south', user_id);
+        break;
+  
+      case 'west':
+      case 'w':
+        this.move_cmd('west', user_id);
+        break;
+  
+      case 'east':
+      case 'e':
+        this.move_cmd('east', user_id);
+        break;
+  
+      case 'up':
+      case 'u':
+        this.move_cmd('up', user_id);
+        break;
+  
+      case 'down':
+      case 'd':
+        this.move_cmd('down', user_id);
+        break;
+    }  
+  }
+
+  look_cmd(user_id){
+    let user = world.get_instance(user_id);
+    let room = world.get_instance(user.room_id);
+
+    let message = {
+      sender: 'world',
+      content: msg_formatter.generate_look_room_msg(room.id, user_id)
+    }
+    msg_sender.send_message_to_user(user_id, message)
+  }
+
+  move_cmd(direction, user_id){
+    let user=         world.get_instance(user_id);
+    let current_room= world.get_instance(user.room_id);
+
+    if (current_room.exits[direction]===null){
+      //Exit does not exist
+      let message = {
+        sender: 'world',
+        content: `There's no exit to ${direction}.`        
+      }
+      msg_sender.send_message_to_user(user_id, message)
+      return;
+    }
+
+    //Exit exists.
+    let new_room=     world.get_instance(current_room.exits[direction]);
+
+    user.room_id = new_room.id;
+    current_room.remove_entity(user.id);
+    new_room.add_entity(user_id);
+
+    let message = {
+      sender: 'world',
+      content: `
+        You travel ${direction} to ${new_room.name}.`        
+    }
+    msg_sender.send_message_to_user(user_id, message)
+
+    this.look_cmd(user.id);
+
+  }
+}
+
+let game_controller=  new Game_Controller();
+
+//-- WebSockets
+wss.on('connection', (ws_client) => {
+  
+  let user_id = game_controller.new_client_connected(ws_client);  
+
+  ws_client.on('close', () => {
+    console.log(`Client User ID ${user_id}disconnected`);
+    //TODO: save user.
+  });
+
+  ws_client.onmessage = (event) => {
+    game_controller.process_incoming_message(event, user_id);    
+  }
+});
