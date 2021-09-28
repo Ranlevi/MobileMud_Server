@@ -19,16 +19,6 @@ let id_generator=     null;
 let msg_sender=       null;
 let msg_formatter=    null;
 
-class GameEvent {
-  constructor(due_in, event_data){
-    this.due_in = due_in;
-    this.event_data = event_data;
-  }
-  decrement_due_in(){
-    this.due_in -= 1;
-  }
-}
-
 class ID_Generator {
   constructor(){
     this.current_id = 0;
@@ -59,7 +49,7 @@ class World {
     this.world.set(instance.id, instance);
   }
 
-  add_entity_to_room(entity_id, room_id){
+  add_entity_to_room(entity_id, room_id){ //TODO: should it be here, not in room?
     let entity = this.get_instance(entity_id);
     let room   = this.get_instance(room_id);
     room.add_entity(entity_id);
@@ -77,129 +67,280 @@ class World {
     current_room.add_exit(direction, new_room.id);
     new_room.add_exit(get_opposite_direction(direction), current_room_id);
     return new_room.id;
-  }    
+  }
+
+  remove_item_from_world(item_id){
+    let item = this.world.get(item_id);
+    let room = world.get_instance(item.room_id);
+    room.remove_entity(item_id);
+    this.world.delete(item_id);
+  }
 }
 
 class BaseType {
   //Not meant to be called directly.
   constructor(name, description, id){
-    this.id= (id===null)? id_generator.get_new_id() : id;
+    this.id=          (id===null)? id_generator.get_new_id() : id;
     this.name=        name;
     this.description= description;
-    this.scheduled_event = null;
-    // this.current_state = null;
-    //An entity can schedule a single event for the future.
-    //each tick the due_in decreases, until it is 0 and then
-    //excecuted. 
-    //If something happens that influences the future event,
-    //the entity can discard it and schedule a new one. 
-  }
-
-  decrement_scheduled_events_due_in(){
-    if (this.scheduled_event!==null){
-      this.scheduled_event.decrement_due_in();
-    }
-  }
+    this.type=        null; //todo: change to type_string
+    this.state=       null;
+  }  
 
   process_tick(){
     //do nothing unless overided by instance
-  }
-
-  cleak_scheduled_event(){
-    this.scheduled_event=null;
-  }
-
+  }  
 }
 
-class Entity extends BaseType {
-  //Not meant to be called directly.
+class InAnimateObject extends BaseType {
   constructor(name, description, id){
     super(name, description, id);
     this.room_id = null;
   }
 }
 
+class Corpse extends InAnimateObject {
+  constructor(name, description, id=null){
+    super(`The Corpse of ${name}`, description, id);
+    this.type = "A Corpse";
+    this.decomposition_timer= 10;
+  }
+
+  process_tick(){
+    this.decomposition_timer -= 1;
+  }
+}
+
+class Entity extends BaseType {
+  //Not meant to be called directly.
+  constructor(name, description, id){
+    super(name, description, id);
+    this.room_id= null;    
+  }
+
+  process_tick(){
+   //To ve overidden
+  }
+}
+
+//TODO; move the battle handling to the controller.
+//if the state of the item is in battle - do not process tick, handle 
+//the battle. until -> deathblow -> idle for winner.
+
 class User extends Entity {
   constructor(name, description, ws_client, id=null){
     super(name, description, id);
-    this.ws_client = ws_client;
-    this.type = "A Player";
+    this.ws_client= ws_client;
+    this.type=      "A Player";
+    this.health=    100;
+    this.damage=    1;
+
+    //Current state
+    //Default, Battle, Deathblow, Dead.
+    this.state=             "Default";
+    this.is_fighting_with=  null;    
+  }
+
+  start_battle_with(id){
+    this.is_fighting_with = id;
+  }
+
+  stop_battle(){
+    this.is_fighting_with = null;
+  }
+
+  reset(){
+    this.health = 100;
+    this.damage = 1;
+    this.state = "Default";
+  }
+
+  process_tick(){
+
+    switch(this.state){
+      case('Default'):
+        //Transition
+        if (this.is_fighting_with!==null){
+          this.state = "Battle";
+        } 
+        break;
+
+      case('Battle'):
+        //Action
+        let opponent=     world.get_instance(this.is_fighting_with);
+        let damage_dealt= opponent.receive_damage(this.damage);
+    
+        let msg = {
+          sender: 'world',
+          content: `${this.name} strikes ${opponent.name}, inflicting ${damage_dealt} HP of damage.`
+        }
+        msg_sender.send_message_to_room(this.room_id, msg);  
+
+        //Transition
+        if (this.is_fighting_with===null){          
+          this.state=             "Default";
+        } else if (this.health===0){          
+          this.state=             "DeathBlow";
+          opponent.stop_battle();
+        }
+        break;
+
+      case("DeathBlow"):
+        //Action
+        msg = {
+          sender: 'world',
+          content: `${this.name} is DEAD!`
+        }
+        msg_sender.send_message_to_room(this.room_id, msg);        
+
+        //Transition
+        this.state = "Dead";
+        break;
+
+      case('Dead'):        
+        //Do nothing
+        break;      
+    }
+  }
+
+  receive_damage(damage){
+    //Basic damage reception, can be overided.
+    this.health = this.health - damage;
+    if (this.health<0) this.health= 0;
+    return damage;
   }
 }
 
 class NPC extends Entity {
   //Not meant to be called directly.
   constructor(name, description, id){
-    super(name, description, id);    
+    super(name, description, id);
+    this.health=  10;
+    this.damage=  1;      
+
+    //Current State
+    //Default, Battle, DeathBlow, Dead.
+    this.state=               "Default"; 
+    this.is_fighting_with=    null;    
+  }
+
+  start_battle_with(id){
+    this.is_fighting_with = id;
+  }
+
+  stop_battle(){
+    this.is_fighting_with = null;
+  }
+
+  process_tick(){
+
+    switch(this.state){
+      case('Default'):
+        //Action
+        this.process_default_state_machine();
+
+        //Transition
+        if (this.is_fighting_with!==null){
+          this.state = "Battle";
+        } 
+        break;
+
+      case('Battle'):
+        //Action
+        this.process_battle_state_machine();
+
+        //Transition
+        if (this.is_fighting_with===null){          
+          this.state=             "Default";
+        } else if (this.health===0){          
+          this.state=             "DeathBlow";
+          world.get_instance(this.is_fighting_with).stop_battle();
+        }
+        break;
+
+      case("DeathBlow"):
+        //Action
+        let msg = {
+          sender: 'world',
+          content: `${this.name} is DEAD!`
+        }
+        msg_sender.send_message_to_room(this.room_id, msg);        
+
+        //Transition
+        this.state = "Dead";
+        break;
+
+      case('Dead'):        
+        //Do nothing
+        break;      
+    }
+  }
+  
+  process_default_state_machine(){
+    //Overide in inherited class.
+  }
+
+  process_battle_state_machine(){
+    //Basic battle STM, can be overided.
+    //Has only one state: strike every tick untill winning or dead.
+
+    let opponent=     world.get_instance(this.is_fighting_with);
+    let damage_dealt= opponent.receive_damage(this.damage);
+
+    let msg = {
+      sender: 'world',
+      content: `${this.name} strikes ${opponent.name}, inflicting ${damage_dealt} HP of damage.`
+    }
+    msg_sender.send_message_to_room(this.room_id, msg);    
+    
+  }
+
+  receive_damage(damage){
+    //Basic damage reception, can be overided.
+    this.health = this.health - damage;
+    if (this.health<0) this.health= 0;
+    return damage;
   }
 }
 
 class Dog extends NPC {
   constructor(name, description, id=null){
     super(name, description, id);
-    this.type = "A Dog";
-    this.scheduled_event = new GameEvent(5,{action: "bark"});
+    this.type=    "A Dog";
+    this.health=  5;
+    this.counter= 5; 
+    this.default_stm_state = "Idle";
   }
 
-  process_tick(){
-    
-    if (this.scheduled_event.due_in===0){
+  process_default_state_machine(){
+    //Overide in inherited class.
+    switch(this.default_stm_state){
 
-        if (this.scheduled_event.event_data.action==="bark"){
-          //Send a message to the room.
-          let msg = {
-            sender: 'world',
-            content: `${this.name} Barks!`
-          }
-          msg_sender.send_message_to_room(this.room_id, msg);
+      case("Idle"):
+        //Action
+        this.counter -= 1;
 
-          //Schedule a new event.
-          this.scheduled_event = new GameEvent(5,{action: "bark"});
-        }        
+        //Transition
+        if (this.counter===0){
+          this.default_stm_state = 'Barking';          
+        } 
+        break;
+
+      case('Barking'):
+        //Action
+        this.counter = 5;
+        
+        let msg = {
+          sender: 'world',
+          content: 'Archie Barks.'
+        }
+        msg_sender.send_message_to_room(this.room_id, msg);
+
+        //Transition
+        this.default_stm_state = 'Idle';
+        break;
     }
-
-    // if (this.scheduled_event===null){
-    //   this.scheduled_event = new GameEvent(5,{
-    //     action: "bark"
-    //   })
-    // } else {
-    //   if (this.scheduled_event.due_in===0){
-    //     //bark
-    //     let msg = generate_action_msg(this.id, "barks");
-    //     msg_sender.send_message_to_room(this.current_room, msg);
-
-    //     this.scheduled_event = new GameEvent(5,{
-    //       action: "bark"
-    //     })
-    //   } 
-    // } 
-    //process the current event if available.
-    //then, schedule a new one if needed.
-    //state machine progresses via ticks.
-    // switch(this.current_state){
-    //   case(null):
-    //     let event = new GameEvent(5,{
-    //       action: "next state"
-    //     })
-    //     this.current_state="Idle";
-    //     break;
-    //   case("Idle"):
-
-    //     this.current_state="Excited";
-    //     break;
-    //   case('Excited'):
-    //     this.current_state="Fearful";
-    //     break;
-    //   case('Fearful'):
-    //     this.current_state="Idle";
-    //     break;
-    //   }
-    
-    //dog state machine
-    //ST1: idle
-    //ST2: excited
-    //ST3: fearful
-  }
+  }  
 }
 
 class Room extends BaseType {
@@ -235,6 +376,16 @@ class Room extends BaseType {
       arr.push(entity_id);
     }
     return arr;
+  }
+
+  get_entity_id_by_name(name){
+    for (let entity_id of this.entities){      
+      let entity_name = world.get_instance(entity_id).name.toLowerCase();
+      if (entity_name===name){
+        return entity_id;
+      }
+    }
+    return null;//entity not found.
   }
 
   get_users(){
@@ -293,6 +444,16 @@ class Message_Formatter {
     return msg;
   }
 
+  generate_look_entity_msg(entity_id){
+    let entity = world.get_instance(entity_id);
+    
+    //Different messages for NPCs and Objects.
+    if (entity instanceof NPC){
+      let msg = `This is ${entity.name}, ${entity.type}`
+      return msg;
+    }
+  }
+
   // generate_action_msg(entity_id, content){
   //   let entity = world.get_instance(entity_id);
   //   let msg = `[${entity.name}]({type:${entity.type}, id:${entity_id}}) `;
@@ -315,7 +476,7 @@ class Message_Sender {
     let room = world.get_instance(room_id);
     let arr = room.get_users()
     for (const user_id of arr){
-      world.get_instance(user_id).ws_client.send(JSON.stringify(message));
+      this.send_message_to_user(user_id, message);      
     }
   }
 
@@ -419,12 +580,79 @@ class Game_Controller {
     }
   }
   
-  game_loop(){
-    
-    world.world.forEach(
-      (item) => item.decrement_scheduled_events_due_in()
-    );
+  game_loop(){    
 
+    //Check the new state of each item, and act upon it.
+
+    let items_to_remove_from_world = [];
+    let items_to_add_to_world = [];
+
+    world.world.forEach(
+      (item) => {
+
+        if (item instanceof NPC){
+
+          if (item.state==="DeathBlow"){
+              //Stop the battle
+              world.get_instance(item.is_fighting_with).stop_battle();
+          
+          } else if (item.state==="Dead"){           
+
+            //Create a corpse
+            let corpse = new Corpse(item.name, item.description);
+            items_to_add_to_world.push(corpse);
+
+            //Remove the NPC from the world
+            items_to_remove_from_world.push(item);
+          }         
+
+        } else if (item instanceof Corpse){
+
+          if (item.decomposition_timer==0){
+            items_to_remove_from_world.push(item);
+          }
+
+        } else if (item instanceof User){
+
+          if (item.state==="DeathBlow"){
+            //Stop the battle
+            world.get_instance(item.is_fighting_with).stop_battle();
+          } else if (item.state==="Dead"){            
+
+            //Create a corpse
+            let corpse = new Corpse(item.name, item.description);
+            items_to_add_to_world.push(corpse);
+
+            //Respawn the user
+            let room = world.get_instance(item.room_id);
+            room.remove_entity(item.id);
+
+            room = world.get_instance(FIRST_ROOM_ID);
+            room.add_entity_to_room(item.id);
+
+            item.reset();
+
+            let msg = {
+              sender: "world",
+              content: `You respawned in the starting room.`
+            }
+            msg_sender.send_message_to_user(item.id, msg); 
+          }
+        }
+      }
+    )
+    
+    //Handle adding/removeing items
+    for (const item of items_to_remove_from_world){
+      world.remove_item_from_world(item.id);
+    }
+
+    for (const item of items_to_add_to_world){
+      world.add_to_world(item);
+      world.add_entity_to_room(item.id, FIRST_ROOM_ID);
+    }
+
+    //Do the state machine for each item.
     world.world.forEach(
       (item) => item.process_tick()
     );
@@ -440,22 +668,36 @@ class Game_Controller {
       content: `Hi ${user.name}, your ID is ${user.id}`
     }
     msg_sender.send_message_to_user(user.id, msg);  
-    this.look_cmd(user.id);      
+
+    this.process_incoming_message('look', user.id);    
     return user.id;
   }
 
-  process_incoming_message(event, user_id){
+  process_incoming_message(text, user_id){
+
+    if (text==='') return;
   
-    let normalized_text= event.data.trim().toLowerCase();  
+    let normalized_text= text.trim().toLowerCase();  
     let re = /\s+/g; //search for all white spaces.
     let input_arr = normalized_text.split(re);
     
     let cmd = input_arr[0];
-  
+    let target;
+    if (input_arr.length===1){
+      target= null;
+    } else {
+      target = input_arr.slice(1).join(' ');
+    } 
+
     switch(cmd){
       case 'look':
       case 'l':
-        this.look_cmd(user_id);
+        this.look_cmd(user_id,target);
+        break;
+
+      case 'kill':
+      case 'k':
+        this.kill_cmd(user_id, target);
         break;
   
       case 'north':
@@ -490,15 +732,68 @@ class Game_Controller {
     }  
   }
 
-  look_cmd(user_id){
+  kill_cmd(user_id, target){
+
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: `Who do you want to kill?`
+      }
+      msg_sender.send_message_to_user(user_id, message);
+
+    } else {
+
+      let user=       world.get_instance(user_id);
+      let room=       world.get_instance(user.room_id);
+      let entity_id=  room.get_entity_id_by_name(target);
+
+      if (entity_id===null){
+        let message = {
+          sender: 'world',
+          content: `There is no ${target} around.`
+        }
+        msg_sender.send_message_to_user(user_id, message);
+
+      } else {
+        user.start_battle_with(entity_id);
+        world.get_instance(entity_id).start_battle_with(user_id);
+      }
+
+    }
+
+
+  }
+
+  look_cmd(user_id, target){
     let user = world.get_instance(user_id);
     let room = world.get_instance(user.room_id);
 
-    let message = {
-      sender: 'world',
-      content: msg_formatter.generate_look_room_msg(room.id, user_id)
-    }
-    msg_sender.send_message_to_user(user_id, message)
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: msg_formatter.generate_look_room_msg(room.id, user_id)
+      }
+      msg_sender.send_message_to_user(user_id, message)
+
+    } else {
+      let entity_id = room.get_entity_id_by_name(target);
+
+      if (entity_id===null){
+        let message = {
+          sender: 'world',
+          content: `There is no ${target} around.`
+        }
+        msg_sender.send_message_to_user(user_id, message);
+      
+      } else {
+
+        let message = {
+          sender: 'world',
+          content: msg_formatter.generate_look_entity_msg(entity_id)
+        }
+        msg_sender.send_message_to_user(user_id, message);
+      }
+    }    
   }
 
   move_cmd(direction, user_id){
@@ -528,9 +823,7 @@ class Game_Controller {
         You travel ${direction} to ${new_room.name}.`        
     }
     msg_sender.send_message_to_user(user_id, message)
-
-    this.look_cmd(user.id);
-
+    this.process_incoming_message('look', user.id);
   }
 }
 
@@ -547,6 +840,6 @@ wss.on('connection', (ws_client) => {
   });
 
   ws_client.onmessage = (event) => {
-    game_controller.process_incoming_message(event, user_id);    
+    game_controller.process_incoming_message(event.data, user_id);    
   }
 });
