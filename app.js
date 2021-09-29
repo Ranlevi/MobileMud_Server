@@ -115,7 +115,33 @@ class Entity extends BaseType {
   //Not meant to be called directly.
   constructor(name, description, id){
     super(name, description, id);
-    this.room_id= null;    
+    this.room_id= null;   
+    this.health=  10;
+    this.damage=  1;    
+    this.state= null; 
+    this.is_fighting_with=    null;    
+  }
+  
+  start_battle_with(id){
+    this.is_fighting_with = id;
+  }
+
+  stop_battle(){
+    this.is_fighting_with = null;
+  }
+
+  strike_opponent(){
+    //basic striking. Can be overriden.
+    let opponent = world.get_instance(this.is_fighting_with);
+    let damage_dealt = opponent.receive_damage(this.damage);
+    return damage_dealt;
+  }
+
+  receive_damage(damage){
+    //Basic damage reception, can be overided.
+    this.health = this.health - damage;
+    if (this.health<0) this.health= 0;
+    return damage;
   }
 
   process_tick(){
@@ -128,67 +154,14 @@ class User extends Entity {
     super(name, description, id);
     this.ws_client= ws_client;
     this.type=      "A Player";
-    this.health=    100;
-    this.damage=    1;
-
-    //Current state
-    //Default, Battle, Dead.
-    this.state=             "Default";
-    this.is_fighting_with=  null;    
-  }
-
-  start_battle_with(id){
-    this.is_fighting_with = id;
-  }
-
-  stop_battle(){
-    this.is_fighting_with = null;
+    this.health=    5;       
   }
 
   reset(){
     this.health = 100;
     this.damage = 1;
     this.state = "Default";
-  }
-
-  strike_opponent(){
-    //basic striking. Can be overriden.
-    let opponent = world.get_instance(this.is_fighting_with);
-    let damage_dealt = opponent.receive_damage(this.damage);
-    return damage_dealt;
-  }
-
-  process_tick(){
-
-    switch(this.state){
-      case('Default'):
-        //Transition
-        if (this.is_fighting_with!==null){
-          this.state = "Battle";
-        } 
-        break;
-
-      case('Battle'):
-        
-        //Transition
-        if (this.is_fighting_with===null){          
-          this.state=             "Default";
-        } else if (this.health===0){          
-          this.state=             "Dead";          
-        }
-        break;
-
-      case('Dead'):        
-        //Do nothing
-        break;      
-    }
-  }
-
-  receive_damage(damage){
-    //Basic damage reception, can be overided.
-    this.health = this.health - damage;
-    if (this.health<0) this.health= 0;
-    return damage;
+    this.is_fighting_with = null;
   }
 }
 
@@ -196,74 +169,6 @@ class NPC extends Entity {
   //Not meant to be called directly.
   constructor(name, description, id){
     super(name, description, id);
-    this.health=  10;
-    this.damage=  1;      
-
-    //Current State
-    //Default, Battle, Dead.
-    this.state=               "Default"; 
-    this.is_fighting_with=    null;    
-  }
-
-  start_battle_with(id){
-    this.is_fighting_with = id;
-  }
-
-  stop_battle(){
-    this.is_fighting_with = null;
-  }
-
-  strike_opponent(){
-    //basic striking. Can be overriden.
-    let opponent = world.get_instance(this.is_fighting_with);
-    let damage_dealt = opponent.receive_damage(this.damage);
-    return damage_dealt;
-  }
-
-  process_tick(){
-
-    switch(this.state){
-      case('Default'):
-        //Action
-        this.process_default_state_machine();
-
-        //Transition
-        if (this.is_fighting_with!==null){
-          this.state = "Battle";
-        } 
-        break;
-
-      case('Battle'):
-        //Action
-        this.process_battle_state_machine();
-
-        //Transition
-        if (this.is_fighting_with===null){          
-          this.state=             "Default";
-        } else if (this.health===0){          
-          this.state=             "Dead";
-        }
-        break;
-
-      case('Dead'):        
-        //Do nothing
-        break;      
-    }
-  }
-  
-  process_default_state_machine(){
-    //Overide in inherited class.
-  }
-
-  process_battle_state_machine(){
-    //TBD?
-  }
-
-  receive_damage(damage){
-    //Basic damage reception, can be overided.
-    this.health = this.health - damage;
-    if (this.health<0) this.health= 0;
-    return damage;
   }
 }
 
@@ -271,14 +176,14 @@ class Dog extends NPC {
   constructor(name, description, id=null){
     super(name, description, id);
     this.type=    "A Dog";
-    this.health=  5;
+    this.health=  50;
     this.counter= 5; 
-    this.default_stm_state = "Idle";
+    this.state = "Idle";
   }
 
-  process_default_state_machine(){
+  process_tick(){
     //Overide in inherited class.
-    switch(this.default_stm_state){
+    switch(this.state){
 
       case("Idle"):
         //Action
@@ -286,7 +191,7 @@ class Dog extends NPC {
 
         //Transition
         if (this.counter===0){
-          this.default_stm_state = 'Barking';          
+          this.state = 'Barking';          
         } 
         break;
 
@@ -301,7 +206,7 @@ class Dog extends NPC {
         msg_sender.send_message_to_room(this.room_id, msg);
 
         //Transition
-        this.default_stm_state = 'Idle';
+        this.state = 'Idle';
         break;
     }
   }  
@@ -545,119 +450,63 @@ class Game_Controller {
   }
   
   game_loop(){    
-
-    //Check the new state of each item, and act upon it.
-
-    let items_to_remove_from_world = [];
-    let items_to_add_to_world = [];
-
-    world.world.forEach(
-      (item) => item.process_tick()
-    );
-
-    //Now check the state of each item and excecute inter-items
-    //interactions.
-    
-
+    var msg;
     world.world.forEach(
       (item) => {
-        var msg;
 
-        if (item instanceof NPC){
-          switch(item.state){
-            case "Default":
-              //Do nothing
-              break;
+        if (item instanceof Entity && item.is_fighting_with!==null){
 
-            case "Battle":
-              let damage_dealt = item.strike_opponent();
-              let opponent = world.get_instance(item.is_fighting_with);
-              msg = {
-                sender: 'world',
-                content: `${item.name} strikes ${opponent.name}, `+
-                         `dealing ${damage_dealt} HP.`
-              }
-              msg_sender.send_message_to_room(item.room_id, msg);
-              break;
-
-            case 'Dead':
-              //Notify the world. Create corpse. remove item.
-              msg = {
-                sender: 'world',
-                content: `${item.name} is DEAD!`
-              }
-              msg_sender.send_message_to_room(item.room_id, msg);
-
-              //problem: archie is dead, but user is still
-              //in battle state...
-              //how do we make the user change state, while
-              //still keeping it's independece? 
-              let corpse = new Corpse(item.name, item.description);
-              items_to_add_to_world.push(corpse);
-
-              //Remove the NPC from the world
-              items_to_remove_from_world.push(item);
-              break;
+          let damage_dealt = item.strike_opponent();
+            
+          let opponent = world.get_instance(item.is_fighting_with);
+          msg = {
+            sender: 'world',
+            content: `${item.name} strikes ${opponent.name}, `+
+                      `dealing ${damage_dealt} HP.`
           }
-        } else if (item instanceof User){
+          msg_sender.send_message_to_room(item.room_id, msg);
 
-          switch(item.state){
-            case "Default":
-              //Do nothing
-              break;
+          if (opponent.health===0){
+            //Opponent has died
+            item.stop_battle();
 
-            case "Battle":
-              let damage_dealt = item.strike_opponent();
-              let opponent = world.get_instance(item.is_fighting_with);
-              msg = {
-                sender: 'world',
-                content: `${item.name} strikes ${opponent.name}, `+
-                         `dealing ${damage_dealt} HP.`
-              }
-              msg_sender.send_message_to_room(item.room_id, msg);
-              break;
+            msg = {
+              sender: 'world',
+              content: `${opponent.name} is DEAD!`
+            }
+            msg_sender.send_message_to_room(item.room_id, msg);
 
-            case 'Dead':
-              //Notify the world. Create corpse. remove item.
-              msg = {
-                sender: 'world',
-                content: `${item.name} is DEAD!`
-              }
-              msg_sender.send_message_to_room(item.room_id, msg);
+            //Create a corpse
+            let corpse = new Corpse(opponent.name, opponent.description);
+            world.add_to_world(corpse);
+            world.add_entity_to_room(corpse.id, opponent.room_id);
 
-              let corpse = new Corpse(item.name, item.description);
-              items_to_add_to_world.push(corpse);
-
+            //If an NPC - remove from world.
+            //If user - respwan
+            if (opponent instanceof NPC){
+              world.remove_item_from_world(opponent.id);
+            } else if (opponent instanceof User){
               //Respawn the user
-              let room = world.get_instance(item.room_id);
-              room.remove_entity(item.id);
+              let room = world.get_instance(opponent.room_id);
+              room.remove_entity(opponent.id);
 
               room = world.get_instance(FIRST_ROOM_ID);
-              room.add_entity_to_room(item.id);
+              room.add_entity(opponent.id);
 
-              item.reset();
+              opponent.reset();
 
               msg = {
                 sender: "world",
                 content: `You respawned in the starting room.`
               }
-              msg_sender.send_message_to_user(item.id, msg);
-              break;
+              msg_sender.send_message_to_user(opponent.id, msg);
+            }            
           }
+        } else {
+          item.process_tick();
         }
-      }
-    )
-    
-    //Handle adding/removeing items
-    for (const item of items_to_remove_from_world){
-      world.remove_item_from_world(item.id);
-    }
-
-    for (const item of items_to_add_to_world){
-      world.add_to_world(item);
-      world.add_entity_to_room(item.id, FIRST_ROOM_ID);
-    }
-
+      }      
+    );
   }
 
   new_client_connected(ws_client){
@@ -763,15 +612,12 @@ class Game_Controller {
         let opponent = world.get_instance(entity_id);
         let msg = {
           sender: 'world',
-          continue: `${user.name} attacks ${opponent.name}, `+
+          content: `${user.name} attacks ${opponent.name}, `+
                     `dealing ${damage_dealt} HP.`
         }
         msg_sender.send_message_to_room(user.room_id, msg);
       }
-
     }
-
-
   }
 
   look_cmd(user_id, target){

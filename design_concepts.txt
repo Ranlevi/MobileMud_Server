@@ -76,5 +76,10 @@ a natural leveling/zoning system.
     by modifing them. (e.g a dog is scheduled to bark in 4 ticks. If the 
     user pets the dod, the barking is canceled/modified.)
 - Each entity/item has it's own internal state which it
-  operates independantly. The simulation takes care of
-  interactions between items (e.g. battles)
+  operates independantly. this is done by the simulation calling
+  process_tick(). 
+  When there is a strong time-sensative interaction between items (e.g. battle),
+  the simulation takes over: it does not call proces_tick,
+  and handles the interaction during the game loop itself. 
+  This allows max autonomy, while solving problems with interactions
+  between two state machines.
