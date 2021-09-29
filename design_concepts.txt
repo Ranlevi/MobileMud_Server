@@ -75,5 +75,6 @@ a natural leveling/zoning system.
     current tick, tick+1, etc) so we can influence future events 
     by modifing them. (e.g a dog is scheduled to bark in 4 ticks. If the 
     user pets the dod, the barking is canceled/modified.)
-
-    
+- Each entity/item has it's own internal state which it
+  operates independantly. The simulation takes care of
+  interactions between items (e.g. battles)
