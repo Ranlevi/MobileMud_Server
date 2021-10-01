@@ -20,6 +20,9 @@ Game Design:
   When something that requires synchorization with another item ocurrs (e.g. battle),
   the game_loop() ignores the process_tick and handles the actions directly.
 
+- A User and Human NPC have the full inventory.
+  An Non-Human NPC and InAnimateObject has only slots.
+
 
 - The content sent to the client is 'smart': i.e., entities are indicated
   by type, allowing the client to display actions according to type.
@@ -33,10 +36,6 @@ Game Design:
     - creating rooms and npcs. modifying properties via 'modify room.name' etc.
     - set/release ownership of rooms and objects.
   The two can be in the same game, but in different zones. 
-- Type system is heirachical: 
-- BaseType -> Room (has entities and objects)
-           -> Object (inanimate objects)
-           - Entity (has inventory, slots, health, damage) -> User
                                                            -> NPC
 - Messages are sent async. Game has a 1 sec tick for entities.
 - Development phases:

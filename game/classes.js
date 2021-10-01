@@ -1,5 +1,6 @@
 const Utils = require('./utils');
 const World = require('./world');
+const Inventory = require('./inventory');
 
 class Item {
 //Not meant to be called directly.
@@ -92,7 +93,9 @@ class Entity extends Item {
 
       this.health=            10;
       this.damage=            1;          
-      this.is_fighting_with=  null;    
+      this.is_fighting_with=  null;
+
+      this.inventory= new Inventory.Inventory(10);
   }
   
   start_battle_with(id){
@@ -125,7 +128,9 @@ class Entity extends Item {
 class InAnimateObject extends Entity {
   //Not meant to be called directly.
   constructor(name, description, room_id, id){
-    super(name, description, room_id, id);    
+    super(name, description, room_id, id);  
+    
+    this.inventory= new Inventory.Inventory(0, false, false);
   }
 }
 
@@ -134,6 +139,7 @@ class Corpse extends InAnimateObject {
     super(`The Corpse of ${name}`, description, room_id, id);
     this.type_string=         "A Corpse";
     this.decomposition_timer= 10;
+    this.inventory=           new Inventory.Inventory(17, false, false);
   }
 
   process_tick(){
@@ -145,19 +151,32 @@ class Corpse extends InAnimateObject {
   }
 }
 
+class Screwdriver extends InAnimateObject {
+  constructor(name, description, room_id, id=null){
+    super(name, description, room_id, id);
+
+    this.type_string=         "A Screwdriver";
+  }
+}
+
 class User extends Entity {
   constructor(name, description, ws_client, room_id, id=null){
     super(name, description, room_id, id);
+    this.BASE_HEALTH = 100;
+    this.BASE_DAMAGE = 1;
+
     this.ws_client=   ws_client;
     this.type_string= "A User";
-    this.health=      15;       
+    this.health=      BASE_HEALTH;
+    this.damage=      BASE_DAMAGE;
   }
 
   reset(spawn_room_id){
-    this.health= 100;
-    this.damage= 1;
-    this.state= "Default";
-    this.is_fighting_with= null;
+    this.health=            BASE_HEALTH;
+    this.damage=            BASE_DAMAGE;
+    this.state=             "Default";
+    this.is_fighting_with=  null;
+    this.inventory=         new Inventory.Inventory(10);
 
     let current_room = World.world.get_instance(this.room_id);
     current_room.remove_entity(this.id);
@@ -179,7 +198,8 @@ class Dog extends NPC {
     super(name, description, room_id, id);
     this.type_string= "A Dog";
     this.health=      5;
-    this.counter=     5;     
+    this.counter=     5;
+    this.inventory=   new Inventory.Inventory(0, false, false);
   }
 
   process_tick(){
