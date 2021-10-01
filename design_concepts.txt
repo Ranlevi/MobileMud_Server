@@ -1,7 +1,26 @@
-Game Design
+Game Design:
+
 - Client for sending inputs and displaying content only. All game
   logic is handled on the backend.
   - demo client assumes text input only
+
+- The base class for everything in the world is Item.
+  Under it: Room, Entity.
+  Under Entity: User, NPC, InAnimateObject.
+
+- Every Item has an ID number. Almost all functions accept ids as inputs.
+
+- All Items are stored in a World Map() object, as id:instance pairs.
+
+- Some common component of the game are implemented as Singletons, so a single
+  instance can be used in all parts of the game (e.g. Message Sender, Message Formatter, etc.)
+
+- All items have an internal state. When there's no special intearction with anyone else,
+  they do their own thing via the process_tick method. 
+  When something that requires synchorization with another item ocurrs (e.g. battle),
+  the game_loop() ignores the process_tick and handles the actions directly.
+
+
 - The content sent to the client is 'smart': i.e., entities are indicated
   by type, allowing the client to display actions according to type.
 - Game content creation should be flexable, to allow any to create new games 

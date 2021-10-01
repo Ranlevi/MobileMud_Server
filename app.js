@@ -3,10 +3,9 @@ const { WebSocketServer }=  require('ws');
 var app=                    express();
 const wss=                  new WebSocketServer({port: 8080});
 const fs=                   require('fs');
-
-const Utils = require('./game/utils');
-const Classes = require('./game/classes');
-const World = require('./world');
+const Utils=                require('./game/utils');
+const Classes=              require('./game/classes');
+const World=                require('./game/world');
 
 const LOAD_WORLD_FROM_SAVE = true;
 let   FIRST_ROOM_ID        = '0';
@@ -18,25 +17,12 @@ app.get('/', function(req, res){
   res.sendFile('/public/index.html', { root: __dirname })
 });
 
-// let world=            null;
-// let id_generator=     null;
-// let msg_sender=       null;
-// let msg_formatter=    null;
-
 class Game_Controller {
-  constructor(){
-    // this.id_generator = new Utils.id_generator();    
-    // this.msg_sender=     new Message_Sender();
-    // this.msg_formatter=  new Utils.Message_Formatter();
-    
+  constructor(){    
     this.init_game();
   }
 
   init_game(){
-    // id_generator=   new Utils.ID_Generator();    
-    // world=          new World();
-    // msg_sender=     new Message_Sender();
-    // msg_formatter=  new Message_Formatter();
       
     if (LOAD_WORLD_FROM_SAVE){
       this.load_world();
@@ -50,17 +36,7 @@ class Game_Controller {
   }
 
   generate_world(){
-    let room = new Classes.Room(
-      'Room 1',
-      'This is the first room of the game.'
-    )  
-  
-    World.world.add_to_world(room);  
-  
-    room = World.world.add_room(room.id, 'north');
-    room.set_lighting('silver');
-    //TODO: add room name/descripion
-  
+    //To be implemented  
   }
   
   load_world(){
@@ -73,8 +49,7 @@ class Game_Controller {
         current_id = id;
   
         if (instance_data.type==="room"){
-          let room = new Classes.Room(instance_data.name, instance_data.description, id);
-          
+          let room = new Classes.Room(instance_data.name, instance_data.description, id);          
           room.set_lighting(instance_data.lighting);
   
           for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
@@ -84,16 +59,19 @@ class Game_Controller {
           World.world.add_to_world(room);
   
         } else {
-          //It's an npc
+          //It's an Entity
           let entity = null;
           switch(instance_data.type){
             case ("dog"):
-              entity = new Classes.Dog(instance_data.name, instance_data.description, id);
+              entity = new Classes.Dog(
+                instance_data.name, 
+                instance_data.description, 
+                instance_data.room_id,
+                id);
               break;
           }
   
-          World.world.add_to_world(entity);
-          World.world.add_entity_to_room(entity.id, instance_data.room_id);
+          World.world.add_to_world(entity);          
         }
       }
   
@@ -110,10 +88,9 @@ class Game_Controller {
       (item) => {
 
         if (item instanceof Classes.Entity && item.is_fighting_with!==null){
-
-          let damage_dealt = item.strike_opponent();
-            
           let opponent = World.world.get_instance(item.is_fighting_with);
+
+          let damage_dealt = item.strike_opponent(opponent.id);                      
           msg = {
             sender: 'world',
             content: `${item.name} strikes ${opponent.name}, `+
@@ -132,23 +109,22 @@ class Game_Controller {
             Utils.msg_sender.send_message_to_room(item.room_id, msg);
 
             //Create a corpse
-            let corpse = new Classes.Corpse(opponent.name, opponent.description);
+            let corpse = new Classes.Corpse(
+              opponent.name, 
+              opponent.description,
+              opponent.room_id,
+              );
             World.world.add_to_world(corpse);
-            World.world.add_entity_to_room(corpse.id, opponent.room_id);
-
-            //If an NPC - remove from world.
-            //If user - respwan
+            
+            //If an NPC - remove from world.            
             if (opponent instanceof Classes.NPC){
-              World.world.remove_item_from_world(opponent.id);
-            } else if (opponent instanceof Classes.User){
-              //Respawn the user
               let room = World.world.get_instance(opponent.room_id);
               room.remove_entity(opponent.id);
+              World.world.remove_from_world(opponent.id);
 
-              room = World.world.get_instance(FIRST_ROOM_ID);
-              room.add_entity(opponent.id);
-
-              opponent.reset();
+            } else if (opponent instanceof Classes.User){
+              //Reset and Respawn the user
+              opponent.reset(FIRST_ROOM_ID);
 
               msg = {
                 sender: "world",
@@ -165,9 +141,15 @@ class Game_Controller {
   }
 
   new_client_connected(ws_client){
-    let user = new Classes.User('HaichiPapa', "It's you, bozo", ws_client);
+
+    let user = new Classes.User(
+      'HaichiPapa', 
+      "It's you, bozo", 
+      ws_client,
+      FIRST_ROOM_ID
+    );
     World.world.add_to_world(user);
-    World.world.add_entity_to_room(user.id, FIRST_ROOM_ID);
+    
     let msg = {
       sender: "world",
       content: `Hi ${user.name}, your ID is ${user.id}`
@@ -260,11 +242,15 @@ class Game_Controller {
         Utils.msg_sender.send_message_to_user(user_id, message);
 
       } else {
-        user.start_battle_with(entity_id);
-        World.world.get_instance(entity_id).start_battle_with(user_id);
-        //give the offence a bit of an advantage of striking first
-        let damage_dealt = user.strike_opponent(entity_id);
+
         let opponent = World.world.get_instance(entity_id);
+
+        user.start_battle_with(opponent.id);
+        opponent.start_battle_with(user.id);
+
+        //give the offence a bit of an advantage of striking first
+        let damage_dealt = user.strike_opponent(opponent.id);
+        
         let msg = {
           sender: 'world',
           content: `${user.name} attacks ${opponent.name}, `+
@@ -287,6 +273,7 @@ class Game_Controller {
       Utils.msg_sender.send_message_to_user(user_id, message)
 
     } else {
+
       let entity_id = room.get_entity_id_by_name(target);
 
       if (entity_id===null){
@@ -333,7 +320,7 @@ class Game_Controller {
       content: `
         You travel ${direction} to ${new_room.name}.`        
     }
-    Utilsmsg_sender.send_message_to_user(user_id, message)
+    Utils.msg_sender.send_message_to_user(user_id, message)
     this.process_incoming_message('look', user.id);
   }
 }
@@ -346,7 +333,7 @@ wss.on('connection', (ws_client) => {
   let user_id = game_controller.new_client_connected(ws_client);  
 
   ws_client.on('close', () => {
-    console.log(`Client User ID ${user_id}disconnected`);
+    console.log(`Client User ID ${user_id} disconnected`);
     //TODO: save user.
   });
 
