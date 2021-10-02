@@ -133,9 +133,10 @@ class Entity extends Item {
       this.room_id= room.id;
       room.add_entity(this.id);
 
-      this.inventory=     new Inventory.Inventory(0, false, false);
+      this.inventory=     new Inventory.Inventory(0, false);
       this.is_gettable=   false;
-      // this.get_positions= ["Slot"]; //each one of the possible inventory positions.
+      this.wear_hold_slot=null; //Hands, Feet, Head, Torso, Legs.
+
   }
 
   get_look_string(){
@@ -235,7 +236,7 @@ class Corpse extends Entity {
     this.type=                "Corpse"
     this.type_string=         "A Corpse";
     this.decomposition_timer= 10;
-    this.inventory=           new Inventory.Inventory(17, false, false);
+    this.inventory=           new Inventory.Inventory(17, false);
   }
 
   process_tick(){
@@ -273,7 +274,7 @@ class Screwdriver extends Entity {
     this.type=          "Screwdriver"
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
-    this.get_positions= ['Right Hand', 'Left Hand', 'Slot'];
+    this.wear_hold_slot="Hands";
   }
 }
 

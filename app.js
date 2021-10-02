@@ -193,6 +193,18 @@ class Game_Controller {
       case 'd':
         this.drop_cmd(user_id, target);
         break;
+
+      case 'wear':
+      case 'we':
+      case 'hold':
+      case 'h':
+        this.wear_hold_cmd(user_id, target);
+        break;
+
+      case 'remove':
+      case 'r':
+        this.remove_cmd(user_id, target);
+        break;
   
       case 'north':
       case 'n':
@@ -442,6 +454,106 @@ class Game_Controller {
 
     msg.content = `${user.name} drops ${entity.type_string}`;
     Utils.msg_sender.send_message_to_room(user_id, msg, true);
+  }
+
+  wear_hold_cmd(user_id, target){
+    //take an entity from the slots and wear/hold in a pre-specified position.
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: `What do you want to wear or hold?`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target is not null.
+    let user=       World.world.get_instance(user_id);
+    let entity_id = user.inventory.search_target_in_slots(target);
+
+    if (entity_id===null){
+      //Target was not found in slots.
+      let msg = {
+        sender: 'world',
+        content: `You don't have it in your slots.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+      return;
+    } 
+
+    //Target was found
+    let entity = World.world.get_instance(entity_id);
+
+    if (entity.wear_hold_slot===null){
+      let msg = {
+        sender: 'world',
+        content: `You can't wear or hold it.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+      return;
+    }
+
+    //Target can be worn or held.
+    let success = user.inventory.wear_or_hold(entity_id);
+
+    if (success){
+      let msg = {
+        sender: 'world',
+        content: `Done.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+    } else {
+      //position is unavailable.
+      let msg = {
+        sender: 'world',
+        content: "You're already wearing or holding something there."
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+    }
+  }
+
+  remove_cmd(user_id, target){
+    //remove a worn or held entity, and place it in a slot.
+
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: `What do you want to remove?`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target is not null
+    let user=       World.world.get_instance(user_id);
+    let entity_id=  user.inventory.search_target_in_wear_hold(target);
+
+    if (entity_id===null){
+      //target was not found
+      let message = {
+        sender: 'world',
+        content: `You're not wearing or holding it.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target is worn or held.
+    let success = user.inventory.remove(entity_id);
+    if (success){
+      let message = {
+        sender: 'world',
+        content: `You remove it and place it in one of your slots.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+
+    } else {
+      let message = {
+        sender: 'world',
+        content: `You don't have a free slot to put it in.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+    }
   }
 }
 
