@@ -40,7 +40,6 @@ class Inventory {
     return null;
   }
 
-  //TODO: debug remove
   search_target_in_wear_hold(target){
     
     for (const entity_id of Object.values(this.wear_hold)){
@@ -102,20 +101,20 @@ class Inventory {
 
   remove(entity_id){
     //We assume entity is worn or held.
-    //We check if we have a slot available.
+    //We check if we have a slot available.    
     if (this.slots.size===this.num_of_slots){
       return false;
     }
     
     //There is an available slot.
-    for (const [position, id] of Object.entries(this.wear_or_hold)){
+    for (const [position, id] of Object.entries(this.wear_hold)){
       if (id===entity_id){
         //Found the entity
-        this.wear_or_hold[position]= null;
+        this.wear_hold[position]= null;
         this.slots.add(entity_id);
         return true;
       }
-    }
+    }    
   }
 
 }
