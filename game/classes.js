@@ -133,7 +133,9 @@ class Entity extends Item {
       this.room_id= room.id;
       room.add_entity(this.id);
 
-      this.inventory= new Inventory.Inventory(0, false, false);
+      this.inventory=     new Inventory.Inventory(0, false, false);
+      this.is_gettable=   false;
+      // this.get_positions= ["Slot"]; //each one of the possible inventory positions.
   }
 
   get_look_string(){
@@ -210,7 +212,7 @@ class Dog extends AnimatedObject {
           sender: 'world',
           content: 'Archie Barks.'
         }
-        Utils.msg_sender.send_message_to_room(this.room_id, msg);
+        Utils.msg_sender.send_message_to_room(this.id, msg);
 
         //Transition
         this.state = 'Default';
@@ -225,7 +227,6 @@ class Dog extends AnimatedObject {
   }
 }
 
-//TODO: Can a corpse remove itself from the world???
 class Corpse extends Entity {
   constructor(description, room_id, id=null){
     super(room_id, id);
@@ -246,7 +247,7 @@ class Corpse extends Entity {
         sender: 'world',
         content: 'The corpse has decomposed and disappered.'
       }
-      Utils.msg_sender.send_message_to_room(this.room_id, msg);      
+      Utils.msg_sender.send_message_to_room(this.id, msg);      
 
       //TODO: remove all slot items from the world!
       let room = World.world.get_instance(this.room_id);
@@ -271,6 +272,8 @@ class Screwdriver extends Entity {
     this.description =   description;
     this.type=          "Screwdriver"
     this.type_string=   "A Screwdriver";
+    this.is_gettable=   true;
+    this.get_positions= ['Right Hand', 'Left Hand', 'Slot'];
   }
 }
 

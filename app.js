@@ -74,11 +74,9 @@ class Game_Controller {
             entity = new Classes.Screwdriver(
               instance_data.description, 
               instance_data.room_id,
-              id
-            );
+              id);
             World.world.add_to_world(entity);
             break;
-
         }
       }
   
@@ -103,7 +101,7 @@ class Game_Controller {
             content: `${item.name} strikes ${opponent.name}, `+
                       `dealing ${damage_dealt} HP.`
           }
-          Utils.msg_sender.send_message_to_room(item.room_id, msg);
+          Utils.msg_sender.send_message_to_room(item.id, msg);
 
           if (opponent.health===0){
             //Opponent has died
@@ -113,7 +111,7 @@ class Game_Controller {
               sender: 'world',
               content: `${opponent.name} is DEAD!`
             }
-            Utils.msg_sender.send_message_to_room(item.room_id, msg);
+            Utils.msg_sender.send_message_to_room(item.id, msg);
 
             //Create a corpse
             let corpse = new Classes.Corpse(              
@@ -185,6 +183,16 @@ class Game_Controller {
       case 'k':
         this.kill_cmd(user_id, target);
         break;
+
+      case 'get':
+      case 'g':
+        this.get_cmd(user_id, target);
+        break;
+
+      case 'drop':
+      case 'd':
+        this.drop_cmd(user_id, target);
+        break;
   
       case 'north':
       case 'n':
@@ -218,6 +226,7 @@ class Game_Controller {
     }  
   }
 
+  //TODO: refactor like get_cmd
   kill_cmd(user_id, target){
 
     if (target===null){
@@ -263,11 +272,12 @@ class Game_Controller {
           content: `${user.name} attacks ${opponent.name}, `+
                     `dealing ${damage_dealt} HP.`
         }
-        Utils.msg_sender.send_message_to_room(user.room_id, msg);
+        Utils.msg_sender.send_message_to_room(user.id, msg);
       }      
     }
   }
 
+  //TODO: refactor like get_cmd
   look_cmd(user_id, target){
     let user = World.world.get_instance(user_id);
     let room = World.world.get_instance(user.room_id);
@@ -329,6 +339,109 @@ class Game_Controller {
     }
     Utils.msg_sender.send_message_to_user(user_id, message)
     this.process_incoming_message('look', user.id);
+  }
+
+  get_cmd(user_id, target){
+    //pick up the target and place in a slot.
+
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: `What do you want to get?`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target is not null.
+    let user=       World.world.get_instance(user_id);
+    let entity_id = Utils.search_for_target(user.room_id, target);
+
+    if (entity_id===null){
+      let message = {
+        sender: 'world',
+        content: `There is no ${target} around.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target found.
+    let entity = World.world.get_instance(entity_id);
+
+    if (!entity.is_gettable){
+      let message = {
+        sender: 'world',
+        content: `You can't pick it up.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target can be picked up.
+    let success = user.inventory.get(entity_id);
+
+    if (success){
+      let msg = {
+        sender: 'world',
+        content: `You pick up ${entity.type_string} and place it in a slot.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+
+      msg.content = `${user.name} picks up ${entity.type_string}`;
+      Utils.msg_sender.send_message_to_room(user_id, msg, true);
+
+      let room = World.world.get_instance(user.room_id);
+      room.remove_entity(entity_id);
+
+    } else {
+      let msg = {
+        sender: 'world',
+        content: `You don't have a free slot to put it in.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+    }   
+  }
+
+  drop_cmd(user_id, target){
+    //drop a target from the slots to the room.
+
+    if (target===null){
+      let message = {
+        sender: 'world',
+        content: `What do you want to drop?`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Target is not null.
+    let user=       World.world.get_instance(user_id);
+    let entity_id=  user.inventory.search_target_in_slots(target);
+
+    if (entity_id===null){
+      //Target was not found in slots.
+      let msg = {
+        sender: 'world',
+        content: `You don't have it in your slots.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, msg);
+      return;
+    } 
+    
+    //Target was found
+    user.inventory.drop(entity_id, user.room_id);
+
+    let msg = {
+      sender: 'world',
+      content: `You drop it to the floor.`
+    }
+    Utils.msg_sender.send_message_to_user(user_id, msg);
+
+    let entity = World.world.get_instance(entity_id);
+
+    msg.content = `${user.name} drops ${entity.type_string}`;
+    Utils.msg_sender.send_message_to_room(user_id, msg, true);
   }
 }
 

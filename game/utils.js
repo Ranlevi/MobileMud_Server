@@ -78,20 +78,21 @@ class Message_Sender {
     //TBD
   }
 
-  send_message_to_user(user_id, message){  
-    
+  send_message_to_user(user_id, message){      
     let ws_client = World.world.get_instance(user_id).ws_client;
     ws_client.send(JSON.stringify(message));
   }
 
-  send_message_to_room(room_id, message){
-    let room = World.world.get_instance(room_id);
+  send_message_to_room(user_id, message, dont_send_to_user=false){
+    let user = World.world.get_instance(user_id);
+    let room = World.world.get_instance(user.room_id);
     let arr = room.get_users();
-    for (const user_id of arr){
-      this.send_message_to_user(user_id, message);      
-    }
-  }
-
+    for (const id of arr){
+      if (id===user_id && dont_send_to_user) continue;
+      this.send_message_to_user(id, message);
+    }      
+  }    
+  
   broadcast_message(message){
     //Broadcast a message to all connected clients.
     //To Be Implemented.
