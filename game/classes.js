@@ -1,25 +1,42 @@
-const Utils = require('./utils');
-const World = require('./world');
-const Inventory = require('./inventory');
+const Utils=      require('./utils');
+const World=      require('./world');
+const Inventory=  require('./inventory');
+
+//Notes on the design concept:
+//1. Minimal number of Classes.
+//2. Base classes exists to set default values and methods, for DRY, that
+//   should be overwritten by the specific instance class.
+//3. Each class should be autonamous as possible, with it's own internal state
+//   and returning it's own look strings, etc.
 
 class Item {
 //Not meant to be called directly.
-constructor(name, description){    
-    this.name=        name;
-    this.description= description;
-    this.type_string= null; 
+constructor(id){    
+    this.id=          (id===null)? Utils.id_generator.get_new_id() : id;
+    this.name=        null;
+    this.description= "A Description.";
+    this.type=        "Item";
+    this.type_string= "An Item."; 
     this.state=       "Default";
   }  
 
   process_tick(){
     //do nothing unless overided by instance
-  } 
+  }
+
+  get_look_string(){
+    //Can be overriden
+    return "This is a generic item in the game. If you see this, Ran screwed up."
+  }
 }
 
 class Room extends Item {
   constructor(name, description, id=null){
-      super(name, description, id);
-      this.id=      (id===null)? Utils.id_generator.get_new_id() : id;
+      super(id);      
+      
+      this.name=        name;
+      this.description= description;
+      this.type=        "Room"
       this.type_string= "A Room"; 
       this.entities=    new Set();
       this.exits= {
@@ -48,22 +65,11 @@ class Room extends Item {
   get_entities(){
     //this.entities is a Set(), so we convert it to an array.
     let arr = [];
-    for (let entity_id of this.entities){
+    for (const entity_id of this.entities){
     arr.push(entity_id);
     }
     return arr;
-  }
-  
-  get_entity_id_by_name(name){
-    //Note: name is assumed to be all lower case.
-    for (let entity_id of this.entities){      
-      let entity_name = World.world.get_instance(entity_id).name.toLowerCase();
-      if (entity_name===name){
-          return entity_id;
-      }
-    }
-    return null;//entity not found.
-  }
+  }  
   
   get_users(){
     let arr = [];
@@ -79,127 +85,106 @@ class Room extends Item {
   set_lighting(color){
     this.lighting = color;
   }
+
+  get_look_string(){
+        
+    let msg = `**[${this.name}]({type:"Room", id:${this.id}}, `;
+    msg += `lighting: ${this.lighting})**  ${this.description}  `;
+    msg += `Exits:  `;
+
+    for (const [direction, next_room_id] of Object.entries(this.exits)){
+      if (next_room_id!==null){
+          msg += `[${direction}]({type:"Command"}) `
+      }
+    }
+
+    msg += '  '; //new paragraph
+
+    // let entities_arr = room.get_entities();
+    if (this.entities.size===1){    
+      //Only the player is in the room.
+      msg += 'The room is empty.';
+    } else {
+      msg += 'In the room:  ';
+
+      for (const entity_id of this.entities){        
+
+        let entity = World.world.get_instance(entity_id);
+
+        if (entity.name===null){
+          msg += `${entity.type_string}  `;
+        } else {
+          msg += `[${entity.name}]({type:${entity.type_string}, `;
+          msg += `id:${entity.id}}), ${entity.type_string}.  `;       
+        }
+      }
+    }
+
+    return msg;
+  }
 }
 
 class Entity extends Item {
   //Not meant to be called directly.
-  constructor(name, description, room_id, id=null){
-      super(name, description);
-      this.id=      (id===null)? Utils.id_generator.get_new_id() : id;
+  constructor(room_id, id){
+      super(id);      
 
-      let room =              World.world.get_instance(room_id);
+      let room=     World.world.get_instance(room_id);
+      this.room_id= room.id;
       room.add_entity(this.id);
-      this.room_id=           room_id;
 
-      this.health=            10;
-      this.damage=            1;          
-      this.is_fighting_with=  null;
+      this.inventory= new Inventory.Inventory(0, false, false);
+  }
 
-      this.inventory= new Inventory.Inventory(10);
-  }
-  
-  start_battle_with(id){
-      this.is_fighting_with = id;
-  }
-  
-  stop_battle(){
-      this.is_fighting_with = null;
-  }
-  
-  strike_opponent(opponent_id){
-      //basic striking. Can be overriden.
-      let opponent = World.world.get_instance(opponent_id);
-      let damage_dealt = opponent.receive_damage(this.damage);
-      return damage_dealt;
-  }
-  
-  receive_damage(damage){
-      //Basic damage reception, can be overided.
-      this.health = this.health - damage;
-      if (this.health<0) this.health= 0;
-      return damage;
-  }
-  
-  process_tick(){
-    //To ve overidden
+  get_look_string(){
+    let msg = `It's ${this.type_string}`;
+    return  msg;
   }
 }
 
-class InAnimateObject extends Entity {
+class AnimatedObject extends Entity {
   //Not meant to be called directly.
-  constructor(name, description, room_id, id){
-    super(name, description, room_id, id);  
-    
-    this.inventory= new Inventory.Inventory(0, false, false);
+  constructor(room_id, id){
+    super(room_id, id);
+
+    this.health=            10;
+    this.damage=            1;          
+    this.is_fighting_with=  null;    
+  }
+
+  start_battle_with(id){
+    this.is_fighting_with = id;
+  }
+
+  stop_battle(){
+    this.is_fighting_with = null;
+  }
+
+  strike_opponent(opponent_id){
+    //basic striking. Can be overriden.
+    let opponent=     World.world.get_instance(opponent_id);
+    let damage_dealt= opponent.receive_damage(this.damage);
+    return damage_dealt;
+  }
+
+  receive_damage(damage){
+    //Basic damage reception, can be overided.
+    this.health = this.health - damage;
+    if (this.health<0) this.health= 0;
+    return damage;
   }
 }
 
-class Corpse extends InAnimateObject {
+class Dog extends AnimatedObject {
   constructor(name, description, room_id, id=null){
-    super(`The Corpse of ${name}`, description, room_id, id);
-    this.type_string=         "A Corpse";
-    this.decomposition_timer= 10;
-    this.inventory=           new Inventory.Inventory(17, false, false);
-  }
+    super(room_id, id);
 
-  process_tick(){
-    this.decomposition_timer -= 1;
-  }
-
-  set_decomposition_timer(num_of_ticks){
-    this.decomposition_timer = num_of_ticks;
-  }
-}
-
-class Screwdriver extends InAnimateObject {
-  constructor(name, description, room_id, id=null){
-    super(name, description, room_id, id);
-
-    this.type_string=         "A Screwdriver";
-  }
-}
-
-class User extends Entity {
-  constructor(name, description, ws_client, room_id, id=null){
-    super(name, description, room_id, id);
-    this.BASE_HEALTH = 100;
-    this.BASE_DAMAGE = 1;
-
-    this.ws_client=   ws_client;
-    this.type_string= "A User";
-    this.health=      BASE_HEALTH;
-    this.damage=      BASE_DAMAGE;
-  }
-
-  reset(spawn_room_id){
-    this.health=            BASE_HEALTH;
-    this.damage=            BASE_DAMAGE;
-    this.state=             "Default";
-    this.is_fighting_with=  null;
-    this.inventory=         new Inventory.Inventory(10);
-
-    let current_room = World.world.get_instance(this.room_id);
-    current_room.remove_entity(this.id);
-
-    let starting_room = World.world.get_instance(spawn_room_id);
-    starting_room.add_entity(this.id);
-  }
-}
-
-class NPC extends Entity {
-//Not meant to be called directly.
-  constructor(name, description, room_id, id){
-    super(name, description, room_id, id);
-  }
-}
-
-class Dog extends NPC {
-  constructor(name, description, room_id, id=null){
-    super(name, description, room_id, id);
+    this.name=        name;
+    this.description= description;
+    this.type=        "Dog";
     this.type_string= "A Dog";
     this.health=      5;
-    this.counter=     5;
-    this.inventory=   new Inventory.Inventory(0, false, false);
+    this.counter=     5;    
   }
 
   process_tick(){
@@ -232,13 +217,113 @@ class Dog extends NPC {
         break;
     }
   }  
+
+  get_look_string(){
+    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
+    msg += `${this.type_string}.  ${this.description}`
+    return  msg;
+  }
+}
+
+//TODO: Can a corpse remove itself from the world???
+class Corpse extends Entity {
+  constructor(description, room_id, id=null){
+    super(room_id, id);
+
+    this.description =        description;
+    this.type=                "Corpse"
+    this.type_string=         "A Corpse";
+    this.decomposition_timer= 10;
+    this.inventory=           new Inventory.Inventory(17, false, false);
+  }
+
+  process_tick(){
+    this.decomposition_timer -= 1;
+
+    if (this.decomposition_timer===0){
+
+      let msg = {
+        sender: 'world',
+        content: 'The corpse has decomposed and disappered.'
+      }
+      Utils.msg_sender.send_message_to_room(this.room_id, msg);      
+
+      //TODO: remove all slot items from the world!
+      let room = World.world.get_instance(this.room_id);
+      room.remove_entity(this.id);
+      World.world.remove_from_world(this.id);
+    }
+  }
+
+  set_decomposition_timer(num_of_ticks){
+    this.decomposition_timer = num_of_ticks;
+  }
+
+  get_look_string(){
+    //TODO: return the content of the inventory
+  }
+}
+
+class Screwdriver extends Entity {
+  constructor(description, room_id, id=null){
+    super(room_id, id);
+
+    this.description =   description;
+    this.type=          "Screwdriver"
+    this.type_string=   "A Screwdriver";
+  }
+}
+
+class User extends AnimatedObject {
+  constructor(name, description, ws_client, room_id, id=null){
+    super(room_id, id);    
+    this.BASE_HEALTH = 2;
+    this.BASE_DAMAGE = 1;
+    
+    this.name=          name;
+    this.description=   description;
+    this.ws_client=     ws_client;
+    this.type=          "User";
+    this.type_string=   "A User";
+    this.health=        this.BASE_HEALTH;
+    this.damage=        this.BASE_DAMAGE;
+
+    this.inventory=     new Inventory.Inventory(10);
+  }
+    
+
+  reset(spawn_room_id){
+    this.health=            this.BASE_HEALTH;
+    this.damage=            this.BASE_DAMAGE;
+    this.state=             "Default";
+    this.is_fighting_with=  null;
+    this.inventory=         new Inventory.Inventory(10);
+
+    let current_room = World.world.get_instance(this.room_id);
+    current_room.remove_entity(this.id);
+
+    let starting_room = World.world.get_instance(spawn_room_id);
+    starting_room.add_entity(this.id);
+
+    let msg = {
+      sender: "world",
+      content: `You respawned in the starting room.`
+    }
+    Utils.msg_sender.send_message_to_user(this.id, msg);
+  }
+
+  get_look_string(){    
+    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
+    msg += `${this.type_string}.  ${this.description};`
+    return  msg;    
+  }
 }
 
 exports.Item=             Item;
-exports.InAnimateObject=  InAnimateObject;
+exports.AnimatedObject=   AnimatedObject;
 exports.Corpse=           Corpse;
 exports.Entity=           Entity;
-exports.NPC=              NPC;
 exports.User=             User;
 exports.Dog=              Dog;
 exports.Room=             Room;
+exports.Screwdriver=      Screwdriver;

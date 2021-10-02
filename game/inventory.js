@@ -22,10 +22,10 @@ class Inventory {
   
   wear(position, element_id){
     
-    let element_id = this.wear[position];
-    if (element_id===undefined){
-      //position does not exist
-    }
+    // let element_id = this.wear[position];
+    // if (element_id===undefined){
+    //   //position does not exist
+    // }
   }
 
 }

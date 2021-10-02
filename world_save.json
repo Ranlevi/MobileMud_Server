@@ -1,6 +1,6 @@
 {
   "0": {
-    "type": "room",
+    "type": "Room",
     "name": "Room 1",
     "description": "This is the first room of the game.",
     "lighting": "white",    
@@ -9,7 +9,7 @@
     }
   },
   "1": {
-    "type": "room",
+    "type": "Room",
     "name": "Room 2",
     "description": "This is the 2nd room of the game.",
     "lighting": "silver",    
@@ -18,9 +18,14 @@
     }
   },
   "3": {
-    "type": "dog",
+    "type": "Dog",
     "name": "Archie",
     "description": "It's a cute but silly dog.",
+    "room_id": "0"
+  },
+  "4": {
+    "type": "Screwdriver",    
+    "description": "It's a flathead screwdriver.",
     "room_id": "0"
   }
 }

@@ -47,31 +47,38 @@ class Game_Controller {
   
       for (const [id, instance_data] of Object.entries(data)){
         current_id = id;
-  
-        if (instance_data.type==="room"){
-          let room = new Classes.Room(instance_data.name, instance_data.description, id);          
-          room.set_lighting(instance_data.lighting);
-  
-          for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
-            room.add_exit(direction, next_room_id);
-          }
-  
-          World.world.add_to_world(room);
-  
-        } else {
-          //It's an Entity
-          let entity = null;
-          switch(instance_data.type){
-            case ("dog"):
-              entity = new Classes.Dog(
-                instance_data.name, 
-                instance_data.description, 
-                instance_data.room_id,
-                id);
-              break;
-          }
-  
-          World.world.add_to_world(entity);          
+        var entity;
+
+        switch(instance_data.type){
+          case "Room":
+            let room = new Classes.Room(instance_data.name, instance_data.description, id);          
+            room.set_lighting(instance_data.lighting);
+    
+            for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
+              room.add_exit(direction, next_room_id);
+            }
+    
+            World.world.add_to_world(room);
+            break;
+
+          case "Dog":
+            entity = new Classes.Dog(
+              instance_data.name, 
+              instance_data.description, 
+              instance_data.room_id,
+              id);
+            World.world.add_to_world(entity);
+            break;
+
+          case "Screwdriver":
+            entity = new Classes.Screwdriver(
+              instance_data.description, 
+              instance_data.room_id,
+              id
+            );
+            World.world.add_to_world(entity);
+            break;
+
         }
       }
   
@@ -87,7 +94,7 @@ class Game_Controller {
     World.world.world.forEach(
       (item) => {
 
-        if (item instanceof Classes.Entity && item.is_fighting_with!==null){
+        if (item instanceof Classes.AnimatedObject && item.is_fighting_with!==null){
           let opponent = World.world.get_instance(item.is_fighting_with);
 
           let damage_dealt = item.strike_opponent(opponent.id);                      
@@ -109,29 +116,21 @@ class Game_Controller {
             Utils.msg_sender.send_message_to_room(item.room_id, msg);
 
             //Create a corpse
-            let corpse = new Classes.Corpse(
-              opponent.name, 
+            let corpse = new Classes.Corpse(              
               opponent.description,
               opponent.room_id,
               );
             World.world.add_to_world(corpse);
-            
-            //If an NPC - remove from world.            
-            if (opponent instanceof Classes.NPC){
+
+            if (opponent instanceof Classes.User){
+              opponent.reset(FIRST_ROOM_ID);
+
+            } else {
+              //Remove entity from the world
               let room = World.world.get_instance(opponent.room_id);
               room.remove_entity(opponent.id);
               World.world.remove_from_world(opponent.id);
-
-            } else if (opponent instanceof Classes.User){
-              //Reset and Respawn the user
-              opponent.reset(FIRST_ROOM_ID);
-
-              msg = {
-                sender: "world",
-                content: `You respawned in the starting room.`
-              }
-              Utils.msg_sender.send_message_to_user(opponent.id, msg);
-            }            
+            }          
           }
         } else {
           item.process_tick();
@@ -141,20 +140,20 @@ class Game_Controller {
   }
 
   new_client_connected(ws_client){
-
+    
     let user = new Classes.User(
       'HaichiPapa', 
       "It's you, bozo", 
       ws_client,
       FIRST_ROOM_ID
-    );
+    );    
     World.world.add_to_world(user);
-    
+
     let msg = {
       sender: "world",
       content: `Hi ${user.name}, your ID is ${user.id}`
     }
-    Utils.msg_sender.send_message_to_user(user.id, msg);  
+    Utils.msg_sender.send_message_to_user(user.id, msg);   
 
     this.process_incoming_message('look', user.id);    
     return user.id;
@@ -231,8 +230,7 @@ class Game_Controller {
     } else {
 
       let user=       World.world.get_instance(user_id);
-      let room=       World.world.get_instance(user.room_id);
-      let entity_id=  room.get_entity_id_by_name(target);
+      let entity_id = Utils.search_for_target(user.room_id, target);
 
       if (entity_id===null){
         let message = {
@@ -244,6 +242,15 @@ class Game_Controller {
       } else {
 
         let opponent = World.world.get_instance(entity_id);
+
+        if (!(opponent instanceof Classes.AnimatedObject)){
+          let message = {
+            sender: 'world',
+            content: `You can't fight it.`
+          }
+          Utils.msg_sender.send_message_to_user(user_id, message);
+          return;
+        }
 
         user.start_battle_with(opponent.id);
         opponent.start_battle_with(user.id);
@@ -257,7 +264,7 @@ class Game_Controller {
                     `dealing ${damage_dealt} HP.`
         }
         Utils.msg_sender.send_message_to_room(user.room_id, msg);
-      }
+      }      
     }
   }
 
@@ -268,13 +275,13 @@ class Game_Controller {
     if (target===null){
       let message = {
         sender: 'world',
-        content: Utils.msg_formatter.generate_look_room_msg(room.id, user_id)
+        content: room.get_look_string()
       }
       Utils.msg_sender.send_message_to_user(user_id, message)
 
     } else {
 
-      let entity_id = room.get_entity_id_by_name(target);
+      let entity_id = Utils.search_for_target(room.id, target);
 
       if (entity_id===null){
         let message = {
@@ -282,12 +289,12 @@ class Game_Controller {
           content: `There is no ${target} around.`
         }
         Utils.msg_sender.send_message_to_user(user_id, message);
-      
-      } else {
 
+      } else {
+        //target found
         let message = {
           sender: 'world',
-          content: Utils.msg_formatter.generate_look_entity_msg(entity_id)
+          content: World.world.get_instance(entity_id).get_look_string()
         }
         Utils.msg_sender.send_message_to_user(user_id, message);
       }
@@ -328,8 +335,7 @@ class Game_Controller {
 let game_controller=  new Game_Controller();
 
 //-- WebSockets
-wss.on('connection', (ws_client) => {
-  
+wss.on('connection', (ws_client) => {  
   let user_id = game_controller.new_client_connected(ws_client);  
 
   ws_client.on('close', () => {
