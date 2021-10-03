@@ -117,6 +117,13 @@ class Inventory {
     }    
   }
 
+  //TODO: test queue
+  generate_inv_messages(){
+    //returns an array of message. Index 0 is the first to be sent.
+    let arr = ['1', '2', '3'];
+    return arr;
+  }
+
 }
 
 exports.Inventory = Inventory;

@@ -205,6 +205,22 @@ class Game_Controller {
       case 'r':
         this.remove_cmd(user_id, target);
         break;
+
+      case 'inventory':
+      case 'inv':
+      case 'i':
+        this.inv_cmd(user_id);
+        break;
+
+      case 'next':
+      case 'ne':
+        this.next_cmd(user_id);
+        break;
+
+      case 'end':
+      case 'en':
+        this.end_cmd(user_id);
+        break;
   
       case 'north':
       case 'n':
@@ -554,6 +570,40 @@ class Game_Controller {
       }
       Utils.msg_sender.send_message_to_user(user_id, message);
     }
+  }
+
+  inv_cmd(user_id){
+    //generates inventory messages and loads them to the user's msg queue.
+    //send the first message.
+    let user = World.world.get_instance(user_id);
+    
+    let message = {
+      sender: 'world',
+      content: user.get_inv_content()
+    }
+    Utils.msg_sender.send_message_to_user(user_id, message);    
+  }
+
+  next_cmd(user_id){
+    let user = World.world.get_instance(user_id);
+    let content  = user.get_next_msg_from_queue();
+    
+    if (content===null){
+      //No msg in queue
+      content = 'No more messages in chain.';
+    } 
+    
+    let message = {
+      sender: 'world',
+      content: content
+    }
+    Utils.msg_sender.send_message_to_user(user_id, message);
+  }
+
+  end_cmd(user_id){
+    //clear the queue.
+    let user = World.world.get_instance(user_id);
+    user.clear_msg_queue();
   }
 }
 

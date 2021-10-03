@@ -293,9 +293,9 @@ class User extends AnimatedObject {
     this.damage=        this.BASE_DAMAGE;
 
     this.inventory=     new Inventory.Inventory(10);
+    this.msg_queue=     new Utils.Queue();
   }
     
-
   reset(spawn_room_id){
     this.health=            this.BASE_HEALTH;
     this.damage=            this.BASE_DAMAGE;
@@ -321,6 +321,22 @@ class User extends AnimatedObject {
     msg += `${this.type_string}.  ${this.description};`
     return  msg;    
   }
+
+  get_inv_content(){
+    let messages_arr = this.inventory.generate_inv_messages();
+    this.msg_queue.load(messages_arr);
+
+    return this.msg_queue.dequeue(); 
+  }
+
+  get_next_msg_from_queue(){
+    return this.msg_queue.dequeue();
+  }
+
+  clear_msg_queue(){
+    this.msg_queue.clear();
+  }
+
 }
 
 exports.Item=             Item;
