@@ -221,6 +221,11 @@ class Game_Controller {
       case 'en':
         this.end_cmd(user_id);
         break;
+
+      case 'say':
+      case 'sa':
+        this.say_cmd(user_id, target);
+        break;
   
       case 'north':
       case 'n':
@@ -369,8 +374,10 @@ class Game_Controller {
     this.process_incoming_message('look', user.id);
   }
 
+  //TODO: add coins
   get_cmd(user_id, target){
     //pick up the target and place in a slot.
+    //if the target is coins - place it in the coins balance.
 
     if (target===null){
       let message = {
@@ -431,6 +438,7 @@ class Game_Controller {
     }   
   }
 
+  //TODO: add coins
   drop_cmd(user_id, target){
     //drop a target from the slots to the room.
 
@@ -604,6 +612,25 @@ class Game_Controller {
     //clear the queue.
     let user = World.world.get_instance(user_id);
     user.clear_msg_queue();
+
+    let message = {
+      sender: 'world',
+      content: 'Message chain cleared.'
+    }
+    Utils.msg_sender.send_message_to_user(user_id, message);
+  }
+
+  say_cmd(user_id, content){
+    //send the content to all users in the room.
+    let user = World.world.get_instance(user_id);
+    let msg = `${user.name} says: ${content}`;
+
+    let message = {
+      sender: 'world',
+      content: msg
+    }
+
+    Utils.msg_sender.send_message_to_room(user_id, message);
   }
 }
 

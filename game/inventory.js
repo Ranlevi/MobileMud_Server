@@ -15,6 +15,8 @@ class Inventory {
     
     this.slots = new Set();//ids
     this.num_of_slots = num_of_slots;
+
+    this.coins = 0;
   }  
   
   get(entity_id){
@@ -117,11 +119,56 @@ class Inventory {
     }    
   }
 
-  //TODO: test queue
   generate_inv_messages(){
     //returns an array of message. Index 0 is the first to be sent.
-    let arr = ['1', '2', '3'];
+    let arr = [];
+
+    let msg = `Your inventory:  `;
+    for (const [position, id] of Object.entries(this.wear_hold)){
+      if (id===null){
+        msg += `${position}: Nothing.  `;
+      } else {
+        let entity = World.world.get_instance(id);
+        msg += `${position}: ${entity.type_string}`;
+      }
+    }
+    
+    arr.push(msg);
+    
+    msg = `In slots:  `;
+    if (this.slots.size===0){
+      msg += `Nothing.`
+    } else {
+      for (const id of this.slots){
+        let entity = World.world.get_instance(id);
+        msg += `${entity.type_string}  `;
+      }
+    }   
+
+    arr.push(msg);
+
+    msg = `You have ${this.coins} coins.`;
+    arr.push(msg);
+
     return arr;
+  }
+
+  add_coins(coins){
+    this.coins += coins;
+  }
+
+  remove_coins(coins){
+    let balance = this.coins - coins;
+    if (balance < 0){
+      return false;
+    } else {
+      this.coins = this.coins - coins;
+      return true;
+    }
+  }
+
+  get_balance(){
+    return this.coins;
   }
 
 }

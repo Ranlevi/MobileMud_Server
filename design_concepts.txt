@@ -23,17 +23,25 @@ Game Design:
 - A User and Human NPC have the full inventory.
   An Non-Human NPC and InAnimateObject has only slots.
 
-- Long messages should be broken into multiple msgs. Next, End commands.
-  The message store should be associated with the user instance.
-  This means the msg_sender is not responsible for it - the user instance should.
-  calling inv generates the messages and loads them into the user's msg_store. 
-  Then the first message is sent.
-  the 'next' cmd will send the next msg in the store. This means msg chains should be identified 
-  as such in the messages themselves. 
-  the 'end' cmd will purge the msg_store from all the remaining msgs in the chain.
-  The is only one message chain in the store at any given moment. Calling 'inv' again
-  will clear the store and set the new message chain. 
+- Long messages can be broken into multiple msgs. Next, End commands.
 
+- Coins:
+  'get coin/s' should add coins to the balance.
+  how to remove coins? 
+  Maybe this is a digital economy. You only have a balance in the blockchain, no physical
+  coins at all. 
+  User do tasks and get payed to the balance.
+  They can 'buy' and 'sell' in shops. 
+
+- Shops:
+  User says 'buy'. shopkeeper gives a messgage chain with numbered list. say 'buy 1' buys.
+  same for 'sell' -> 'sell 1'.
+
+- Log in:
+  Client side will send a message with username and password upon connection.
+  Failure will terminate the connection. 
+  Success will send a welcome and look message. 
+ 
 
 - The content sent to the client is 'smart': i.e., entities are indicated
   by type, allowing the client to display actions according to type.
@@ -57,7 +65,6 @@ Game Design:
   - Add objects and basic interactions: look, get, drop, hold, use.
     - Add inventory, slots to user.
   - Add NPCs and basic interactions: look, say. user sees what npc does.
-  - Add combat system: kill
     - handle damage, death (corpse is an entity)
   - Add object creation: create (based on objects in inventory)
   - Add economy: coins, player wallet. buy/sell from inventory to npc.

@@ -98,7 +98,13 @@ class Queue {
 
   dequeue(){
     if (this.elements.length!==0){
-      return this.elements.shift();
+      let msg = this.elements.shift();
+      if (this.elements.length===0){
+        msg += 'End of Message Chain.'
+      } else {
+        msg += '[Next]({type:"Command"}) [End]({type:"Command"})';
+      }
+      return msg;
     } else {
       return null;
     }      
