@@ -6,6 +6,7 @@ const fs=                   require('fs');
 const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
+const { ENODEV } = require('constants');
 
 const LOAD_WORLD_FROM_SAVE = true;
 let   FIRST_ROOM_ID        = '0';
@@ -40,6 +41,14 @@ class Game_Controller {
   }
   
   load_world(){
+
+    //Load users_db
+    if (fs.existsSync('./users_db.json')){
+      let data = JSON.parse(fs.readFileSync('./users_db.json'));
+      //TODO: load users.continue new user login.
+
+
+    }
     
     if (fs.existsSync(`./world_save.json`)){
       let current_id;
@@ -374,10 +383,8 @@ class Game_Controller {
     this.process_incoming_message('look', user.id);
   }
 
-  //TODO: add coins
   get_cmd(user_id, target){
     //pick up the target and place in a slot.
-    //if the target is coins - place it in the coins balance.
 
     if (target===null){
       let message = {
@@ -438,7 +445,6 @@ class Game_Controller {
     }   
   }
 
-  //TODO: add coins
   drop_cmd(user_id, target){
     //drop a target from the slots to the room.
 
@@ -638,14 +644,35 @@ let game_controller=  new Game_Controller();
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
-  let user_id = game_controller.new_client_connected(ws_client);  
-
+  // let user_id = game_controller.new_client_connected(ws_client); 
+  // let wsc = ws_client;
+  let state = 'Not Logged In';
+  let user_id = null;
+  
   ws_client.on('close', () => {
-    console.log(`Client User ID ${user_id} disconnected`);
+    // console.log(`Client User ID ${user_id} disconnected`);
     //TODO: save user.
   });
 
   ws_client.onmessage = (event) => {
-    game_controller.process_incoming_message(event.data, user_id);    
+    
+    let incoming_msg = JSON.parse(event.data);
+    
+    if (state==="Not Logged In" && incoming_msg.type==="Login"){
+      //Check if User is already registered.
+      //If not create a new one? 
+
+
+      if (incoming_msg.content.username==="HaichiPapa" &&
+          incoming_msg.content.password==="12345678"){
+            state = 'Logged In';
+            user_id = game_controller.new_client_connected(ws_client); 
+      } else {
+        ws_client.close(4000, 'Wrong Username or Password.');
+      }
+    } else if (state==='Logged In' && incoming_msg.type==="User Input"){
+      game_controller.process_incoming_message(incoming_msg.content, user_id);
+    }
+
   }
 });

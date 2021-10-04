@@ -26,13 +26,10 @@ Game Design:
 - Long messages can be broken into multiple msgs. Next, End commands.
 
 - Coins:
-  'get coin/s' should add coins to the balance.
-  how to remove coins? 
-  Maybe this is a digital economy. You only have a balance in the blockchain, no physical
-  coins at all. 
+  Digital economy. The coins are kept in a balance.
+  Maybe a 'transfer X #' command. 
   User do tasks and get payed to the balance.
-  They can 'buy' and 'sell' in shops. 
-
+  
 - Shops:
   User says 'buy'. shopkeeper gives a messgage chain with numbered list. say 'buy 1' buys.
   same for 'sell' -> 'sell 1'.
@@ -41,7 +38,8 @@ Game Design:
   Client side will send a message with username and password upon connection.
   Failure will terminate the connection. 
   Success will send a welcome and look message. 
- 
+
+- todo: impelemnt logging
 
 - The content sent to the client is 'smart': i.e., entities are indicated
   by type, allowing the client to display actions according to type.
