@@ -276,6 +276,15 @@ class Screwdriver extends Entity {
     this.is_gettable=   true;
     this.wear_hold_slot="Hands";
   }
+
+  get_data_obj(){
+    let obj = {
+      description: this.description,
+      type:        this.type,
+      is_gettable: this.is_gettable
+    }
+    return obj;
+  }
 }
 
 class User extends AnimatedObject {
@@ -294,6 +303,17 @@ class User extends AnimatedObject {
 
     this.inventory=     new Inventory.Inventory(10);
     this.msg_queue=     new Utils.Queue();
+  }
+
+  get_data_obj(){
+    let obj = {
+      description: this.description,
+      room_id:  this.room_id,
+      health: this.health,
+      damage: this.damage,
+      inventory: this.inventory.get_data_object()
+    }
+    return obj;
   }
     
   reset(spawn_room_id){

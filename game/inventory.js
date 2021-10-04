@@ -17,7 +17,31 @@ class Inventory {
     this.num_of_slots = num_of_slots;
 
     this.coins = 0;
-  }  
+  }
+  
+  get_data_object(){
+    let obj = {};
+
+    if (this.enable_wear_hold){
+      obj.wear_hold = {};
+      for (const [position, id] of Object.entries(this.wear_hold)){
+         if (id===null){
+           obj.wear_hold[position] = null;
+         } else {
+          let entity = World.world.get_instance(id);
+          obj.wear_hold[position] = entity.get_data_obj();
+         }
+      }
+    }
+    
+    obj.slots = [];
+    for (const id of this.slots){
+      let entity = World.world.get_instance(id);
+      obj.slots.push(entity.get_data_obj());
+    }
+
+    return obj;
+  }
   
   get(entity_id){
     //If a slot is available, place the entity in it.

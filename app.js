@@ -9,7 +9,8 @@ const World=                require('./game/world');
 const { ENODEV } = require('constants');
 
 const LOAD_WORLD_FROM_SAVE = true;
-let   FIRST_ROOM_ID        = '0';
+const FIRST_ROOM_ID        = '0';
+const USER_SAVE_INTERVAL   = 10;
 
 //-- HTML 
 //Serving the demo client to the browser
@@ -19,7 +20,8 @@ app.get('/', function(req, res){
 });
 
 class Game_Controller {
-  constructor(){    
+  constructor(){
+    this.user_save_counter = USER_SAVE_INTERVAL;   
     this.init_game();
   }
 
@@ -33,7 +35,7 @@ class Game_Controller {
   
     app.listen(3000); //Ready to recive connections.
   
-    setInterval(this.game_loop, 1000);
+    setInterval(this.game_loop, 1000); //TODO: fix setInterval not having access to controller!
   }
 
   generate_world(){
@@ -45,9 +47,9 @@ class Game_Controller {
     //Load users_db
     if (fs.existsSync('./users_db.json')){
       let data = JSON.parse(fs.readFileSync('./users_db.json'));
-      //TODO: load users.continue new user login.
-
-
+      for (const [username, data_obj] of Object.entries(data)){
+        World.users_db.set(username, data_obj);
+      }
     }
     
     if (fs.existsSync(`./world_save.json`)){
@@ -95,8 +97,33 @@ class Game_Controller {
       //TODO: fallback if no save exists
     }
   }
+
+  save_users_to_file(){
+    //skip users in battle
+    console.log('here');
+    let data = {};
+    World.world.world.forEach((item)=>{
+      if (item instanceof Classes.User && item.is_fighting_with!==null){
+        //Not in battle
+        data[item.name] = item.get_data_obj(); 
+      }
+    });
+
+    fs.writeFile(`./user_db.json`, 
+                  JSON.stringify(data),  
+                  function(err){if (err) console.log(err);}
+                );
+    console.log('Users saved.');    
+  }
   
-  game_loop(){    
+  game_loop(){   
+    console.log(this.user_save_counter);
+    this.user_save_counter -= 1;
+    if (this.user_save_counter===0){
+      this.user_save_counter = USER_SAVE_INTERVAL;
+      this.save_users_to_file();
+    }
+
     var msg;
     World.world.world.forEach(
       (item) => {
