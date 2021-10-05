@@ -26,6 +26,8 @@ class Game_Controller {
   }
 
   init_game(){
+
+    this.load_users_db();
       
     if (LOAD_WORLD_FROM_SAVE){
       this.load_world();
@@ -34,16 +36,16 @@ class Game_Controller {
     }    
   
     app.listen(3000); //Ready to recive connections.
+    this.game_loop();
   
-    setInterval(this.game_loop, 1000); //TODO: fix setInterval not having access to controller!
+    // setInterval(this.game_loop, 1000); //TODO: fix setInterval not having access to controller!
   }
 
   generate_world(){
     //To be implemented  
   }
-  
-  load_world(){
 
+  load_users_db(){
     //Load users_db
     if (fs.existsSync('./users_db.json')){
       let data = JSON.parse(fs.readFileSync('./users_db.json'));
@@ -51,6 +53,9 @@ class Game_Controller {
         World.users_db.set(username, data_obj);
       }
     }
+  }
+  
+  load_world(){
     
     if (fs.existsSync(`./world_save.json`)){
       let current_id;
@@ -100,29 +105,44 @@ class Game_Controller {
 
   save_users_to_file(){
     //skip users in battle
-    console.log('here');
+    
     let data = {};
     World.world.world.forEach((item)=>{
-      if (item instanceof Classes.User && item.is_fighting_with!==null){
+      if (item instanceof Classes.User && item.is_fighting_with===null){
         //Not in battle
         data[item.name] = item.get_data_obj(); 
       }
     });
 
-    fs.writeFile(`./user_db.json`, 
+    fs.writeFile(`./users_db.json`, 
                   JSON.stringify(data),  
                   function(err){if (err) console.log(err);}
                 );
     console.log('Users saved.');    
   }
   
-  game_loop(){   
-    console.log(this.user_save_counter);
-    this.user_save_counter -= 1;
-    if (this.user_save_counter===0){
-      this.user_save_counter = USER_SAVE_INTERVAL;
-      this.save_users_to_file();
-    }
+  game_loop(){
+    //Note: the loop technique allows for a minimum fixed length between
+    //loop iterations, regardless of content of the loop.
+    
+    let timer_id = setTimeout(
+      function update(){
+
+        this.user_save_counter -= 1;
+        if (this.user_save_counter===0){
+          this.user_save_counter = USER_SAVE_INTERVAL;
+          this.save_users_to_file();
+        }
+
+        this.run_simulation_tick();
+
+        timer_id = setTimeout(update.bind(this), 1000);
+      }.bind(this),
+      1000
+    );
+  }
+
+  run_simulation_tick(){
 
     var msg;
     World.world.world.forEach(
@@ -172,15 +192,19 @@ class Game_Controller {
       }      
     );
   }
-
-  new_client_connected(ws_client){
+  
+  new_client_connected(ws_client, username, user_data){
     
     let user = new Classes.User(
-      'HaichiPapa', 
-      "It's you, bozo", 
+      username, 
+      user_data.description,
       ws_client,
-      FIRST_ROOM_ID
-    );    
+      user_data.room_id
+    ); 
+    user.health = user_data.health;
+    user.damage = user_data.damage;
+    user.inventory.update_from_obj(user_data.inventory);
+
     World.world.add_to_world(user);
 
     let msg = {
@@ -345,7 +369,7 @@ class Game_Controller {
       }      
     }
   }
-
+  
   //TODO: refactor like get_cmd
   look_cmd(user_id, target){
     let user = World.world.get_instance(user_id);
@@ -380,8 +404,10 @@ class Game_Controller {
     }    
   }
 
+  //TODO: debug new user 
   move_cmd(direction, user_id){
     let user=         World.world.get_instance(user_id);
+    console.log(user);
     let current_room= World.world.get_instance(user.room_id);
 
     if (current_room.exits[direction]===null){
@@ -665,6 +691,27 @@ class Game_Controller {
 
     Utils.msg_sender.send_message_to_room(user_id, message);
   }
+
+  create_new_user(ws_client, username, password){
+    let user = new Classes.User(
+      username, 
+      "It's you, Bozo.",
+      ws_client,
+      FIRST_ROOM_ID
+    ); 
+    user.password = password;     
+    World.world.add_to_world(user);
+    console.log(user.room_id);
+
+    let msg = {
+      sender: "world",
+      content: `Hi ${user.name}, your ID is ${user.id}`
+    }
+    Utils.msg_sender.send_message_to_user(user.id, msg);   
+
+    this.process_incoming_message('look', user.id);    
+    return user.id;
+  }
 }
 
 let game_controller=  new Game_Controller();
@@ -687,19 +734,25 @@ wss.on('connection', (ws_client) => {
     
     if (state==="Not Logged In" && incoming_msg.type==="Login"){
       //Check if User is already registered.
-      //If not create a new one? 
+      let user_data = World.users_db.get(incoming_msg.content.username);
+      if (user_data!==undefined){
 
+        //check password.
+        if (incoming_msg.content.password===user_data.password){
+          state = 'Logged In';
+          game_controller.new_client_connected(ws_client, incoming_msg.content.username, user_data);        
+        } else {
+          ws_client.close(4000, 'Wrong Username or Password.');
+        }
 
-      if (incoming_msg.content.username==="HaichiPapa" &&
-          incoming_msg.content.password==="12345678"){
-            state = 'Logged In';
-            user_id = game_controller.new_client_connected(ws_client); 
       } else {
-        ws_client.close(4000, 'Wrong Username or Password.');
+        //A new user
+        state = 'Logged In';
+        game_controller.create_new_user(ws_client, incoming_msg.content.username, incoming_msg.content.password);        
       }
+
     } else if (state==='Logged In' && incoming_msg.type==="User Input"){
       game_controller.process_incoming_message(incoming_msg.content, user_id);
     }
-
   }
 });

@@ -279,9 +279,7 @@ class Screwdriver extends Entity {
 
   get_data_obj(){
     let obj = {
-      description: this.description,
-      type:        this.type,
-      is_gettable: this.is_gettable
+      type:        this.type
     }
     return obj;
   }
@@ -303,6 +301,8 @@ class User extends AnimatedObject {
 
     this.inventory=     new Inventory.Inventory(10);
     this.msg_queue=     new Utils.Queue();
+
+    this.password=      null;
   }
 
   get_data_obj(){
@@ -311,6 +311,7 @@ class User extends AnimatedObject {
       room_id:  this.room_id,
       health: this.health,
       damage: this.damage,
+      password: this.password,
       inventory: this.inventory.get_data_object()
     }
     return obj;

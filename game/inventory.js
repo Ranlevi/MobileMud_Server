@@ -1,4 +1,5 @@
 const World=      require('./world');
+const Classes=    require('./classes');
 
 class Inventory {
   constructor(num_of_slots, enable_wear_hold=true){
@@ -41,6 +42,35 @@ class Inventory {
     }
 
     return obj;
+  }
+
+  update_from_obj(obj){
+
+    for (const [position, data] of Object.entries(obj.wear_hold)){
+      if (data!==null){
+        let entity;
+        switch(data.type){
+          case('Screwdriver'):
+            entity = new Classes.Screwdriver();
+            break;
+        }
+
+        World.world.add_entity(entity);
+        this.wear_hold[position] = entity.id;
+      }
+    }
+
+    for (const data of obj.slots){
+      let entity;
+      switch(data.type){
+        case('Screwdriver'):
+          entity = new Classes.Screwdriver();
+          break;
+      }
+      World.world.add_entity(entity);
+      this.slots.add(entity.id);
+    }
+
   }
   
   get(entity_id){
