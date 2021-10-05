@@ -124,13 +124,18 @@ class Room extends Item {
   }
 }
 
+//TODO: sometimes a room is not the container. When? also, change room_id to container_id.
+//When loading the world from save, an entity can be in a room on on an NPC. 
+//when loading a user, the entities are on it.
+//during a game, can be in other containers.
 class Entity extends Item {
   //Not meant to be called directly.
-  constructor(room_id, id){
+  constructor(container_id, id){
       super(id);      
 
-      let room=     World.world.get_instance(room_id);
-      this.room_id= room.id;
+      //Not always created in a room!
+      let room=     World.world.get_instance(container_id);
+      this.container_id= room.id;
       room.add_entity(this.id);
 
       this.inventory=     new Inventory.Inventory(0, false);

@@ -203,6 +203,7 @@ class Game_Controller {
     ); 
     user.health = user_data.health;
     user.damage = user_data.damage;
+    user.password= user_data.password;
     user.inventory.update_from_obj(user_data.inventory);
 
     World.world.add_to_world(user);
@@ -404,10 +405,8 @@ class Game_Controller {
     }    
   }
 
-  //TODO: debug new user 
   move_cmd(direction, user_id){
     let user=         World.world.get_instance(user_id);
-    console.log(user);
     let current_room= World.world.get_instance(user.room_id);
 
     if (current_room.exits[direction]===null){
@@ -701,7 +700,6 @@ class Game_Controller {
     ); 
     user.password = password;     
     World.world.add_to_world(user);
-    console.log(user.room_id);
 
     let msg = {
       sender: "world",
@@ -718,37 +716,38 @@ let game_controller=  new Game_Controller();
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
-  // let user_id = game_controller.new_client_connected(ws_client); 
-  // let wsc = ws_client;
   let state = 'Not Logged In';
   let user_id = null;
   
   ws_client.on('close', () => {
     // console.log(`Client User ID ${user_id} disconnected`);
-    //TODO: save user.
   });
 
   ws_client.onmessage = (event) => {
     
     let incoming_msg = JSON.parse(event.data);
+    console.log('MSG RCVD');
     
     if (state==="Not Logged In" && incoming_msg.type==="Login"){
       //Check if User is already registered.
       let user_data = World.users_db.get(incoming_msg.content.username);
       if (user_data!==undefined){
-
+        console.log('USERNAME FOUND');
         //check password.
         if (incoming_msg.content.password===user_data.password){
           state = 'Logged In';
-          game_controller.new_client_connected(ws_client, incoming_msg.content.username, user_data);        
+          user_id = game_controller.new_client_connected(ws_client, incoming_msg.content.username, user_data);  
+          console.log('Logged In');      
         } else {
           ws_client.close(4000, 'Wrong Username or Password.');
+          console.log('WRONG USRNAME/PW');
         }
 
       } else {
         //A new user
         state = 'Logged In';
-        game_controller.create_new_user(ws_client, incoming_msg.content.username, incoming_msg.content.password);        
+        user_id = game_controller.create_new_user(ws_client, incoming_msg.content.username, incoming_msg.content.password);
+        console.log('NEW USER');  
       }
 
     } else if (state==='Logged In' && incoming_msg.type==="User Input"){
