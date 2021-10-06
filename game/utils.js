@@ -30,8 +30,8 @@ class Message_Sender {
 
   send_message_to_room(user_id, message, dont_send_to_user=false){
     let user = World.world.get_instance(user_id);
-    let room = World.world.get_instance(user.room_id);
-    let arr = room.get_users();
+    let container = World.world.get_instance(user.container_id);
+    let arr = container.get_users();
     for (const id of arr){
       if (id===user_id && dont_send_to_user) continue;
       this.send_message_to_user(id, message);
@@ -64,12 +64,12 @@ function get_opposite_direction(direction){
   }
 }
 
-function search_for_target(room_id, target){
+function search_for_target(container_id, target){
   //target is string
   //search order: wear, hold, slots, room. 
 
-  let room = World.world.get_instance(room_id);
-  let entities_ids_arr = room.get_entities();
+  let container = World.world.get_instance(container_id);
+  let entities_ids_arr = container.get_entities();
 
   for (const entity_id of entities_ids_arr){
     let entity = World.world.get_instance(entity_id);

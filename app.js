@@ -36,9 +36,7 @@ class Game_Controller {
     }    
   
     app.listen(3000); //Ready to recive connections.
-    this.game_loop();
-  
-    // setInterval(this.game_loop, 1000); //TODO: fix setInterval not having access to controller!
+    this.game_loop();  
   }
 
   generate_world(){
@@ -64,6 +62,7 @@ class Game_Controller {
       for (const [id, instance_data] of Object.entries(data)){
         current_id = id;
         var entity;
+        let container;
 
         switch(instance_data.type){
           case "Room":
@@ -81,16 +80,21 @@ class Game_Controller {
             entity = new Classes.Dog(
               instance_data.name, 
               instance_data.description, 
-              instance_data.room_id,
               id);
+            container = World.world.get_instance(instance_data.container_id);
+            container.add_entity(entity.id);
+            entity.set_container_id(container.id);
             World.world.add_to_world(entity);
             break;
 
           case "Screwdriver":
             entity = new Classes.Screwdriver(
-              instance_data.description, 
-              instance_data.room_id,
-              id);
+              instance_data.description,
+              id
+            );
+            container = World.world.get_instance(instance_data.container_id);
+            container.add_entity(entity.id);
+            entity.set_container_id(container.id);
             World.world.add_to_world(entity);
             break;
         }
@@ -171,9 +175,9 @@ class Game_Controller {
 
             //Create a corpse
             let corpse = new Classes.Corpse(              
-              opponent.description,
-              opponent.room_id,
-              );
+              opponent.description);
+            let container = World.world.get_instance(instance_data.container_id);
+            container.add_entity(corpse.id);
             World.world.add_to_world(corpse);
 
             if (opponent instanceof Classes.User){
@@ -181,8 +185,8 @@ class Game_Controller {
 
             } else {
               //Remove entity from the world
-              let room = World.world.get_instance(opponent.room_id);
-              room.remove_entity(opponent.id);
+              let container = World.world.get_instance(opponent.container_id);
+              container.remove_entity(opponent.id);
               World.world.remove_from_world(opponent.id);
             }          
           }
@@ -198,12 +202,16 @@ class Game_Controller {
     let user = new Classes.User(
       username, 
       user_data.description,
-      ws_client,
-      user_data.room_id
+      ws_client
     ); 
     user.health = user_data.health;
     user.damage = user_data.damage;
     user.password= user_data.password;
+    user.container_id = user_data.container_id;
+
+    let container = World.world.get_instance(user_data.container_id);
+    container.add_entity(user.id);
+    
     user.inventory.update_from_obj(user_data.inventory);
 
     World.world.add_to_world(user);
@@ -333,7 +341,7 @@ class Game_Controller {
     } else {
 
       let user=       World.world.get_instance(user_id);
-      let entity_id = Utils.search_for_target(user.room_id, target);
+      let entity_id = Utils.search_for_target(user.container_id, target);
 
       if (entity_id===null){
         let message = {
@@ -374,18 +382,18 @@ class Game_Controller {
   //TODO: refactor like get_cmd
   look_cmd(user_id, target){
     let user = World.world.get_instance(user_id);
-    let room = World.world.get_instance(user.room_id);
+    let container = World.world.get_instance(user.container_id);
 
     if (target===null){
       let message = {
         sender: 'world',
-        content: room.get_look_string()
+        content: container.get_look_string()
       }
       Utils.msg_sender.send_message_to_user(user_id, message)
 
     } else {
 
-      let entity_id = Utils.search_for_target(room.id, target);
+      let entity_id = Utils.search_for_target(container.id, target);
 
       if (entity_id===null){
         let message = {
@@ -407,9 +415,9 @@ class Game_Controller {
 
   move_cmd(direction, user_id){
     let user=         World.world.get_instance(user_id);
-    let current_room= World.world.get_instance(user.room_id);
+    let current_container= World.world.get_instance(user.container_id);
 
-    if (current_room.exits[direction]===null){
+    if (current_container.exits[direction]===null){
       //Exit does not exist
       let message = {
         sender: 'world',
@@ -420,16 +428,16 @@ class Game_Controller {
     }
 
     //Exit exists.
-    let new_room=   World.world.get_instance(current_room.exits[direction]);
+    let new_container=   World.world.get_instance(current_container.exits[direction]);
 
-    user.room_id = new_room.id;
-    current_room.remove_entity(user.id);
-    new_room.add_entity(user_id);
+    user.container_id = new_container.id;
+    current_container.remove_entity(user.id);
+    new_container.add_entity(user_id);
 
     let message = {
       sender: 'world',
       content: `
-        You travel ${direction} to ${new_room.name}.`        
+        You travel ${direction} to ${new_container.name}.`        
     }
     Utils.msg_sender.send_message_to_user(user_id, message)
     this.process_incoming_message('look', user.id);
@@ -449,7 +457,7 @@ class Game_Controller {
 
     //Target is not null.
     let user=       World.world.get_instance(user_id);
-    let entity_id = Utils.search_for_target(user.room_id, target);
+    let entity_id = Utils.search_for_target(user.container_id, target);
 
     if (entity_id===null){
       let message = {
@@ -485,8 +493,8 @@ class Game_Controller {
       msg.content = `${user.name} picks up ${entity.type_string}`;
       Utils.msg_sender.send_message_to_room(user_id, msg, true);
 
-      let room = World.world.get_instance(user.room_id);
-      room.remove_entity(entity_id);
+      let container = World.world.get_instance(user.container_id);
+      container.remove_entity(entity_id);
 
     } else {
       let msg = {
@@ -524,7 +532,7 @@ class Game_Controller {
     } 
     
     //Target was found
-    user.inventory.drop(entity_id, user.room_id);
+    user.inventory.drop(entity_id, user.container_id);
 
     let msg = {
       sender: 'world',
@@ -695,10 +703,12 @@ class Game_Controller {
     let user = new Classes.User(
       username, 
       "It's you, Bozo.",
-      ws_client,
-      FIRST_ROOM_ID
+      ws_client
     ); 
-    user.password = password;     
+    user.set_password(password);
+    user.set_container_id(FIRST_ROOM_ID);
+    let container = World.world.get_instance(FIRST_ROOM_ID);
+    container.add_entity(user.id);     
     World.world.add_to_world(user);
 
     let msg = {

@@ -126,13 +126,13 @@ class Inventory {
     return null;
   }
 
-  drop(entity_id, room_id){
+  drop(entity_id, container_id){
     //We assume the entity is in the slots.
     //we drop it to the floor.
     let success = false;
     this.slots.delete(entity_id);
-    let room = World.world.get_instance(room_id);
-    room.add_entity(entity_id);    
+    let container = World.world.get_instance(container_id);
+    container.add_entity(entity_id);    
     return success;
   }
 

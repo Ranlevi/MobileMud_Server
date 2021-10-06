@@ -36,9 +36,13 @@ constructor(id){
   remove_entity(id){
     return false;//If not overriden by child, removing fails.
   }
+
+  get_entities(){
+    return [];
+  }
 }
 
-class Room {
+class Room extends Item {
   constructor(name, description, id=null){
       super(id);      
       
@@ -320,6 +324,10 @@ class User extends AnimatedObject {
     this.msg_queue=     new Utils.Queue();
 
     this.password=      null;
+  }
+
+  set_password(pw){
+    this.password = pw;
   }
 
   get_data_obj(){
