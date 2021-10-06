@@ -124,7 +124,7 @@ class Room extends Item {
         let entity = World.world.get_instance(entity_id);
 
         if (entity.name===null){
-          msg += `${entity.type_string}  `;
+          msg += `[${entity.type_string}](${entity.type_string})     `;
         } else {
           msg += `[${entity.name}]({type:${entity.type_string}, `;
           msg += `id:${entity.id}}), ${entity.type_string}.  `;       
@@ -304,12 +304,18 @@ class Screwdriver extends Entity {
     }
     return obj;
   }
+
+  get_look_string(){
+    let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
+    msg += `${this.description}`;
+    return  msg;
+  }
 }
 
 class User extends AnimatedObject {
   constructor(name, description, ws_client, id=null){
     super(id);    
-    this.BASE_HEALTH = 2;
+    this.BASE_HEALTH = 10;
     this.BASE_DAMAGE = 1;
     
     this.name=          name;

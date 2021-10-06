@@ -80,7 +80,7 @@ class Inventory {
           entity = new Classes.Screwdriver();
           break;
       }
-      World.world.add_entity(entity);
+      World.world.add_to_world(entity);
       this.slots.add(entity.id);
     }
 

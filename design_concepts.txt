@@ -1,27 +1,5 @@
 Game Design:
-
-- Client for sending inputs and displaying content only. All game
-  logic is handled on the backend.
-  - demo client assumes text input only
-
-- The base class for everything in the world is Item.
-  Under it: Room, Entity.
-  Under Entity: User, NPC, InAnimateObject.
-
-- Every Item has an ID number. Almost all functions accept ids as inputs.
-
-- All Items are stored in a World Map() object, as id:instance pairs.
-
-- Some common component of the game are implemented as Singletons, so a single
-  instance can be used in all parts of the game (e.g. Message Sender, Message Formatter, etc.)
-
-- All items have an internal state. When there's no special intearction with anyone else,
-  they do their own thing via the process_tick method. 
-  When something that requires synchorization with another item ocurrs (e.g. battle),
-  the game_loop() ignores the process_tick and handles the actions directly.
-
-- A User and Human NPC have the full inventory.
-  An Non-Human NPC and InAnimateObject has only slots.
+============
 
 - Long messages can be broken into multiple msgs. Next, End commands.
 
@@ -29,23 +7,55 @@ Game Design:
   Digital economy. The coins are kept in a balance.
   Maybe a 'transfer X #' command. 
   User do tasks and get payed to the balance.
-  
-- Shops:
+
+ Shops:
   User says 'buy'. shopkeeper gives a messgage chain with numbered list. say 'buy 1' buys.
   same for 'sell' -> 'sell 1'.
 
-- Log in:
-  Client side will send a message with username and password upon connection.
-  Failure will terminate the connection. 
-  Success will send a welcome and look message. 
 
-- Everything in the game (except rooms) is inside a container, which could be a room
-  or another entity. When first created, an Entity is not assigned to a container.
-  When added to a container, the container is responsible for handling the entities
-  in it - including setting their container_id.
+Architecture:
+==================
 
-- The content sent to the client is 'smart': i.e., entities are indicated
-  by type, allowing the client to display actions according to type.
+- Client for sending inputs and displaying content only. All game
+  logic is handled on the backend.
+  - demo client assumes text input only
+
+- The base class for everything in the world is Item. 
+    Every item in the game has some basic default parameters and methods.
+    Every Item has an ID number. Almost all functions accept ids as inputs.
+    Every Item can be a container, and so has methods for adding/removing other entities.
+  Under item: 
+    -Room.
+    -Entity.
+      Everything which is not a room is an entity. 
+      An entity is always in a container (a room or some other container.)
+      It has an inventory (although by default it can't be used.) A non-Human
+      entity will usually have only slots.
+      By default, it doesn't have a name.
+  Under Entity:
+    -AnimatedObject:
+      All NPCs that can interact with the users. 
+      It has health and damage, and can do battles. 
+      It has a name.
+  Under AnimatedObject:
+    - User: 
+      Has a standard inventory.
+      Has a message Queue.
+      Has a password.
+      
+- All Items are stored in a World Map() object, as id:instance pairs.
+
+- Some common component of the game are implemented as Singletons, so a single
+  instance can be used in all parts of the game (e.g. Message Sender, Message Formatter, etc.)
+
+- All items are independant, and take care of their own internal state via proces_tick().
+  When something that requires synchorization with another item ocurrs (e.g. battle),
+  the game_loop() ignores the process_tick and handles the actions directly.
+
+- Messages are sent async. Game has a 1 sec tick for entities.
+
+- Composition is key. Keep mechanics simple, and build with them.
+
 - Game content creation should be flexable, to allow any to create new games 
   using existing types.
   - defined by loading a JSON when the engine boots. 
@@ -56,8 +66,7 @@ Game Design:
     - creating rooms and npcs. modifying properties via 'modify room.name' etc.
     - set/release ownership of rooms and objects.
   The two can be in the same game, but in different zones. 
-                                                           -> NPC
-- Messages are sent async. Game has a 1 sec tick for entities.
+                                                           
 - Development phases:
   - Basic World, single user moving around. look command.
     - changing client backgroud dynamically.
@@ -79,7 +88,8 @@ players to keep it a secret from others. It won't work but will create
 better cohesion with the players who take the game seriously. 
 - Going deeper into the planet makes it more dangeours, thus creating 
 a natural leveling/zoning system.
-- Composition is key. Keep mechanis simple, and build with them.
+
+
 - The economy is based on raw materials mined/found in the deeper levels.
   - the basic 'source' of new value are the materials. It has a natural
     feedback loop: more players = more mining = more value.
@@ -105,18 +115,5 @@ a natural leveling/zoning system.
       shapes, whitespace.
     - Typography for the text.
   This will not be random, but will have some intenral logic.
--Conceptual architecture:
-  - A tick loop will run a world simulation. 
-  - Use intearctions are asynchronous. To allow them to affect the world
-    we implement a queue with scheduled events ('tick containers' for 
-    current tick, tick+1, etc) so we can influence future events 
-    by modifing them. (e.g a dog is scheduled to bark in 4 ticks. If the 
-    user pets the dod, the barking is canceled/modified.)
-- Each entity/item has it's own internal state which it
-  operates independantly. this is done by the simulation calling
-  process_tick(). 
-  When there is a strong time-sensative interaction between items (e.g. battle),
-  the simulation takes over: it does not call proces_tick,
-  and handles the interaction during the game loop itself. 
-  This allows max autonomy, while solving problems with interactions
-  between two state machines.
+
+  

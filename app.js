@@ -64,17 +64,26 @@ class Game_Controller {
         var entity;
         let container;
 
+        if (instance_data.type==="Room"){
+          let room = new Classes.Room(instance_data.name, instance_data.description, id);          
+          
+          room.set_lighting(instance_data.lighting);
+  
+          for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
+            room.add_exit(direction, next_room_id);
+          }
+  
+          World.world.add_to_world(room);
+          break;
+
+        } else {
+
+
+        }
+
         switch(instance_data.type){
           case "Room":
-            let room = new Classes.Room(instance_data.name, instance_data.description, id);          
-            room.set_lighting(instance_data.lighting);
-    
-            for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
-              room.add_exit(direction, next_room_id);
-            }
-    
-            World.world.add_to_world(room);
-            break;
+            
 
           case "Dog":
             entity = new Classes.Dog(
@@ -176,7 +185,8 @@ class Game_Controller {
             //Create a corpse
             let corpse = new Classes.Corpse(              
               opponent.description);
-            let container = World.world.get_instance(instance_data.container_id);
+            corpse.set_container_id(opponent.container_id);
+            let container = World.world.get_instance(opponent.container_id);
             container.add_entity(corpse.id);
             World.world.add_to_world(corpse);
 
@@ -197,6 +207,7 @@ class Game_Controller {
     );
   }
   
+  //TODO: fix bug
   new_client_connected(ws_client, username, user_data){
     
     let user = new Classes.User(
@@ -208,13 +219,13 @@ class Game_Controller {
     user.damage = user_data.damage;
     user.password= user_data.password;
     user.container_id = user_data.container_id;
-
+    World.world.add_to_world(user);
     let container = World.world.get_instance(user_data.container_id);
     container.add_entity(user.id);
     
     user.inventory.update_from_obj(user_data.inventory);
 
-    World.world.add_to_world(user);
+    
 
     let msg = {
       sender: "world",
