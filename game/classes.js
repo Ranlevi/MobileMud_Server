@@ -28,9 +28,17 @@ constructor(id){
     //Can be overriden
     return "This is a generic item in the game. If you see this, Ran screwed up."
   }
+
+  add_entity(id){
+    return false;//If not overriden by child, adding fails.
+  }
+
+  remove_entity(id){
+    return false;//If not overriden by child, removing fails.
+  }
 }
 
-class Room extends Item {
+class Room {
   constructor(name, description, id=null){
       super(id);      
       
@@ -40,7 +48,7 @@ class Room extends Item {
       this.type_string= "A Room"; 
       this.entities=    new Set();
       this.exits= {
-        "north": null,
+        "north": null, //direction: id
         "south": null,
         "west":  null,
         "east":  null,
@@ -124,36 +132,31 @@ class Room extends Item {
   }
 }
 
-//TODO: sometimes a room is not the container. When? also, change room_id to container_id.
-//When loading the world from save, an entity can be in a room on on an NPC. 
-//when loading a user, the entities are on it.
-//during a game, can be in other containers.
 class Entity extends Item {
   //Not meant to be called directly.
-  constructor(container_id, id){
+  constructor(id){
       super(id);      
-
-      //Not always created in a room!
-      let room=     World.world.get_instance(container_id);
-      this.container_id= room.id;
-      room.add_entity(this.id);
-
-      this.inventory=     new Inventory.Inventory(0, false);
-      this.is_gettable=   false;
-      this.wear_hold_slot=null; //Hands, Feet, Head, Torso, Legs.
-
+      
+      this.container_id=    null;
+      this.inventory=       new Inventory.Inventory(0, false);
+      this.is_gettable=     false;
+      this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
   }
 
   get_look_string(){
     let msg = `It's ${this.type_string}`;
     return  msg;
   }
+
+  set_container_id(id){
+    this.container_id= id;
+  }
 }
 
 class AnimatedObject extends Entity {
   //Not meant to be called directly.
-  constructor(room_id, id){
-    super(room_id, id);
+  constructor(id){
+    super(id);
 
     this.health=            10;
     this.damage=            1;          
@@ -184,8 +187,8 @@ class AnimatedObject extends Entity {
 }
 
 class Dog extends AnimatedObject {
-  constructor(name, description, room_id, id=null){
-    super(room_id, id);
+  constructor(name, description, id=null){
+    super(id);
 
     this.name=        name;
     this.description= description;
@@ -234,8 +237,8 @@ class Dog extends AnimatedObject {
 }
 
 class Corpse extends Entity {
-  constructor(description, room_id, id=null){
-    super(room_id, id);
+  constructor(description, id=null){
+    super(id);
 
     this.description =        description;
     this.type=                "Corpse"
@@ -248,16 +251,25 @@ class Corpse extends Entity {
     this.decomposition_timer -= 1;
 
     if (this.decomposition_timer===0){
-
+      
+      //Sending a msg before the actuall removal, since we
+      //cant do anything after the removal.
       let msg = {
         sender: 'world',
         content: 'The corpse has decomposed and disappered.'
       }
-      Utils.msg_sender.send_message_to_room(this.id, msg);      
+      Utils.msg_sender.send_message_to_room(this.id, msg); 
+      
 
-      //TODO: remove all slot items from the world!
-      let room = World.world.get_instance(this.room_id);
-      room.remove_entity(this.id);
+      //Remove all the items in the inventory from the world.
+      let ids_arr = this.inventory.get_all_entities_ids();
+      for (const id of ids_arr){
+        World.world.remove_from_world(id);
+      }
+
+      //Remove the corpse from its container and the world.
+      let container = World.world.get_instance(this.container_id);
+      container.remove_entity(this.id);
       World.world.remove_from_world(this.id);
     }
   }
@@ -267,13 +279,13 @@ class Corpse extends Entity {
   }
 
   get_look_string(){
-    //TODO: return the content of the inventory
+    //TODO: solve - how to return a message chain??
   }
 }
 
 class Screwdriver extends Entity {
-  constructor(description, room_id, id=null){
-    super(room_id, id);
+  constructor(description, id=null){
+    super(id);
 
     this.description =   description;
     this.type=          "Screwdriver"
@@ -291,8 +303,8 @@ class Screwdriver extends Entity {
 }
 
 class User extends AnimatedObject {
-  constructor(name, description, ws_client, room_id, id=null){
-    super(room_id, id);    
+  constructor(name, description, ws_client, id=null){
+    super(id);    
     this.BASE_HEALTH = 2;
     this.BASE_DAMAGE = 1;
     
@@ -312,28 +324,28 @@ class User extends AnimatedObject {
 
   get_data_obj(){
     let obj = {
-      description: this.description,
-      room_id:  this.room_id,
-      health: this.health,
-      damage: this.damage,
-      password: this.password,
-      inventory: this.inventory.get_data_object()
+      description:    this.description,
+      container_id:   this.container_id,
+      health:         this.health,
+      damage:         this.damage,
+      password:       this.password,
+      inventory:      this.inventory.get_data_object()
     }
     return obj;
   }
     
-  reset(spawn_room_id){
+  reset(spawn_container_id){
     this.health=            this.BASE_HEALTH;
     this.damage=            this.BASE_DAMAGE;
     this.state=             "Default";
     this.is_fighting_with=  null;
     this.inventory=         new Inventory.Inventory(10);
 
-    let current_room = World.world.get_instance(this.room_id);
-    current_room.remove_entity(this.id);
+    let current_container = World.world.get_instance(this.container_id);
+    current_container.remove_entity(this.id);
 
-    let starting_room = World.world.get_instance(spawn_room_id);
-    starting_room.add_entity(this.id);
+    let spawn_container = World.world.get_instance(spawn_container_id);
+    spawn_container.add_entity(this.id);
 
     let msg = {
       sender: "world",

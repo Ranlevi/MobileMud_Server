@@ -19,6 +19,19 @@ class Inventory {
 
     this.coins = 0;
   }
+
+  get_all_entities_ids(){
+    let arr = [];
+    for (const id of Object.values(this.wear_hold)){
+      if (id!==null) arr.push(id);
+    }
+
+    for (const id of this.slots.values()){
+      arr.push(id);
+    }
+
+    return arr;
+  }
   
   get_data_object(){
     let obj = {};
@@ -73,6 +86,7 @@ class Inventory {
 
   }
   
+  //TODO: change name to something more accurate
   get(entity_id){
     //If a slot is available, place the entity in it.
     let success = false;

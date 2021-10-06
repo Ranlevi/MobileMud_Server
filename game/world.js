@@ -19,9 +19,8 @@ class World {
   }
 }
 
-const world = new World();
+const world=      new World();
+let users_db=     new Map(); //username: {saved_data} 
 
-let users_db = new Map(); //username: {saved_data} 
-
-exports.world = world;
+exports.world=    world;
 exports.users_db= users_db;

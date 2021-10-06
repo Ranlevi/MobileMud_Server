@@ -21,11 +21,11 @@
     "type": "Dog",
     "name": "Archie",
     "description": "It's a cute but silly dog.",
-    "room_id": "0"
+    "container_id": "0"
   },
   "4": {
     "type": "Screwdriver",    
     "description": "It's a flathead screwdriver.",
-    "room_id": "0"
+    "container_id": "0"
   }
 }

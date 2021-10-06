@@ -39,7 +39,10 @@ Game Design:
   Failure will terminate the connection. 
   Success will send a welcome and look message. 
 
-- todo: impelemnt logging
+- Everything in the game (except rooms) is inside a container, which could be a room
+  or another entity. When first created, an Entity is not assigned to a container.
+  When added to a container, the container is responsible for handling the entities
+  in it - including setting their container_id.
 
 - The content sent to the client is 'smart': i.e., entities are indicated
   by type, allowing the client to display actions according to type.
