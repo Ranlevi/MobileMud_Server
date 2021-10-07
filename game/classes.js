@@ -43,11 +43,11 @@ constructor(id){
 }
 
 class Room extends Item {
-  constructor(name, description, id=null){
-      super(id);      
-      
-      this.name=        name;
-      this.description= description;
+  constructor(instance_props, id=null){
+      super(id);
+
+      this.name=        instance_props.name;
+      this.description= instance_props.description;
       this.type=        "Room"
       this.type_string= "A Room"; 
       this.entities=    new Set();
@@ -60,6 +60,11 @@ class Room extends Item {
         "down":  null
         },
       this.lighting=  "white"; //CSS colors
+
+      for (const [direction, next_room_id] of Object.entries(instance_props.exits)){
+        this.add_exit(direction, next_room_id);
+      }
+      World.world.add_to_world(this);
   }
   
   add_exit(direction, next_room_id){
@@ -138,10 +143,16 @@ class Room extends Item {
 
 class Entity extends Item {
   //Not meant to be called directly.
-  constructor(id){
-      super(id);      
+  constructor(id, container_id){
+      super(id);
+
+      this.container_id = container_id;    
       
-      this.container_id=    null;
+      let container= World.world.get_instance(container_id);
+      container.add_entity(this.id);
+
+      World.world.add_to_world(this);
+
       this.inventory=       new Inventory.Inventory(0, false);
       this.is_gettable=     false;
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
@@ -159,8 +170,8 @@ class Entity extends Item {
 
 class AnimatedObject extends Entity {
   //Not meant to be called directly.
-  constructor(id){
-    super(id);
+  constructor(id, container_id){
+    super(id, container_id);
 
     this.health=            10;
     this.damage=            1;          
@@ -191,11 +202,11 @@ class AnimatedObject extends Entity {
 }
 
 class Dog extends AnimatedObject {
-  constructor(name, description, id=null){
-    super(id);
+  constructor(instance_props, id=null){
+    super(id, instance_props.container_id);
 
-    this.name=        name;
-    this.description= description;
+    this.name=        instance_props.name;
+    this.description= instance_props.description;
     this.type=        "Dog";
     this.type_string= "A Dog";
     this.health=      5;
@@ -241,8 +252,8 @@ class Dog extends AnimatedObject {
 }
 
 class Corpse extends Entity {
-  constructor(description, id=null){
-    super(id);
+  constructor(description, container_id, id=null){
+    super(id, container_id);
 
     this.description =        description;
     this.type=                "Corpse"
@@ -288,10 +299,10 @@ class Corpse extends Entity {
 }
 
 class Screwdriver extends Entity {
-  constructor(description, id=null){
-    super(id);
+  constructor(instance_props, id=null){
+    super(id,instance_props.container_id);
 
-    this.description =   description;
+    this.description =   instance_props.description;
     this.type=          "Screwdriver"
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
@@ -313,8 +324,8 @@ class Screwdriver extends Entity {
 }
 
 class User extends AnimatedObject {
-  constructor(name, description, ws_client, id=null){
-    super(id);    
+  constructor(name, description, ws_client, container_id, id=null){
+    super(id, container_id);    
     this.BASE_HEALTH = 10;
     this.BASE_DAMAGE = 1;
     

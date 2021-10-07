@@ -1,0 +1,31 @@
+{
+  "0": {
+    "type": "Room",
+    "name": "Room 1",
+    "description": "This is the first room of the game.",
+    "lighting": "white",    
+    "exits": {
+      "north": "1"
+    }
+  },
+  "1": {
+    "type": "Room",
+    "name": "Room 2",
+    "description": "This is the 2nd room of the game.",
+    "lighting": "silver",    
+    "exits": {
+      "south": "0"
+    }
+  },
+  "3": {
+    "type": "Dog",
+    "name": "Archie",
+    "description": "It's a cute but silly dog.",
+    "container_id": "0"
+  },
+  "4": {
+    "type": "Screwdriver",    
+    "description": "It's a flathead screwdriver.",
+    "container_id": "0"
+  }
+}

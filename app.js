@@ -6,7 +6,6 @@ const fs=                   require('fs');
 const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
-const { ENODEV } = require('constants');
 
 const LOAD_WORLD_FROM_SAVE = true;
 const FIRST_ROOM_ID        = '0';
@@ -54,65 +53,34 @@ class Game_Controller {
   }
   
   load_world(){
-    
     if (fs.existsSync(`./world_save.json`)){
       let current_id;
-      let data = JSON.parse(fs.readFileSync('./world_save.json'));
-  
-      for (const [id, instance_data] of Object.entries(data)){
+      let parsed_info = JSON.parse(fs.readFileSync('./world_save.json'));
+      
+      for (const [id, data] of Object.entries(parsed_info)){
         current_id = id;
-        var entity;
-        let container;
-
-        if (instance_data.type==="Room"){
-          let room = new Classes.Room(instance_data.name, instance_data.description, id);          
-          
-          room.set_lighting(instance_data.lighting);
-  
-          for (const [direction, next_room_id] of Object.entries(instance_data.exits)){
-            room.add_exit(direction, next_room_id);
-          }
-  
-          World.world.add_to_world(room);
-          break;
-
-        } else {
-
-
-        }
-
-        switch(instance_data.type){
+               
+        switch(data.type){
           case "Room":
-            
+            new Classes.Room(data.instance_properties, id);
+            break;
 
           case "Dog":
-            entity = new Classes.Dog(
-              instance_data.name, 
-              instance_data.description, 
-              id);
-            container = World.world.get_instance(instance_data.container_id);
-            container.add_entity(entity.id);
-            entity.set_container_id(container.id);
-            World.world.add_to_world(entity);
+            new Classes.Dog(data.instance_properties, id);                         
             break;
 
           case "Screwdriver":
-            entity = new Classes.Screwdriver(
-              instance_data.description,
-              id
-            );
-            container = World.world.get_instance(instance_data.container_id);
-            container.add_entity(entity.id);
-            entity.set_container_id(container.id);
-            World.world.add_to_world(entity);
+            new Classes.Screwdriver(data.instance_properties, id);                          
             break;
         }
-      }
-  
-      Utils.id_generator.set_new_current_id(current_id);
-  
+
+        //TODO: copy world save from backup, with new instance_info
+      
+        Utils.id_generator.set_new_current_id(current_id);        
+      } 
+      
     } else {
-      //TODO: fallback if no save exists
+      console.error(`app.load_world -> world_save.json does not exist.`);
     }
   }
 
@@ -183,13 +151,8 @@ class Game_Controller {
             Utils.msg_sender.send_message_to_room(item.id, msg);
 
             //Create a corpse
-            let corpse = new Classes.Corpse(              
-              opponent.description);
-            corpse.set_container_id(opponent.container_id);
-            let container = World.world.get_instance(opponent.container_id);
-            container.add_entity(corpse.id);
-            World.world.add_to_world(corpse);
-
+            new Classes.Corpse(opponent.description, opponent.container_id);
+            
             if (opponent instanceof Classes.User){
               opponent.reset(FIRST_ROOM_ID);
 
@@ -207,25 +170,19 @@ class Game_Controller {
     );
   }
   
-  //TODO: fix bug
   new_client_connected(ws_client, username, user_data){
     
     let user = new Classes.User(
       username, 
       user_data.description,
-      ws_client
+      ws_client,
+      user_data.container_id
     ); 
     user.health = user_data.health;
     user.damage = user_data.damage;
     user.password= user_data.password;
-    user.container_id = user_data.container_id;
-    World.world.add_to_world(user);
-    let container = World.world.get_instance(user_data.container_id);
-    container.add_entity(user.id);
     
     user.inventory.update_from_obj(user_data.inventory);
-
-    
 
     let msg = {
       sender: "world",
@@ -713,15 +670,12 @@ class Game_Controller {
   create_new_user(ws_client, username, password){
     let user = new Classes.User(
       username, 
-      "It's you, Bozo.",
-      ws_client
+      "It's you, Bozo.",      
+      ws_client,
+      FIRST_ROOM_ID
     ); 
     user.set_password(password);
-    user.set_container_id(FIRST_ROOM_ID);
-    let container = World.world.get_instance(FIRST_ROOM_ID);
-    container.add_entity(user.id);     
-    World.world.add_to_world(user);
-
+    
     let msg = {
       sender: "world",
       content: `Hi ${user.name}, your ID is ${user.id}`
