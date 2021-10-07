@@ -158,6 +158,12 @@ class Entity extends Item {
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
   }
 
+  remove_from_world(){
+    let container = World.world.get_instance(this.container_id);
+    container.remove_entity(this.id);
+    World.world.remove_from_world(this.id);
+  }
+
   get_look_string(){
     let msg = `It's ${this.type_string}`;
     return  msg;
@@ -252,10 +258,10 @@ class Dog extends AnimatedObject {
 }
 
 class Corpse extends Entity {
-  constructor(description, container_id, id=null){
-    super(id, container_id);
+  constructor(instance_props, id=null){
+    super(id, instance_props.container_id);
 
-    this.description =        description;
+    this.description =        instance_props.description;
     this.type=                "Corpse"
     this.type_string=         "A Corpse";
     this.decomposition_timer= 10;
@@ -298,6 +304,7 @@ class Corpse extends Entity {
   }
 }
 
+//TODO: fix bug load screwdriver from user_db in slot
 class Screwdriver extends Entity {
   constructor(instance_props, id=null){
     super(id,instance_props.container_id);
@@ -324,23 +331,29 @@ class Screwdriver extends Entity {
 }
 
 class User extends AnimatedObject {
-  constructor(name, description, ws_client, container_id, id=null){
-    super(id, container_id);    
+  constructor(instance_props, ws_client, id=null){
+    super(id, instance_props.container_id);    
     this.BASE_HEALTH = 10;
     this.BASE_DAMAGE = 1;
-    
-    this.name=          name;
-    this.description=   description;
+
     this.ws_client=     ws_client;
-    this.type=          "User";
-    this.type_string=   "A User";
-    this.health=        this.BASE_HEALTH;
-    this.damage=        this.BASE_DAMAGE;
+    this.name=          instance_props.name;
+    this.password=      instance_props.password;
+    this.description=   (instance_props.description===undefined)? 
+      "It's YOU, Bozo!" : instance_props.description;
+    this.health=        (instance_props.health===undefined)?
+      this.BASE_HEALTH : instance_props.health;
+    this.damage=        (instance_props.damage===undefined)?
+      this.BASE_DAMAGE : instance_props.damage;
 
     this.inventory=     new Inventory.Inventory(10);
-    this.msg_queue=     new Utils.Queue();
-
-    this.password=      null;
+    if (instance_props.inventory!==undefined){
+      this.inventory.update_from_obj(instance_props.inventory);
+    }
+      
+    this.type=          "User";
+    this.type_string=   "A User";
+    this.msg_queue=     new Utils.Queue();    
   }
 
   set_password(pw){

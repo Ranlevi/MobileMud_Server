@@ -72,10 +72,7 @@ class Game_Controller {
           case "Screwdriver":
             new Classes.Screwdriver(data.instance_properties, id);                          
             break;
-        }
-
-        //TODO: copy world save from backup, with new instance_info
-      
+        }      
         Utils.id_generator.set_new_current_id(current_id);        
       } 
       
@@ -151,16 +148,18 @@ class Game_Controller {
             Utils.msg_sender.send_message_to_room(item.id, msg);
 
             //Create a corpse
-            new Classes.Corpse(opponent.description, opponent.container_id);
+            let instance_props= {
+              description:  opponent.description,
+              container_id: opponent.container_id
+            };
+            new Classes.Corpse(instance_props);
             
             if (opponent instanceof Classes.User){
               opponent.reset(FIRST_ROOM_ID);
 
             } else {
               //Remove entity from the world
-              let container = World.world.get_instance(opponent.container_id);
-              container.remove_entity(opponent.id);
-              World.world.remove_from_world(opponent.id);
+              opponent.remove_from_world();
             }          
           }
         } else {
@@ -170,19 +169,21 @@ class Game_Controller {
     );
   }
   
-  new_client_connected(ws_client, username, user_data){
+  new_client_connected(ws_client, username){
     
-    let user = new Classes.User(
-      username, 
-      user_data.description,
-      ws_client,
-      user_data.container_id
-    ); 
-    user.health = user_data.health;
-    user.damage = user_data.damage;
-    user.password= user_data.password;
-    
-    user.inventory.update_from_obj(user_data.inventory);
+    let user_data = World.users_db.get(username);
+
+    let instance_props = {
+      name:         username,
+      description:  user_data.description,
+      container_id: user_data.container_id,
+      health:       user_data.health,
+      damage:       user_data.damage,
+      password:     user_data.password,
+      inventory:    user_data.inventory
+    }
+
+    let user = new Classes.User(instance_props, ws_client);
 
     let msg = {
       sender: "world",
@@ -668,13 +669,17 @@ class Game_Controller {
   }
 
   create_new_user(ws_client, username, password){
+
+    let instance_props = {
+      name:         username,
+      password:     password,
+      container_id: FIRST_ROOM_ID
+    }
+
     let user = new Classes.User(
-      username, 
-      "It's you, Bozo.",      
-      ws_client,
-      FIRST_ROOM_ID
-    ); 
-    user.set_password(password);
+      instance_props,
+      ws_client
+    );    
     
     let msg = {
       sender: "world",
@@ -701,28 +706,25 @@ wss.on('connection', (ws_client) => {
   ws_client.onmessage = (event) => {
     
     let incoming_msg = JSON.parse(event.data);
-    console.log('MSG RCVD');
     
     if (state==="Not Logged In" && incoming_msg.type==="Login"){
       //Check if User is already registered.
       let user_data = World.users_db.get(incoming_msg.content.username);
       if (user_data!==undefined){
-        console.log('USERNAME FOUND');
         //check password.
         if (incoming_msg.content.password===user_data.password){
-          state = 'Logged In';
-          user_id = game_controller.new_client_connected(ws_client, incoming_msg.content.username, user_data);  
-          console.log('Logged In');      
+          user_id = game_controller.new_client_connected(ws_client, incoming_msg.content.username);                  
         } else {
           ws_client.close(4000, 'Wrong Username or Password.');
-          console.log('WRONG USRNAME/PW');
         }
 
       } else {
         //A new user
         state = 'Logged In';
-        user_id = game_controller.create_new_user(ws_client, incoming_msg.content.username, incoming_msg.content.password);
-        console.log('NEW USER');  
+        user_id = game_controller.create_new_user(
+          ws_client, 
+          incoming_msg.content.username, 
+          incoming_msg.content.password);          
       }
 
     } else if (state==='Logged In' && incoming_msg.type==="User Input"){

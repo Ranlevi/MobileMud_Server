@@ -9,5 +9,31 @@
         "north": "1"
       }
     }
+  },
+  "1": {
+    "type": "Room",
+    "instance_properties": {
+    "name": "Room 2",
+    "description": "This is the 2nd room of the game.",
+    "lighting": "silver",    
+    "exits": {
+      "south": "0"
+    }
+    }  
+  },
+  "3": {
+    "type": "Dog",
+    "instance_properties": {
+      "name": "Archie",
+      "description": "It's a cute but silly dog.",
+      "container_id": "0"
+    }  
+  },
+  "4": {
+    "type": "Screwdriver",
+    "instance_properties": {
+    "description": "It's a flathead screwdriver.",
+    "container_id": "0"
+    }  
   }
 }
