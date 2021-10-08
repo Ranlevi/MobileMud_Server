@@ -476,6 +476,7 @@ class User extends AnimatedObject {
   }
 
   get_inv_content(){
+    this.msg_queue.clear(); 
     let messages_arr = this.inventory.generate_inv_messages();
     this.msg_queue.load(messages_arr);
 
