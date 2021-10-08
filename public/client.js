@@ -1,5 +1,6 @@
 let ws = new WebSocket('ws://localhost:8080');
 let chat_display = document.getElementById('chat_display');
+let dashboard= document.getElementById('dashboard');
 
 //Log in
 let login_msg = {
@@ -16,9 +17,14 @@ ws.onopen = (event) => {
 
 ws.onmessage = (event) => {
   let msg = JSON.parse(event.data);  
-  let div = document.createElement("div");
-  div.append(`${msg.sender}: ${msg.content}`);
-  chat_display.append(div);
+  
+  if (msg.type==="Chat"){
+    let div = document.createElement("div");
+    div.append(`${msg.content.sender}: ${msg.content.text}`);  
+    chat_display.append(div);
+  } else if (msg.type==="Status"){
+    dashboard.innerHTML = `Health: ${msg.content.health}`
+  }
 };
 
 
@@ -40,3 +46,4 @@ input_form.addEventListener('submit', (evt)=> {
 ws.onclose = function(event){
   console.log(`Connection Closed. Code: ${event.code}, Reason: ${event.reason}`);
 }
+

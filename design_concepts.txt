@@ -1,6 +1,6 @@
 Game Design:
 ============
-
+- encourage role playing
 - Long messages can be broken into multiple msgs. Next, End commands.
 
 - Coins:

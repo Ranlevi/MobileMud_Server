@@ -18,9 +18,10 @@ class World {
     this.world.delete(item_id);
   }
 }
-
+const FIRST_ROOM_ID        = '0';
 const world=      new World();
 let users_db=     new Map(); //username: {saved_data} 
 
 exports.world=    world;
 exports.users_db= users_db;
+exports.FIRST_ROOM_ID = FIRST_ROOM_ID;

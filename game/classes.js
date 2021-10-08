@@ -25,8 +25,8 @@ constructor(id){
   }
 
   get_look_string(){
-    //Can be overriden
-    return "This is a generic item in the game. If you see this, Ran screwed up."
+    //Can be overriden. Returns Arr.
+    return ["This is a generic item in the game. If you see this, Ran screwed up."]
   }
 
   add_entity(id){
@@ -150,7 +150,7 @@ class Room extends Item {
       }
     }
 
-    return msg;
+    return [msg];
   }
 
   get_data_obj(){    
@@ -164,6 +164,23 @@ class Room extends Item {
       }      
     }
     return obj;
+  }
+
+  search_for_target(target){
+    let entities_ids_arr = this.get_entities();
+
+  for (const entity_id of entities_ids_arr){
+    let entity = World.world.get_instance(entity_id);
+    console.log(entity.type);
+
+    if (entity.name!==null && entity.name.toLowerCase()===target){
+      return entity_id;
+    } else if (entity.type.toLowerCase()==target){
+      return entity_id;
+    }     
+  }
+
+  return null; //no target found
   }
 }
 
@@ -182,6 +199,8 @@ class Entity extends Item {
       this.inventory=       new Inventory.Inventory(this.id, 0, false);
       this.is_gettable=     false;
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
+      this.is_food=         false;
+      this.restore_health_value= 0;
   }
 
   remove_from_world(){
@@ -191,8 +210,9 @@ class Entity extends Item {
   }
 
   get_look_string(){
-    let msg = `It's ${this.type_string}`;
-    return  msg;
+    let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
+    msg += `${this.description}`;
+    return [msg];
   }
 
   set_container_id(id){
@@ -210,7 +230,9 @@ class Entity extends Item {
         container_id:   this.container_id,
         is_gettable:    this.is_gettable,
         wear_hold_slot: this.wear_hold_slot,
-        inventory:      this.inventory.get_data_object()
+        inventory:      this.inventory.get_data_object(),
+        is_food:        this.is_food,
+        restore_health_value: this.restore_health_value
       }      
     }
     return obj;
@@ -282,8 +304,14 @@ class Dog extends AnimatedObject {
     this.description= instance_props.description;
     this.type=        "Dog";
     this.type_string= "A Dog";
-    this.health=      5;
-    this.counter=     5;    
+
+
+    this.health=        (instance_props.health===undefined)?
+      5 : instance_props.health;
+    this.damage=        (instance_props.damage===undefined)?
+      1 : instance_props.damage;
+    this.counter=        (instance_props.counter===undefined)?
+      5 : instance_props.counter;    
   }
 
   process_tick(){
@@ -306,8 +334,11 @@ class Dog extends AnimatedObject {
         this.counter = 5;
         
         let msg = {
-          sender: 'world',
-          content: 'Archie Barks.'
+          type: "Chat",
+            content: {
+              sender: 'world',
+              text: 'Archie Barks.'
+            }          
         }
         Utils.msg_sender.send_message_to_room(this.id, msg);
 
@@ -320,7 +351,7 @@ class Dog extends AnimatedObject {
   get_look_string(){
     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
     msg += `${this.type_string}.  ${this.description}`
-    return  msg;
+    return [msg];
   }
 }
 
@@ -331,7 +362,7 @@ class Corpse extends Entity {
     this.description =        instance_props.description;
     this.type=                "Corpse"
     this.type_string=         "A Corpse";
-    this.decomposition_timer= 10;
+    this.decomposition_timer= 60;
     this.inventory=           new Inventory.Inventory(this.id, 17, false);
   }
 
@@ -361,8 +392,11 @@ class Corpse extends Entity {
       //Sending a msg before the actuall removal, since we
       //cant do anything after the removal.
       let msg = {
-        sender: 'world',
-        content: 'The corpse has decomposed and disappered.'
+        type: "Chat",
+            content: {
+              sender: 'world',
+              text: 'The corpse has decomposed and disappered.'
+            }        
       }
       Utils.msg_sender.send_message_to_room(this.id, msg); 
       
@@ -385,7 +419,32 @@ class Corpse extends Entity {
   }
 
   get_look_string(){
-    //TODO: solve - how to return a message chain??
+    let msg_arr = [];
+    let msg = `**[${this.type_string}]({type:${this.type}, id:${this.id}}, `;
+    msg += `It holds:  `;
+       
+    let items = this.inventory.get_all_slot_items();
+
+    if (items.length===0){
+      msg += `Nothing.`;      
+      msg_arr.push(msg);
+    } else {
+      msg_arr.push(msg);
+      let counter = 0;
+      msg = ``;
+      for (const id of items){
+        counter += 1;
+        if (counter===4){
+          msg_arr.push(msg);
+          msg = ``;
+          counter= 0;
+        } else {
+          msg += `${this.type_string}  `;
+        }
+        msg_arr.push(`${this.type_string}  `);
+      }
+    }
+    return msg_arr;
   }
 }
 
@@ -398,20 +457,15 @@ class Screwdriver extends Entity {
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
     this.wear_hold_slot="Hands";
-  }  
-
-  get_look_string(){
-    let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
-    msg += `${this.description}`;
-    return  msg;
-  }
+  }    
 }
 
 class User extends AnimatedObject {
   constructor(instance_props, ws_client, id=null){
     super(id, instance_props.container_id);    
-    this.BASE_HEALTH = 10;
-    this.BASE_DAMAGE = 1;
+    this.BASE_HEALTH= 5;
+    this.BASE_DAMAGE= 1;  
+    this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
 
     this.ws_client=     ws_client;
     this.name=          instance_props.name;
@@ -421,7 +475,7 @@ class User extends AnimatedObject {
     this.health=        (instance_props.health===undefined)?
       this.BASE_HEALTH : instance_props.health;
     this.damage=        (instance_props.damage===undefined)?
-      this.BASE_DAMAGE : instance_props.damage;
+      this.BASE_DAMAGE : instance_props.damage;    
 
     this.inventory=     new Inventory.Inventory(this.id, 10);
     if (instance_props.inventory!==undefined){      
@@ -433,6 +487,44 @@ class User extends AnimatedObject {
     this.msg_queue=     new Utils.Queue();    
   }
 
+  process_tick(){
+    
+    this.counter +=1;
+    if (this.counter===this.HEALTH_DECLINE_RATE){
+      this.health -= 1;
+      this.counter = 0;
+
+      let msg = {
+        type: "Status",
+        content: {
+          health: this.health
+        }        
+      }
+      Utils.msg_sender.send_message_to_user(this.id, msg);
+    }
+
+    if (this.health===0){
+      //Player is dead.
+      let msg = {
+        type: "Chat",
+        content: {
+          sender: 'world',
+          text: `You are DEAD!`
+        }        
+      }
+      Utils.msg_sender.send_message_to_user(this.id, msg);
+
+      //Create a corpse
+      let instance_props= {
+        description:  this.description,
+        container_id: this.container_id
+      };
+      new Corpse(instance_props);
+      this.reset(World.FIRST_ROOM_ID)
+    }
+
+  }
+
   set_password(pw){
     this.password = pw;
   }
@@ -442,7 +534,7 @@ class User extends AnimatedObject {
       description:    this.description,
       container_id:   this.container_id,
       health:         this.health,
-      damage:         this.damage,
+      damage:         this.damage,      
       password:       this.password,
       inventory:      this.inventory.get_data_object()
     }
@@ -463,8 +555,13 @@ class User extends AnimatedObject {
     spawn_container.add_entity(this.id);
 
     let msg = {
-      sender: "world",
-      content: `You respawned in the starting room.`
+      
+type: 'Chat',
+content: {
+  sender: "world",
+      text: `You respawned in the starting room.`
+}
+      
     }
     Utils.msg_sender.send_message_to_user(this.id, msg);
   }
@@ -472,7 +569,7 @@ class User extends AnimatedObject {
   get_look_string(){    
     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
     msg += `${this.type_string}.  ${this.description};`
-    return  msg;    
+    return [msg];    
   }
 
   get_inv_content(){
@@ -481,6 +578,10 @@ class User extends AnimatedObject {
     this.msg_queue.load(messages_arr);
 
     return this.msg_queue.dequeue(); 
+  }
+
+  add_to_queue(msg_arr){
+    this.msg_queue.load(msg_arr);    
   }
 
   get_next_msg_from_queue(){
@@ -554,6 +655,8 @@ class User extends AnimatedObject {
     return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
   }
 }
+
+
 
 exports.Item=             Item;
 exports.AnimatedObject=   AnimatedObject;
