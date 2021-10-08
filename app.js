@@ -10,6 +10,7 @@ const World=                require('./game/world');
 const LOAD_WORLD_FROM_SAVE = true;
 const FIRST_ROOM_ID        = '0';
 const USER_SAVE_INTERVAL   = 10;
+const WORLD_SAVE_INTERVAL  = 10;
 
 //-- HTML 
 //Serving the demo client to the browser
@@ -20,7 +21,8 @@ app.get('/', function(req, res){
 
 class Game_Controller {
   constructor(){
-    this.user_save_counter = USER_SAVE_INTERVAL;   
+    this.user_save_counter=   USER_SAVE_INTERVAL;
+    this.world_save_counter=  WORLD_SAVE_INTERVAL;
     this.init_game();
   }
 
@@ -98,6 +100,32 @@ class Game_Controller {
                 );
     console.log('Users saved.');    
   }
+
+  save_world_to_file(){
+    //Save all non-users, and items not held by users.
+    let data = {};
+    World.world.world.forEach((item)=>{
+
+      let is_item_a_user = (item instanceof Classes.User);
+      let is_item_on_user = false;
+
+      if (!(item instanceof Classes.Room)){
+        let container = World.world.get_instance(item.container_id);
+        is_item_on_user = (container instanceof Classes.User);
+      };
+
+      if (!is_item_a_user && !is_item_on_user){
+        data[item.id] = item.get_data_obj(); 
+      }
+      
+    });
+
+    fs.writeFile(`./world_save.json`, 
+                  JSON.stringify(data),  
+                  function(err){if (err) console.log(err);}
+                );
+    console.log('World saved.');    
+  }
   
   game_loop(){
     //Note: the loop technique allows for a minimum fixed length between
@@ -110,6 +138,12 @@ class Game_Controller {
         if (this.user_save_counter===0){
           this.user_save_counter = USER_SAVE_INTERVAL;
           this.save_users_to_file();
+        }
+
+        this.world_save_counter -= 1;
+        if (this.world_save_counter===0){
+          this.world_save_counter = WORLD_SAVE_INTERVAL;
+          this.save_world_to_file();
         }
 
         this.run_simulation_tick();
@@ -264,6 +298,11 @@ class Game_Controller {
       case 'sa':
         this.say_cmd(user_id, target);
         break;
+
+      case 'create':
+      case 'c':
+        this.create_cmd(user_id, target);
+        break;
   
       case 'north':
       case 'n':
@@ -382,7 +421,8 @@ class Game_Controller {
     }    
   }
 
-  move_cmd(direction, user_id){
+  move_cmd(direction, user_id){    
+
     let user=         World.world.get_instance(user_id);
     let current_container= World.world.get_instance(user.container_id);
 
@@ -450,7 +490,7 @@ class Game_Controller {
     }
 
     //Target can be picked up.
-    let success = user.inventory.get(entity_id);
+    let success = user.add_to_slots(entity_id);
 
     if (success){
       let msg = {
@@ -488,7 +528,7 @@ class Game_Controller {
 
     //Target is not null.
     let user=       World.world.get_instance(user_id);
-    let entity_id=  user.inventory.search_target_in_slots(target);
+    let entity_id=  user.search_target_in_slots(target);
 
     if (entity_id===null){
       //Target was not found in slots.
@@ -501,7 +541,7 @@ class Game_Controller {
     } 
     
     //Target was found
-    user.inventory.drop(entity_id, user.container_id);
+    user.drop_item_from_slots(entity_id);
 
     let msg = {
       sender: 'world',
@@ -528,7 +568,7 @@ class Game_Controller {
 
     //Target is not null.
     let user=       World.world.get_instance(user_id);
-    let entity_id = user.inventory.search_target_in_slots(target);
+    let entity_id = user.search_target_in_slots(target);
 
     if (entity_id===null){
       //Target was not found in slots.
@@ -553,7 +593,7 @@ class Game_Controller {
     }
 
     //Target can be worn or held.
-    let success = user.inventory.wear_or_hold(entity_id);
+    let success = user.wear_or_hold_entity(entity_id);
 
     if (success){
       let msg = {
@@ -585,7 +625,7 @@ class Game_Controller {
 
     //Target is not null
     let user=       World.world.get_instance(user_id);
-    let entity_id=  user.inventory.search_target_in_wear_hold(target);
+    let entity_id=  user.search_target_in_wear_hold(target);
 
     if (entity_id===null){
       //target was not found
@@ -598,7 +638,7 @@ class Game_Controller {
     }
 
     //Target is worn or held.
-    let success = user.inventory.remove(entity_id);
+    let success = user.remove_from_wear_hold(entity_id);
     if (success){
       let message = {
         sender: 'world',
@@ -668,6 +708,50 @@ class Game_Controller {
     Utils.msg_sender.send_message_to_room(user_id, message);
   }
 
+  create_cmd(user_id, type){
+    //Creates an entity and places it in the room.
+
+    if (type===null){
+      let message = {
+        sender: 'world',
+        content: `What do you want to create?`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Type is not null.    
+    let user=       World.world.get_instance(user_id);
+    let entity_id=  null;
+
+    switch(type){
+      case "screwdriver":
+        let instance_props = {
+          container_id: user.container_id
+        }
+        
+        entity_id = new Classes.Screwdriver(instance_props);        
+        break;
+    }
+
+    if (entity_id===null){
+      let message = {
+        sender: 'world',
+        content: `There is no such thing as ${type}.`
+      }
+      Utils.msg_sender.send_message_to_user(user_id, message);
+      return;
+    }
+
+    //Item created and placed in the container
+    let message = {
+      sender: 'world',
+      content: `${type} created.`
+    }
+    Utils.msg_sender.send_message_to_user(user_id, message);
+    return;
+  }
+
   create_new_user(ws_client, username, password){
 
     let instance_props = {
@@ -710,9 +794,10 @@ wss.on('connection', (ws_client) => {
     if (state==="Not Logged In" && incoming_msg.type==="Login"){
       //Check if User is already registered.
       let user_data = World.users_db.get(incoming_msg.content.username);
-      if (user_data!==undefined){
+      if (user_data!==undefined){        
         //check password.
         if (incoming_msg.content.password===user_data.password){
+          state= 'Logged In';
           user_id = game_controller.new_client_connected(ws_client, incoming_msg.content.username);                  
         } else {
           ws_client.close(4000, 'Wrong Username or Password.');
@@ -728,6 +813,7 @@ wss.on('connection', (ws_client) => {
       }
 
     } else if (state==='Logged In' && incoming_msg.type==="User Input"){
+      
       game_controller.process_incoming_message(incoming_msg.content, user_id);
     }
   }

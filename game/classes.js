@@ -40,6 +40,19 @@ constructor(id){
   get_entities(){
     return [];
   }
+
+  get_data_obj(){
+    //Basic default save object.
+    let obj = {
+      type:           this.type,
+      instance_properties: {
+        name:         this.name,
+        description:  this.description,
+        state:        this.state
+      }      
+    }
+    return obj;
+  }
 }
 
 class Room extends Item {
@@ -139,6 +152,19 @@ class Room extends Item {
 
     return msg;
   }
+
+  get_data_obj(){    
+    let obj = {
+      type:           this.type,
+      instance_properties: {
+        name:         this.name,
+        description:  this.description,
+        lighting:     this.lighting,
+        exits:        this.exits
+      }      
+    }
+    return obj;
+  }
 }
 
 class Entity extends Item {
@@ -153,7 +179,7 @@ class Entity extends Item {
 
       World.world.add_to_world(this);
 
-      this.inventory=       new Inventory.Inventory(0, false);
+      this.inventory=       new Inventory.Inventory(this.id, 0, false);
       this.is_gettable=     false;
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
   }
@@ -172,6 +198,23 @@ class Entity extends Item {
   set_container_id(id){
     this.container_id= id;
   }
+
+  get_data_obj(){
+    //Basic default save object.
+    let obj = {
+      type:             this.type,
+      instance_properties: {
+        name:           this.name,
+        description:    this.description,
+        state:          this.state,
+        container_id:   this.container_id,
+        is_gettable:    this.is_gettable,
+        wear_hold_slot: this.wear_hold_slot,
+        inventory:      this.inventory.get_data_object()
+      }      
+    }
+    return obj;
+  }
 }
 
 class AnimatedObject extends Entity {
@@ -181,7 +224,31 @@ class AnimatedObject extends Entity {
 
     this.health=            10;
     this.damage=            1;          
-    this.is_fighting_with=  null;    
+    this.is_fighting_with=  null;
+    this.counter=           0;
+  }
+
+  get_data_obj(){
+    //Basic default save object.
+    //Should cover all the default properties.
+    //Overide if unique props exist.
+    let obj = {
+      type:               this.type,
+      instance_properties: {
+        name:             this.name,
+        description:      this.description,
+        state:            this.state,
+        container_id:     this.container_id,
+        is_gettable:      this.is_gettable,
+        wear_hold_slot:   this.wear_hold_slot,
+        inventory:        this.inventory.get_data_object(),
+        health:           this.health,
+        damage:           this.damage,
+        is_fighting_with: this.is_fighting_with,
+        counter:          this.counter
+      }      
+    }
+    return obj;
   }
 
   start_battle_with(id){
@@ -265,7 +332,25 @@ class Corpse extends Entity {
     this.type=                "Corpse"
     this.type_string=         "A Corpse";
     this.decomposition_timer= 10;
-    this.inventory=           new Inventory.Inventory(17, false);
+    this.inventory=           new Inventory.Inventory(this.id, 17, false);
+  }
+
+  get_data_obj(){
+    //Basic default save object.
+    let obj = {
+      type:                   this.type,
+      instance_properties: {
+        name:                 this.name,
+        description:          this.description,
+        state:                this.state,
+        container_id:         this.container_id,
+        is_gettable:          this.is_gettable,
+        wear_hold_slot:       this.wear_hold_slot,
+        inventory:            this.inventory.get_data_object(),
+        decomposition_timer:  this.decomposition_timer
+      }      
+    }
+    return obj;
   }
 
   process_tick(){
@@ -304,24 +389,16 @@ class Corpse extends Entity {
   }
 }
 
-//TODO: fix bug load screwdriver from user_db in slot
 class Screwdriver extends Entity {
   constructor(instance_props, id=null){
     super(id,instance_props.container_id);
 
-    this.description =   instance_props.description;
+    this.description =   "It's a philips screwdriver."
     this.type=          "Screwdriver"
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
     this.wear_hold_slot="Hands";
-  }
-
-  get_data_obj(){
-    let obj = {
-      type:        this.type
-    }
-    return obj;
-  }
+  }  
 
   get_look_string(){
     let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
@@ -346,8 +423,8 @@ class User extends AnimatedObject {
     this.damage=        (instance_props.damage===undefined)?
       this.BASE_DAMAGE : instance_props.damage;
 
-    this.inventory=     new Inventory.Inventory(10);
-    if (instance_props.inventory!==undefined){
+    this.inventory=     new Inventory.Inventory(this.id, 10);
+    if (instance_props.inventory!==undefined){      
       this.inventory.update_from_obj(instance_props.inventory);
     }
       
@@ -413,6 +490,68 @@ class User extends AnimatedObject {
     this.msg_queue.clear();
   }
 
+  search_target_in_slots(target){
+    let items_in_slots_arr = this.inventory.get_all_slot_items();
+
+    for (const entity_id of items_in_slots_arr){
+      let entity = World.world.get_instance(entity_id);
+      if ((entity.name!==null && entity.name.toLowerCase()===target) ||
+           entity.type.toLowerCase()===target){
+        return entity_id;        
+      }    
+    }
+    return null;
+  }
+
+  search_target_in_wear_hold(target){
+    let items_in_wear_hold_arr = this.inventory.get_all_wear_hold_items();
+
+    for (const entity_id of items_in_wear_hold_arr){
+      let entity = World.world.get_instance(entity_id);
+      if ((entity.name!==null && entity.name.toLowerCase()===target) ||
+           entity.type.toLowerCase()===target){
+        return entity_id;        
+      }    
+    }
+    return null;
+  }
+
+  drop_item_from_slots(entity_id){
+    //We assume the entity is in the slots.
+    //we drop it to the floor.
+    let success = false;
+    this.inventory.remove_from_slots(entity_id);
+    let container = World.world.get_instance(this.container_id);
+    container.add_entity(entity_id);
+
+    let entity = World.world.get_instance(entity_id);
+    entity.set_container_id(container.id);
+
+    return success;
+  }
+
+  add_to_slots(entity_id){
+    let success = this.inventory.add_to_slots(entity_id);
+
+    if (success){
+      let entity = World.world.get_instance(entity_id);
+      entity.set_container_id(this.id);
+    }
+
+    return success;
+  }
+
+  wear_or_hold_entity(entity_id){
+    //We assume the entity is in a slot.
+    //Remove it from slots, wear or hold it if free.
+    let success = this.inventory.move_entity_from_slots_to_wear_hold(entity_id);
+    return success;
+  }
+
+  remove_from_wear_hold(entity_id){
+    //returns true/false
+    return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
+  }
 }
 
 exports.Item=             Item;

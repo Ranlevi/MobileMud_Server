@@ -2,7 +2,9 @@ const World=      require('./world');
 const Classes=    require('./classes');
 
 class Inventory {
-  constructor(num_of_slots, enable_wear_hold=true){
+  constructor(owner_id, num_of_slots, enable_wear_hold=true){
+
+    this.owner_id= owner_id;
 
     this.enable_wear_hold= enable_wear_hold;
     this.wear_hold = { //position:id
@@ -32,6 +34,42 @@ class Inventory {
 
     return arr;
   }
+
+  get_all_slot_items(){
+
+    let arr = [];
+    for (const id of this.slots.values()){
+      arr.push(id);
+    }
+
+    return arr;    
+  }
+
+  get_all_wear_hold_items(){
+    let arr = [];
+    for (const id of Object.values(this.wear_hold)){
+      if (id!==null) arr.push(id);
+    }   
+
+    return arr;
+  }
+
+  add_to_slots(entity_id){
+    //If a slot is available, place the entity in it.
+    let success = false;
+    
+    if (this.slots.size<this.num_of_slots){
+      this.slots.add(entity_id);
+      success = true;
+    }
+
+    return success;
+  }
+
+  remove_from_slots(entity_id){
+    //We assume the entity is in the slots.
+    this.slots.delete(entity_id);
+  }
   
   get_data_object(){
     let obj = {};
@@ -41,10 +79,14 @@ class Inventory {
       for (const [position, id] of Object.entries(this.wear_hold)){
          if (id===null){
            obj.wear_hold[position] = null;
+
          } else {
           let entity = World.world.get_instance(id);
-          obj.wear_hold[position] = entity.get_data_obj();
-         }
+          obj.wear_hold[position]= {
+            type:                 entity.type,
+            instance_properties:  entity.get_data_obj()
+          }
+        }
       }
     }
     
@@ -61,23 +103,28 @@ class Inventory {
 
     for (const [position, data] of Object.entries(obj.wear_hold)){
       if (data!==null){
+        data.instance_properties.container_id = this.owner_id;
         let entity;
+        
         switch(data.type){
-          case('Screwdriver'):
-            entity = new Classes.Screwdriver();
+          case('Screwdriver'):            
+            entity = new Classes.Screwdriver(data.instance_properties);
             break;
         }
 
-        World.world.add_entity(entity);
+        World.world.add_to_world(entity);
         this.wear_hold[position] = entity.id;
       }
     }
 
     for (const data of obj.slots){
+      
       let entity;
+      data.instance_properties.container_id = this.owner_id;
+
       switch(data.type){
         case('Screwdriver'):
-          entity = new Classes.Screwdriver();
+          entity = new Classes.Screwdriver(data.instance_properties);
           break;
       }
       World.world.add_to_world(entity);
@@ -85,31 +132,7 @@ class Inventory {
     }
 
   }
-  
-  //TODO: change name to something more accurate
-  get(entity_id){
-    //If a slot is available, place the entity in it.
-    let success = false;
     
-    if (this.slots.size<this.num_of_slots){
-      this.slots.add(entity_id);
-      success = true;
-    }
-
-    return success;
-  }
-
-  search_target_in_slots(target){    
-    for (const entity_id of this.slots){
-      let entity = World.world.get_instance(entity_id);
-      if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-           entity.type.toLowerCase()===target){
-        return entity_id;        
-      }    
-    }
-    return null;
-  }
-
   search_target_in_wear_hold(target){
     
     for (const entity_id of Object.values(this.wear_hold)){
@@ -124,19 +147,9 @@ class Inventory {
     }
     //Target not found
     return null;
-  }
+  }  
 
-  drop(entity_id, container_id){
-    //We assume the entity is in the slots.
-    //we drop it to the floor.
-    let success = false;
-    this.slots.delete(entity_id);
-    let container = World.world.get_instance(container_id);
-    container.add_entity(entity_id);    
-    return success;
-  }
-
-  wear_or_hold(entity_id){
+  move_entity_from_slots_to_wear_hold(entity_id){
     //We assume the entity is in a slot.
     //Remove it, wear or hold it if free.
     let entity = World.world.get_instance(entity_id);
@@ -169,7 +182,7 @@ class Inventory {
     return true;
   }
 
-  remove(entity_id){
+  move_entity_from_wear_hold_to_slots(entity_id){
     //We assume entity is worn or held.
     //We check if we have a slot available.    
     if (this.slots.size===this.num_of_slots){
@@ -184,8 +197,8 @@ class Inventory {
         this.slots.add(entity_id);
         return true;
       }
-    }    
-  }
+    }   
+  }  
 
   generate_inv_messages(){
     //returns an array of message. Index 0 is the first to be sent.
