@@ -221,38 +221,31 @@ class Inventory {
     }   
   }  
 
-  generate_inv_messages(){
-    //returns an array of message. Index 0 is the first to be sent.
-    let arr = [];
-
+  generate_inv_message(){
+    
     let msg = `Your inventory:  `;
     for (const [position, id] of Object.entries(this.wear_hold)){
       if (id===null){
         msg += `${position}: Nothing.  `;
       } else {
         let entity = World.world.get_instance(id);
-        msg += `${position}: ${entity.type_string}`;
+        msg += `${position}: [${entity.type_string}]({{type:${entity.type}, id:${entity.id}})})  `;
       }
     }
-    
-    arr.push(msg);
-    
-    msg = `In slots:  `;
+        
+    msg += `In slots:  `;
     if (this.slots.size===0){
       msg += `Nothing.`
     } else {
       for (const id of this.slots){
         let entity = World.world.get_instance(id);
-        msg += `${entity.type_string}  `;
+        msg += `[${entity.type_string}]({{type:${entity.type}, id:${entity.id}})})  `;
       }
     }   
 
-    arr.push(msg);
-
-    msg = `You have ${this.coins} coins.`;
-    arr.push(msg);
-
-    return arr;
+    msg += `You have ${this.coins} coins.`;
+    
+    return msg;
   }
 
   add_coins(coins){

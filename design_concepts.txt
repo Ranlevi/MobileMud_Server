@@ -12,6 +12,8 @@ Game Design:
   User says 'buy'. shopkeeper gives a messgage chain with numbered list. say 'buy 1' buys.
   same for 'sell' -> 'sell 1'.
 
+- look cmd can accept ids for specific item selection. (look and inv should
+return id as metadata, and client should enable copying it for long numbers.)
 
 Architecture:
 ==================

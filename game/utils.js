@@ -96,36 +96,36 @@ function get_opposite_direction(direction){
   }
 }
 
-class Queue {
-  constructor(){
-    this.elements = []; //Index 0 is the front, i.e. next msg to be retrieved.
-  }
+// class Queue {
+//   constructor(){
+//     this.elements = []; //Index 0 is the front, i.e. next msg to be retrieved.
+//   }
 
-  load(elements_arr){
-    //Element at index 0 is the first msg.
-    for (let i=0;i<elements_arr.length;i++){
-      this.elements.push(elements_arr[i]);
-    }
-  }
+//   load(elements_arr){
+//     //Element at index 0 is the first msg.
+//     for (let i=0;i<elements_arr.length;i++){
+//       this.elements.push(elements_arr[i]);
+//     }
+//   }
 
-  dequeue(){
-    if (this.elements.length!==0){
-      let msg = this.elements.shift();
-      if (this.elements.length!==0){
-        msg += '[Next]({type:"Command"}) [End]({type:"Command"})';
-      }
-      return msg;
-    } else {
-      return null;
-    }      
-  }
+//   dequeue(){
+//     if (this.elements.length!==0){
+//       let msg = this.elements.shift();
+//       if (this.elements.length!==0){
+//         msg += '[Next]({type:"Command"}) [End]({type:"Command"})';
+//       }       
+//       return msg;
+//     } else {
+//       return null;
+//     }      
+//   }
   
-  clear(){
-    this.elements = [];
-  }
-}
+//   clear(){
+//     this.elements = [];
+//   }
+// }
     
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
-exports.Queue=                  Queue;
+// exports.Queue=                  Queue;

@@ -205,6 +205,9 @@ class Game_Controller {
           }
         } else {
           item.process_tick();
+          if (item instanceof Classes.Entity){
+            item.process_decay();
+          }
         }
       }      
     );
@@ -288,17 +291,7 @@ class Game_Controller {
       case 'inv':
       case 'i':
         this.inv_cmd(user_id);
-        break;
-
-      case 'next':
-      case 'ne':
-        this.next_cmd(user_id);
-        break;
-
-      case 'end':
-      case 'en':
-        this.end_cmd(user_id);
-        break;
+        break;      
 
       case 'say':
       case 'sa':
@@ -346,6 +339,9 @@ class Game_Controller {
       case 'd':
         this.move_cmd('down', user_id);
         break;
+
+      default:
+        Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  
   }
 
@@ -393,32 +389,31 @@ class Game_Controller {
 
     if (target===null){
       //Look at the room the user is in.
-      
-      user.add_to_queue(container.get_look_string());
-
-      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-        user.get_next_msg_from_queue());
-
+      Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, container.get_look_string());        
       return;
     }
 
     //Target is not null.
-    //Search for it in the container.
-    let entity_id = container.search_for_target(target);
+    //Search order: wear_hold, slots, container.
+    let entity_id = user.search_target_in_wear_hold(target);
 
     if (entity_id===null){
-      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-        `There is no ${target} around.`);      
-      return;
-    }
+      entity_id= user.search_target_in_slots(target);
+
+      if (entity_id===null){
+        entity_id = container.search_for_target(target);
+
+        if (entity_id===null){
+          Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+            `There is no ${target} around.`);      
+          return;
+        }
+      }
+    }    
 
     //Target found.
     let entity = World.world.get_instance(entity_id);
-    user.add_to_queue(entity.get_look_string());
-
-    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-      user.get_next_msg_from_queue());    
-        
+    Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
   }
 
   move_cmd(direction, user_id){    
@@ -490,6 +485,8 @@ class Game_Controller {
       let container = World.world.get_instance(user.container_id);
       container.remove_entity(entity_id);
 
+      entity.enable_decay();
+
     } else {
       Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
         `You don't have a free slot to put it in.`);      
@@ -522,6 +519,7 @@ class Game_Controller {
       `You drop it to the floor.`);    
 
     let entity = World.world.get_instance(entity_id);
+    entity.disable_decay();
 
     Utils.msg_sender.send_chat_msg_to_room(user_id,'world',
       `${user.name} drops ${entity.type_string}`,
@@ -607,27 +605,6 @@ class Game_Controller {
     
     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
       user.get_inv_content());    
-  }
-
-  next_cmd(user_id){
-    let user = World.world.get_instance(user_id);
-    let content  = user.get_next_msg_from_queue();
-    
-    if (content===null){
-      //No msg in queue
-      content = 'No more messages in chain.';
-    } 
-    
-    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',content);        
-  }
-
-  end_cmd(user_id){
-    //clear the queue.
-    let user = World.world.get_instance(user_id);
-    user.clear_msg_queue();
-
-    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-      'Message chain cleared.');
   }
 
   say_cmd(user_id, content){
