@@ -189,6 +189,9 @@ class Entity extends Item {
   constructor(id, container_id){
       super(id);
 
+      this.BASE_WEAR=  100;
+      this.DECAY_RATE= 10; //1 wear point per 10 ticks.
+
       this.container_id = container_id;    
       
       let container= World.world.get_instance(container_id);
@@ -201,6 +204,41 @@ class Entity extends Item {
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
       this.is_food=         false;
       this.restore_health_value= 0;
+      this.is_decaying=     false;
+      this.decay_rate=      this.DECAY_RATE;
+      this.wear=            this.BASE_WEAR;
+      this.decay_tick_counter= 0;
+  }
+
+  //TODO: disable/enable when droped or get
+  enable_decay(){
+    //only when the item is used by user.
+    this.is_decaying= true;
+  }
+
+  disable_decay(){
+    this.is_decaying= false;
+  }
+
+  process_decay(){
+    if (this.is_decaying){
+
+      this.decay_tick_counter +=1;
+      if (this.decay_tick_counter===this.decay_rate){
+        this.decay_tick_counter=0;
+        this.wear -= 1;
+  
+        if (this.wear===0){
+          //remove entity from the world and user.
+          let container = World.world.get_instance(this.container_id);
+          if (container instanceof User){
+            Utils.msg_sender.send_chat_msg_to_user(container.id, 'world',
+              `${this.type_string} has decayed and disintegrated.`);
+          }
+          this.remove_from_world();          
+        }
+      }
+    }    
   }
 
   remove_from_world(){
@@ -452,6 +490,7 @@ class Screwdriver extends Entity {
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
     this.wear_hold_slot="Hands";
+    this.is_decaying=   true;
   }    
 }
 
