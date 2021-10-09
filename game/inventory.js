@@ -22,6 +22,25 @@ class Inventory {
     this.coins = 0;
   }
 
+  remove_entity(entity_id){
+    //Assumes the entity is in the inventory.
+    //find it and remove it.
+    for (const [position, id] of Object.entries(this.wear_hold)){
+      if (id===entity_id){
+        this.wear_hold[position]= null;
+        return;
+      }
+    }
+    
+    if (this.slots.has(entity_id)){
+      this.slots.delete(entity_id);
+      return;
+    }
+
+    //If we're here, the entity is not in the inventory! 
+    console.log(`Inventory.remove_entity: Error - entity not found. OwneID: ${this.owner_id}`);
+  }
+
   get_all_entities_ids(){
     let arr = [];
     for (const id of Object.values(this.wear_hold)){
@@ -56,8 +75,7 @@ class Inventory {
 
   add_to_slots(entity_id){
     //If a slot is available, place the entity in it.
-    let success = false;
-    
+    let success = false;    
     if (this.slots.size<this.num_of_slots){
       this.slots.add(entity_id);
       success = true;
@@ -125,6 +143,9 @@ class Inventory {
       switch(data.type){
         case('Screwdriver'):
           entity = new Classes.Screwdriver(data.instance_properties);
+          break;
+        case('Candy'):
+          entity = new Classes.Candy(data.instance_properties);
           break;
       }
       World.world.add_to_world(entity);

@@ -244,10 +244,14 @@ class AnimatedObject extends Entity {
   constructor(id, container_id){
     super(id, container_id);
 
-    this.health=            10;
-    this.damage=            1;          
-    this.is_fighting_with=  null;
-    this.counter=           0;
+    this.BASE_HEALTH=       10;
+    this.BASE_DAMAGE=       1;
+    this.BASE_COUNTER=      5;
+
+    this.health=            this.BASE_HEALTH;
+    this.damage=            this.BASE_DAMAGE;          
+    this.is_fighting_with=  null;//Never spawn into a battle.
+    this.counter=           this.BASE_COUNTER;
   }
 
   get_data_obj(){
@@ -300,18 +304,24 @@ class Dog extends AnimatedObject {
   constructor(instance_props, id=null){
     super(id, instance_props.container_id);
 
-    this.name=        instance_props.name;
-    this.description= instance_props.description;
+    this.BASE_HEALTH= 5;    
+
+    this.name=        (instance_props.name===undefined)?
+      `Archie` : instance_props.name;
+    
+    this.description=        (instance_props.description===undefined)?
+      `It's a cute but silly dog.` : instance_props.description;
+    
     this.type=        "Dog";
     this.type_string= "A Dog";
 
 
     this.health=        (instance_props.health===undefined)?
-      5 : instance_props.health;
+    this.BASE_HEALTH : instance_props.health;
     this.damage=        (instance_props.damage===undefined)?
-      1 : instance_props.damage;
+      this.BASE_DAMAGE : instance_props.damage;
     this.counter=        (instance_props.counter===undefined)?
-      5 : instance_props.counter;    
+      this.BASE_COUNTER : instance_props.counter;    
   }
 
   process_tick(){
@@ -332,15 +342,7 @@ class Dog extends AnimatedObject {
       case('Barking'):
         //Action
         this.counter = 5;
-        
-        let msg = {
-          type: "Chat",
-            content: {
-              sender: 'world',
-              text: 'Archie Barks.'
-            }          
-        }
-        Utils.msg_sender.send_message_to_room(this.id, msg);
+        Utils.msg_sender.send_chat_msg_to_room(this.id,'world','Archie Barks.');        
 
         //Transition
         this.state = 'Default';
@@ -391,15 +393,8 @@ class Corpse extends Entity {
       
       //Sending a msg before the actuall removal, since we
       //cant do anything after the removal.
-      let msg = {
-        type: "Chat",
-            content: {
-              sender: 'world',
-              text: 'The corpse has decomposed and disappered.'
-            }        
-      }
-      Utils.msg_sender.send_message_to_room(this.id, msg); 
-      
+      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
+        'The corpse has decomposed and disappered.');    
 
       //Remove all the items in the inventory from the world.
       let ids_arr = this.inventory.get_all_entities_ids();
@@ -463,13 +458,15 @@ class Screwdriver extends Entity {
 class User extends AnimatedObject {
   constructor(instance_props, ws_client, id=null){
     super(id, instance_props.container_id);    
-    this.BASE_HEALTH= 5;
+    this.BASE_HEALTH= 10;
     this.BASE_DAMAGE= 1;  
     this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
 
     this.ws_client=     ws_client;
     this.name=          instance_props.name;
     this.password=      instance_props.password;
+    this.is_fighting_with= null; //never spawn a user into a battle.
+
     this.description=   (instance_props.description===undefined)? 
       "It's YOU, Bozo!" : instance_props.description;
     this.health=        (instance_props.health===undefined)?
@@ -494,26 +491,14 @@ class User extends AnimatedObject {
       this.health -= 1;
       this.counter = 0;
 
-      let msg = {
-        type: "Status",
-        content: {
-          health: this.health
-        }        
-      }
-      Utils.msg_sender.send_message_to_user(this.id, msg);
+      Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
+      
     }
 
     if (this.health===0){
       //Player is dead.
-      let msg = {
-        type: "Chat",
-        content: {
-          sender: 'world',
-          text: `You are DEAD!`
-        }        
-      }
-      Utils.msg_sender.send_message_to_user(this.id, msg);
-
+      Utils.msg_sender.send_chat_msg_to_user(this.id,'world',`You are DEAD!`);
+      
       //Create a corpse
       let instance_props= {
         description:  this.description,
@@ -522,7 +507,6 @@ class User extends AnimatedObject {
       new Corpse(instance_props);
       this.reset(World.FIRST_ROOM_ID)
     }
-
   }
 
   set_password(pw){
@@ -546,24 +530,15 @@ class User extends AnimatedObject {
     this.damage=            this.BASE_DAMAGE;
     this.state=             "Default";
     this.is_fighting_with=  null;
-    this.inventory=         new Inventory.Inventory(10);
+    this.inventory=         new Inventory.Inventory(this.id, 10);
 
     let current_container = World.world.get_instance(this.container_id);
     current_container.remove_entity(this.id);
 
     let spawn_container = World.world.get_instance(spawn_container_id);
     spawn_container.add_entity(this.id);
-
-    let msg = {
-      
-type: 'Chat',
-content: {
-  sender: "world",
-      text: `You respawned in the starting room.`
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(this.id, msg);
+    Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+      `You respawned in the starting room.`);    
   }
 
   get_look_string(){    
@@ -654,9 +629,70 @@ content: {
     //returns true/false
     return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
   }
+
+  consume(entity_id){
+    //We assume the entity is on the user somewhere.
+    //restore health and remove the entity from the user and world.    
+    this.inventory.remove_entity(entity_id);
+
+    let entity = World.world.get_instance(entity_id);
+    
+    this.health= this.health + entity.restore_health_value;
+    if (this.health>this.BASE_HEALTH){
+      this.health= this.BASE_HEALTH;
+    }
+
+    this.counter= 0;
+
+    Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
+
+    World.world.remove_from_world(entity_id);
+  }
 }
 
+class Candy extends Entity {
+  constructor(instance_props, id=null){
+    super(id,instance_props.container_id);
 
+    this.description=           "A small piece of candy.";
+    this.type=                  "Candy";
+    this.type_string=           "A Candy";
+    this.is_gettable=           true;
+    this.wear_hold_slot=        "Hands";
+    this.is_food=               true;
+    this.restore_health_value=  10;
+  }
+}
+
+function create_entity(type, instance_pros, id=null){
+  //return null if the type is unrecoginzed.
+  let entity_id=null;
+  type=         type.toLowerCase();
+
+  switch(type){
+    case "room":
+      entity_id= new Room(instance_pros, id);
+      break;
+
+    case "dog":
+      entity_id= new Dog(instance_pros, id);                         
+      break;
+
+    case "screwdriver":
+      entity_id= new Screwdriver(instance_pros, id);                          
+      break;
+
+    case "candy":
+      entity_id= new Candy(instance_pros, id);                          
+      break;
+
+    case "corpse":
+      entity_id= new Candy(instance_pros, id);
+      break;
+  }
+
+  return entity_id;
+}
 
 exports.Item=             Item;
 exports.AnimatedObject=   AnimatedObject;
@@ -666,3 +702,5 @@ exports.User=             User;
 exports.Dog=              Dog;
 exports.Room=             Room;
 exports.Screwdriver=      Screwdriver;
+exports.Candy=            Candy;
+exports.create_entity=    create_entity;

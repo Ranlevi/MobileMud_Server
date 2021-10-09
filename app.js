@@ -7,11 +7,10 @@ const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
 
-const LOAD_WORLD_FROM_SAVE = true;
-const LOAD_GENERIC_WORLD=    true;
-
-const USER_SAVE_INTERVAL   = 10;
-const WORLD_SAVE_INTERVAL  = 10;
+const LOAD_WORLD_FROM_SAVE=   true;
+const LOAD_GENERIC_WORLD=     true;
+const USER_SAVE_INTERVAL=     10;
+const WORLD_SAVE_INTERVAL=    10;
 const GEN_WORLD_NUM_OF_ROOMS= 2;
 
 //-- HTML 
@@ -64,43 +63,31 @@ class Game_Controller {
       path = `./world_save.json`;
     }
 
-
     if (fs.existsSync(path)){
       let current_id;
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
       for (const [id, data] of Object.entries(parsed_info)){
-        current_id = id;
-              
-        switch(data.type){
-          case "Room":
-            new Classes.Room(data.instance_properties, id);
-            break;
+        current_id=     id;
+        let entity_id=  Classes.create_entity(data.type, data.instance_properties, id);
 
-          case "Dog":
-            new Classes.Dog(data.instance_properties, id);                         
-            break;
-
-          case "Screwdriver":
-            new Classes.Screwdriver(data.instance_properties, id);                          
-            break;
-        }      
-        Utils.id_generator.set_new_current_id(current_id);        
+        if (entity_id===null){
+          console.error(`Game Controller.load_world: unknown type: ${data.type}`);
+        } else {
+          Utils.id_generator.set_new_current_id(current_id);        
+        }
       } 
       
     } else {
       console.error(`app.load_world -> ${path} does not exist.`);
-    }
-    
+    }    
   }
 
   save_users_to_file(){
-    //skip users in battle
-    
+        
     let data = {};
     World.world.world.forEach((item)=>{
-      if (item instanceof Classes.User && item.is_fighting_with===null){
-        //Not in battle
+      if (item instanceof Classes.User){    
         data[item.name] = item.get_data_obj(); 
       }
     });
@@ -167,52 +154,54 @@ class Game_Controller {
 
   run_simulation_tick(){
 
-    var msg;
     World.world.world.forEach(
       (item) => {
 
         if (item instanceof Classes.AnimatedObject && item.is_fighting_with!==null){
           let opponent = World.world.get_instance(item.is_fighting_with);
 
-          let damage_dealt = item.strike_opponent(opponent.id);                      
-          msg = {
-            type: "Chat",
-            content: {
-              sender: 'world',
-              text: `${item.name} strikes ${opponent.name}, `+
-                        `dealing ${damage_dealt} HP.`
-            }            
-          }
-          Utils.msg_sender.send_message_to_room(item.id, msg);
-
-          if (opponent.health===0){
-            //Opponent has died
-            item.stop_battle();
-
-            msg = {
-              type: "Chat",
-            content: {
-              sender: 'world',
-              text: `${opponent.name} is DEAD!`
-            }
-              
-            }
-            Utils.msg_sender.send_message_to_room(item.id, msg);
-
-            //Create a corpse
-            let instance_props= {
-              description:  opponent.description,
-              container_id: opponent.container_id
-            };
-            new Classes.Corpse(instance_props);
+          //Check if opponent disconnected or logged out
+          if (opponent===undefined){
+            item.is_fighting_with=  null;
+            item.health=            item.BASE_HEALTH;
             
-            if (opponent instanceof Classes.User){
-              opponent.reset(World.FIRST_ROOM_ID);
+          } else {
+          
+            //Opponent exists
+            let damage_dealt = item.strike_opponent(opponent.id); 
 
-            } else {
-              //Remove entity from the world
-              opponent.remove_from_world();
-            }          
+            if (item instanceof Classes.User){
+              Utils.msg_sender.send_chat_msg_to_user(item.id,'world',
+              `You strike ${opponent.name}, dealing ${damage_dealt} HP.`);  
+            } 
+
+            if (opponent instanceof Classes.User){
+              Utils.msg_sender.send_chat_msg_to_user(opponent.id,'world',
+              `${item.name} strikes you, dealing ${damage_dealt} HP.`);
+            }
+            
+            if (opponent.health===0){
+              //Opponent has died
+              item.stop_battle();
+
+              Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
+                `${opponent.name} is DEAD!`);
+              
+              //Create a corpse
+              let instance_props= {
+                description:  opponent.description,
+                container_id: opponent.container_id
+              };
+              new Classes.Corpse(instance_props);
+              
+              if (opponent instanceof Classes.User){
+                opponent.reset(World.FIRST_ROOM_ID);
+
+              } else {
+                //Remove entity from the world
+                opponent.remove_from_world();
+              }          
+            }
           }
         } else {
           item.process_tick();
@@ -231,28 +220,16 @@ class Game_Controller {
       container_id: user_data.container_id,
       health:       user_data.health,
       damage:       user_data.damage,      
-      password:     user_data.password,
+      password:     user_data.password,      
       inventory:    user_data.inventory
     }
 
     let user = new Classes.User(instance_props, ws_client);
 
-    let msg = {
-      type:     "Chat",
-      content: {
-        sender: "world",
-        text:   `Welcome back ${user.name}.`
-      }      
-    }
-    Utils.msg_sender.send_message_to_user(user.id, msg);
+    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
+      `Welcome back ${user.name}.`);
 
-    msg = {
-      type: "Status",
-      content: {
-        health: user.health
-      }
-    }
-    Utils.msg_sender.send_message_to_user(user.id, msg);
+    Utils.msg_sender.send_status_msg_to_user(user.id, user.health);
 
     this.process_incoming_message('look', user.id);    
     return user.id;
@@ -332,6 +309,13 @@ class Game_Controller {
       case 'c':
         this.create_cmd(user_id, target);
         break;
+
+      case 'eat':
+      case 'ea':
+      case 'drink':
+      case 'dr':
+        this.eat_drink_cmd(user_id, target);
+        break;
   
       case 'north':
       case 'n':
@@ -369,14 +353,8 @@ class Game_Controller {
   kill_cmd(user_id, target){
 
     if (target===null){
-      let message = {
-        type: "Chat",
-        content: {
-          sender: 'world',
-          text: `Who do you want to kill?`
-        }        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `Who do you want to kill?`);      
 
     } else {
 
@@ -385,28 +363,15 @@ class Game_Controller {
       let entity_id = container.search_for_target(target);
 
       if (entity_id===null){
-        let message = {
-          type: "Chat",
-          content: {
-            sender: 'world',
-            text: `There is no ${target} around.`
-          }          
-        }
-        Utils.msg_sender.send_message_to_user(user_id, message);
-
+        Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+          `There is no ${target} around.`);       
       } else {
 
         let opponent = World.world.get_instance(entity_id);
 
         if (!(opponent instanceof Classes.AnimatedObject)){
-          let message = {
-            type: "Chat",
-            content: {
-              sender: 'world',
-              text: `You can't fight it.`
-            }            
-          }
-          Utils.msg_sender.send_message_to_user(user_id, message);
+          Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+            `You can't fight it.`);          
           return;
         }
 
@@ -415,16 +380,9 @@ class Game_Controller {
 
         //give the offence a bit of an advantage of striking first
         let damage_dealt = user.strike_opponent(opponent.id);
-        
-        let msg = {
-          type: "Chat",
-          content: {
-            sender: 'world',
-            text: `${user.name} attacks ${opponent.name}, `+
-                      `dealing ${damage_dealt} HP.`
-          }          
-        }
-        Utils.msg_sender.send_message_to_room(user.id, msg);
+
+        Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+          `${user.name} attacks ${opponent.name}, dealing ${damage_dealt} HP.`);        
       }      
     }
   }
@@ -438,14 +396,9 @@ class Game_Controller {
       
       user.add_to_queue(container.get_look_string());
 
-      let message = {
-        type:       "Chat",
-        content: {
-          sender:   'world',
-          text:     user.get_next_msg_from_queue()
-        }        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        user.get_next_msg_from_queue());
+
       return;
     }
 
@@ -454,14 +407,8 @@ class Game_Controller {
     let entity_id = container.search_for_target(target);
 
     if (entity_id===null){
-      let message = {
-        type:     "Chat",
-        content: {
-          sender: 'world',
-          text:   `There is no ${target} around.`
-        }        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `There is no ${target} around.`);      
       return;
     }
 
@@ -469,14 +416,8 @@ class Game_Controller {
     let entity = World.world.get_instance(entity_id);
     user.add_to_queue(entity.get_look_string());
 
-    let message = {
-      type:     "Chat",
-      content: {
-        sender: 'world',
-        text:   user.get_next_msg_from_queue()
-      }      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      user.get_next_msg_from_queue());    
         
   }
 
@@ -487,15 +428,8 @@ class Game_Controller {
 
     if (current_container.exits[direction]===null){
       //Exit does not exist
-      let message = {
-        type: 'Chat',
-        content: {
-          sender: 'world',
-          text: `There's no exit to ${direction}.`        
-        }
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message)
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `There's no exit to ${direction}.`);      
       return;
     }
 
@@ -506,14 +440,9 @@ class Game_Controller {
     current_container.remove_entity(user.id);
     new_container.add_entity(user_id);
 
-    let message = {
-      type: 'Chat',
-      content: {
-        sender: 'world',
-        text: `You travel ${direction} to ${new_container.name}.`          
-      }          
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message)
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      `You travel ${direction} to ${new_container.name}.`);
+    
     this.process_incoming_message('look', user.id);
   }
 
@@ -521,14 +450,8 @@ class Game_Controller {
     //pick up the target and place in a slot.
 
     if (target===null){
-      let message = {
-        type: 'Chat',
-      content: {
-        sender: 'world',
-        text: `What do you want to get?`          
-      }      
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to get?`);      
       return;
     }
 
@@ -538,15 +461,8 @@ class Game_Controller {
     let entity_id = container.search_for_target(target);
 
     if (entity_id===null){
-      let message = {
-        type: 'Chat',
-      content: {
-        sender: 'world',
-        text: `There is no ${target} around.`      
-      }  
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `There is no ${target} around.`);      
       return;
     }
 
@@ -554,15 +470,8 @@ class Game_Controller {
     let entity = World.world.get_instance(entity_id);
 
     if (!entity.is_gettable){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        test: `You can't pick it up.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You can't pick it up.`);      
       return;
     }
 
@@ -570,32 +479,20 @@ content: {
     let success = user.add_to_slots(entity_id);
 
     if (success){
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You pick up ${entity.type_string} and place it in a slot.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
-
-      msg.content = `${user.name} picks up ${entity.type_string}`;
-      Utils.msg_sender.send_message_to_room(user_id, msg, true);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You pick up ${entity.type_string} and place it in a slot.`);
+      
+      Utils.msg_sender.send_chat_msg_to_room(user_id,'world',
+        `${user.name} picks up ${entity.type_string}`,
+        true
+      );      
 
       let container = World.world.get_instance(user.container_id);
       container.remove_entity(entity_id);
 
     } else {
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You don't have a free slot to put it in.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You don't have a free slot to put it in.`);      
     }   
   }
 
@@ -603,15 +500,8 @@ content: {
     //drop a target from the slots to the room.
 
     if (target===null){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `What do you want to drop?`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to drop?`);
       return;
     }
 
@@ -621,49 +511,28 @@ content: {
 
     if (entity_id===null){
       //Target was not found in slots.
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You don't have it in your slots.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You don't have it in your slots.`);      
       return;
     } 
     
     //Target was found
     user.drop_item_from_slots(entity_id);
-
-    let msg = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: `You drop it to the floor.`
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, msg);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      `You drop it to the floor.`);    
 
     let entity = World.world.get_instance(entity_id);
 
-    msg.content = `${user.name} drops ${entity.type_string}`;
-    Utils.msg_sender.send_message_to_room(user_id, msg, true);
+    Utils.msg_sender.send_chat_msg_to_room(user_id,'world',
+      `${user.name} drops ${entity.type_string}`,
+      true);    
   }
 
   wear_hold_cmd(user_id, target){
     //take an entity from the slots and wear/hold in a pre-specified position.
     if (target===null){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `What do you want to wear or hold?`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to wear or hold?`);      
       return;
     }
 
@@ -673,15 +542,8 @@ content: {
 
     if (entity_id===null){
       //Target was not found in slots.
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You don't have it in your slots.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You don't have it in your slots.`);      
       return;
     } 
 
@@ -689,15 +551,8 @@ content: {
     let entity = World.world.get_instance(entity_id);
 
     if (entity.wear_hold_slot===null){
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You can't wear or hold it.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You can't wear or hold it.`);      
       return;
     }
 
@@ -705,22 +560,11 @@ content: {
     let success = user.wear_or_hold_entity(entity_id);
 
     if (success){
-      let msg = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `Done.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',`Done.`);      
     } else {
       //position is unavailable.
-      let msg = {
-        sender: 'world',
-        content: "You're already wearing or holding something there."
-      }
-      Utils.msg_sender.send_message_to_user(user_id, msg);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        "You're already wearing or holding something there.");      
     }
   }
 
@@ -728,15 +572,8 @@ content: {
     //remove a worn or held entity, and place it in a slot.
 
     if (target===null){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `What do you want to remove?`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to remove?`);      
       return;
     }
 
@@ -746,42 +583,20 @@ content: {
 
     if (entity_id===null){
       //target was not found
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You're not wearing or holding it.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You're not wearing or holding it.`);      
       return;
     }
 
     //Target is worn or held.
     let success = user.remove_from_wear_hold(entity_id);
     if (success){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You remove it and place it in one of your slots.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You remove it and place it in one of your slots.`);     
 
     } else {
-      let message = {
-        
-type: 'Chat',
-content: {
-  sender: 'world',
-        text: `You don't have a free slot to put it in.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You don't have a free slot to put it in.`);      
     }
   }
 
@@ -790,15 +605,8 @@ content: {
     //send the first message.
     let user = World.world.get_instance(user_id);
     
-    let message = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: user.get_inv_content()
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message);    
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      user.get_inv_content());    
   }
 
   next_cmd(user_id){
@@ -810,15 +618,7 @@ content: {
       content = 'No more messages in chain.';
     } 
     
-    let message = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: content
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',content);        
   }
 
   end_cmd(user_id){
@@ -826,15 +626,8 @@ content: {
     let user = World.world.get_instance(user_id);
     user.clear_msg_queue();
 
-    let message = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: 'Message chain cleared.'
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      'Message chain cleared.');
   }
 
   say_cmd(user_id, content){
@@ -842,75 +635,77 @@ content: {
     let user = World.world.get_instance(user_id);
     let msg = `${user.name} says: ${content}`;
 
-    let message = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: msg
-}
-      
-    }
-
-    Utils.msg_sender.send_message_to_room(user_id, message);
+    Utils.msg_sender.send_chat_msg_to_room(user_id,'world', msg);    
   }
 
   create_cmd(user_id, type){
     //Creates an entity and places it in the room.
 
     if (type===null){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `What do you want to create?`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to create?`);      
       return;
     }
 
     //Type is not null.    
-    let user=       World.world.get_instance(user_id);
-    let entity_id=  null;
+    let user=       World.world.get_instance(user_id);    
 
-    switch(type){
-      case "screwdriver":
-        let instance_props = {
-          container_id: user.container_id
-        }
-        
-        entity_id = new Classes.Screwdriver(instance_props);        
-        break;
-    }
+    let instance_props = {container_id: user.container_id}
+
+    let entity_id=  Classes.create_entity(type, instance_props);    
 
     if (entity_id===null){
-      let message = {
-        type: 'Chat',
-content: {
-  sender: 'world',
-        text: `There is no such thing as ${type}.`
-}
-        
-      }
-      Utils.msg_sender.send_message_to_user(user_id, message);
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `There is no such thing as ${type}.`);      
       return;
     }
 
     //Item created and placed in the container
-    let message = {
-      type: 'Chat',
-content: {
-  sender: 'world',
-      text: `${type} created.`
-}
-      
-    }
-    Utils.msg_sender.send_message_to_user(user_id, message);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',`${type} created.`);
     return;
   }
 
-  
+  eat_drink_cmd(user_id, target){
+    //eat/drink food that's in the wear,hold or slots.
+
+    if (target===null){
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `What do you want to consume?`);    
+      return;
+    }
+
+    //Target is not null.
+    let user=       World.world.get_instance(user_id);    
+    let entity_id = user.search_target_in_slots(target);
+
+    if (entity_id===null){
+      entity_id = user.search_target_in_wear_hold(target);
+      if (entity_id===null){
+        //Target not found on user's body.
+        Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+          `You don't have it on you.`);        
+        return;
+      }
+    }
+
+    //Target was found
+    let entity = World.world.get_instance(entity_id);
+
+    if (!entity.is_food){
+      Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+        `You want to put ~THAT~ in you MOUTH??!`
+      );      
+      return;
+    }
+
+    //Target can be consumed.
+    user.consume(entity_id);
+    Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+      `You consume ${entity.type_string}.`);
+        
+    Utils.msg_sender.send_chat_msg_to_room(user_id, 'world', 
+      `${user.name} consumes ${entity.type_string}`, true);
+  }
 
   create_new_user(ws_client, username, password){
 
@@ -925,22 +720,10 @@ content: {
       ws_client
     );    
     
-    let msg = {
-      type:     "Chat",
-      content: {        
-        sender: "world",
-        text:   `Hi ${user.name}, your ID is ${user.id}`
-      }      
-    }
-    Utils.msg_sender.send_message_to_user(user.id, msg);   
+    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
+      `Hi ${user.name}, your ID is ${user.id}`);
 
-    msg = {
-      type: "Status",
-      content: {
-        health: user.health        
-      }
-    }
-    Utils.msg_sender.send_message_to_user(user.id, msg);
+    Utils.msg_sender.send_status_msg_to_user(user.id, user.health);
 
     this.process_incoming_message('look', user.id);    
     return user.id;

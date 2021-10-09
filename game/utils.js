@@ -1,4 +1,3 @@
-// const Classes=  require('./classes');
 const World=    require('./world');
 
 class ID_Generator {
@@ -23,22 +22,55 @@ class Message_Sender {
     //TBD
   }
 
-  send_message_to_user(user_id, message){      
+  send_message_to_user(user_id, message){    
+    console.log(message);
+    //Not meant to be called directly  
     let ws_client = World.world.get_instance(user_id).ws_client;
     ws_client.send(JSON.stringify(message));
   }
 
   send_message_to_room(user_id, message, dont_send_to_user=false){
+    //Not meant to be called directly  
     let user = World.world.get_instance(user_id);
     let container = World.world.get_instance(user.container_id);
     let arr = container.get_users();
     for (const id of arr){
       if (id===user_id && dont_send_to_user) continue;
       this.send_message_to_user(id, message);
-    }      
+    }
   }
 
+  send_status_msg_to_user(user_id, health){
+    let msg = {
+      type:     "Status",
+      content:  {health: health}
+    }
+    let ws_client = World.world.get_instance(user_id).ws_client;
+    ws_client.send(JSON.stringify(msg));
+  }
 
+  send_chat_msg_to_user(user_id, sender, text){
+    let message = {
+      type:       'Chat',
+        content: {
+          sender: sender,
+          text:   text
+        }        
+    }
+    let ws_client = World.world.get_instance(user_id).ws_client;
+    ws_client.send(JSON.stringify(message));
+  }
+
+  send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
+    
+    let user = World.world.get_instance(sender_id);
+    let container = World.world.get_instance(user.container_id);
+    let arr = container.get_users();
+    for (const id of arr){
+      if (id===sender_id && dont_send_to_user) continue;      
+      this.send_chat_msg_to_user(id, sender, text);
+    }
+  }
   
   broadcast_message(message){
     //Broadcast a message to all connected clients.
@@ -96,5 +128,4 @@ class Queue {
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
-// exports.search_for_target=      search_for_target;
 exports.Queue=                  Queue;

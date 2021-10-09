@@ -1,5 +1,3 @@
-const Classes = require('./classes');
-
 class World {
   //World state.
   constructor(){
@@ -7,6 +5,7 @@ class World {
   }
 
   get_instance(instance_id){
+    //returns undefined if no entity exists
     return this.world.get(instance_id);
   }
 
