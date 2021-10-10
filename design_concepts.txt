@@ -75,6 +75,22 @@ Idealy, all dogs will be identical, and only their instance state needs to be sa
 If we create a dog instance, it will always have a default name/description.
 The soultion is that props are overriding on the subclass level.
 
+- Save/Load user.
+  sim calles user.get_data_obj(), which returns an object with All
+  the user props. 
+  The inventory returns it's own data_obj, with two keys - wear_hold (obj) and
+  slots (array). Instead of the usuall ids, we have entitiy objects.
+
+  When a registered user logs in, the new_client_connected() method is called. 
+  A new user is created, with the saved user props passed to the constructor.
+  The new user has some default props. 
+  The inventory is created with the props passed as parameter.
+    the inventory is created, and then the props.inventory are overriden.
+  then the override_props() method is called with all the props.
+
+  //contiune from here
+
+
 
                                                            
 - Development phases:

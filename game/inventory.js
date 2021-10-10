@@ -107,25 +107,27 @@ class Inventory {
   }
   
   get_data_object(){
-    let obj = {};
+    let obj = {
+      num_of_slots: this.num_of_slots,
+      coins:        this.coins,
+      wear_hold:    {},
+      slots:        []
+    };
+    
 
     if (this.enable_wear_hold){
-      obj.wear_hold = {};
+      
       for (const [position, id] of Object.entries(this.wear_hold)){
-         if (id===null){
-           obj.wear_hold[position] = null;
-
-         } else {
+         if (id!==null){           
           let entity = World.world.get_instance(id);
           obj.wear_hold[position]= {
-            type:                 entity.type,
-            instance_properties:  entity.get_data_obj()
+            type:     entity.type,
+            props:    entity.get_data_obj()
           }
         }
       }
     }
     
-    obj.slots = [];
     for (const id of this.slots){
       let entity = World.world.get_instance(id);
       obj.slots.push(entity.get_data_obj());

@@ -1,1 +1,53 @@
-{}
+{
+  "HaichiPapa": {
+    "type": "User",
+    "props": {
+      "name": "HaichiPapa",
+      "description": "It's YOU, Bozo!",
+      "state": "Default",
+      "container_id": "1",
+      "is_gettable": false,
+      "wear_hold_slot": null,
+      "inventory": {
+        "wear_hold": {
+          "Head": null,
+          "Torso": null,
+          "Legs": null,
+          "Feet": null,
+          "Right Hand": null,
+          "Left Hand": null
+        },
+        "slots": [
+          {
+            "type": "Screwdriver",
+            "props": {
+              "name": null,
+              "description": "It's a philips screwdriver.",
+              "state": "Default",
+              "container_id": "5",
+              "is_gettable": true,
+              "wear_hold_slot": "Hands",
+              "inventory": null,
+              "is_food": false,
+              "restore_health_value": 0,
+              "is_decaying": true,
+              "decay_rate": 10,
+              "wear": 2,
+              "decay_tick_counter": 3
+            }
+          }
+        ]
+      },
+      "is_food": false,
+      "restore_health_value": 0,
+      "is_decaying": false,
+      "decay_rate": 10,
+      "wear": 2,
+      "decay_tick_counter": 0,
+      "health": 4,
+      "damage": 1,
+      "counter": 3,
+      "password": "12345678"
+    }
+  }
+}

@@ -61,9 +61,11 @@ class Item {
 
   override_props(props_obj){
     //Override with props
-    console.log(props_obj);
+    
     if (props_obj!==null){
       for (const [prop, value] of Object.entries(props_obj)){
+
+        if (prop==="inventory") continue;
 
         if (prop==="container_id"){
           let old_container= World.world.get_instance(this.container_id);
@@ -406,7 +408,7 @@ class Dog extends AnimatedObject {
   constructor(props, id=null){
     super(id);
 
-    this.BASE_HEALTH= 5;    
+    this.BASE_HEALTH= 10;    
     this.type=        "Dog";
     this.type_string= "A Dog";  
     this.name=        "Archie";
@@ -525,7 +527,7 @@ class Screwdriver extends Entity {
 class User extends AnimatedObject {
   constructor(props, ws_client, id=null){
     super(id);    
-    this.BASE_HEALTH= 100;
+    this.BASE_HEALTH= 5;
     this.BASE_DAMAGE= 1;  
     this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
 
@@ -539,10 +541,9 @@ class User extends AnimatedObject {
     this.health=       this.BASE_HEALTH;
     this.damage=       this.BASE_DAMAGE;    
 
-    this.inventory=     new Inventory.Inventory(this.id, 10, props);
+    this.inventory=     new Inventory.Inventory(this.id, 10, props.inventory);
 
     this.override_props(props);
-
   }
 
   process_tick(){

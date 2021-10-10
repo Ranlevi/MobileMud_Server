@@ -1,1 +1,47 @@
-{"0":{"type":"Room","props":{"name":"Room 1","description":"This is the first room of the game.","state":"Default","lighting":"white","exits":{"north":"1"}}},"1":{"type":"Room","props":{"name":"Room 2","description":"This is the 2nd room of the game.","state":"Default","lighting":"white","exits":{"south":"0"}}},"3":{"type":"Dog","props":{"name":"Archie","description":"A cute but silly dog.","state":"Default","container_id":"0","is_gettable":false,"wear_hold_slot":null,"inventory":null,"is_food":false,"restore_health_value":0,"is_decaying":false,"decay_rate":10,"wear":2,"decay_tick_counter":0,"health":10,"damage":1,"counter":2}},"4":{"type":"Screwdriver","props":{"name":null,"description":"It's a philips screwdriver.","state":"Default","container_id":"0","is_gettable":true,"wear_hold_slot":"Hands","inventory":null,"is_food":false,"restore_health_value":0,"is_decaying":false,"decay_rate":10,"wear":2,"decay_tick_counter":0}}}
+{
+  "0": {
+    "type": "Room",
+    "props": {
+      "name": "Room 1",
+      "description": "This is the first room of the game.",
+      "state": "Default",
+      "lighting": "white",
+      "exits": {
+        "north": "1"
+      }
+    }
+  },
+  "1": {
+    "type": "Room",
+    "props": {
+      "name": "Room 2",
+      "description": "This is the 2nd room of the game.",
+      "state": "Default",
+      "lighting": "white",
+      "exits": {
+        "south": "0"
+      }
+    }
+  },
+  "3": {
+    "type": "Dog",
+    "props": {
+      "name": "Archie",
+      "description": "A cute but silly dog.",
+      "state": "Default",
+      "container_id": "0",
+      "is_gettable": false,
+      "wear_hold_slot": null,
+      "inventory": null,
+      "is_food": false,
+      "restore_health_value": 0,
+      "is_decaying": false,
+      "decay_rate": 10,
+      "wear": 2,
+      "decay_tick_counter": 0,
+      "health": 10,
+      "damage": 1,
+      "counter": 2
+    }
+  }
+}

@@ -69,7 +69,7 @@ class Game_Controller {
       
       for (const [id, data] of Object.entries(parsed_info)){
         current_id=     id;
-        let entity_id=  Classes.create_entity(data.type, data.instance_properties, id);
+        let entity_id=  Classes.create_entity(data.type, data.props, id);
 
         if (entity_id===null){
           console.error(`Game Controller.load_world: unknown type: ${data.type}`);
@@ -217,17 +217,17 @@ class Game_Controller {
     
     let user_data = World.users_db.get(username);
 
-    let instance_props = {
-      name:         username,
-      description:  user_data.description,
-      container_id: user_data.container_id,
-      health:       user_data.health,
-      damage:       user_data.damage,      
-      password:     user_data.password,      
-      inventory:    user_data.inventory
-    }
-
-    let user = new Classes.User(instance_props, ws_client);
+    // let props = {
+    //   name:         username,
+    //   description:  user_data.props.description,
+    //   container_id: user_data.props.container_id,
+    //   health:       user_data.props.health,
+    //   damage:       user_data.props.damage,      
+    //   password:     user_data.props.password,      
+    //   inventory:    user_data.props.inventory
+    // }
+    
+    let user = new Classes.User(user_data.props, ws_client);
 
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
       `Welcome back ${user.name}.`);
@@ -693,7 +693,7 @@ class Game_Controller {
     }
 
     let user = new Classes.User(props,ws_client);    
-
+    
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
       `Hi ${user.name}, your ID is ${user.id}`);
 
@@ -722,9 +722,8 @@ wss.on('connection', (ws_client) => {
     if (state==="Not Logged In" && incoming_msg.type==="Login"){
       //Check if User is already registered.
       let user_data = World.users_db.get(incoming_msg.content.username);
-      if (user_data!==undefined){        
-        //check password.
-        if (incoming_msg.content.password===user_data.password){
+      if (user_data!==undefined){                
+        if (incoming_msg.content.password===user_data.props.password){
           state= 'Logged In';
           user_id = game_controller.new_client_connected(ws_client, incoming_msg.content.username);                  
         } else {
