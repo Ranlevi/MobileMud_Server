@@ -2,10 +2,10 @@ const World=      require('./world');
 const Classes=    require('./classes');
 
 class Inventory {
-  constructor(owner_id, num_of_slots, enable_wear_hold=true){
+  constructor(owner_id, num_of_slots, props=null, enable_wear_hold=true){
 
+    //Default props
     this.owner_id= owner_id;
-
     this.enable_wear_hold= enable_wear_hold;
     this.wear_hold = { //position:id
       'Head':       null,
@@ -18,8 +18,25 @@ class Inventory {
     
     this.slots = new Set();//ids
     this.num_of_slots = num_of_slots;
-
     this.coins = 0;
+
+    if (props!==null){
+
+      //Override props
+      if (props.num_of_slots!==undefined) {this.num_of_slots= props.num_of_slots};
+      if (props.coins!==undefined) {this.coins= props.coins};
+
+      if (props.wear_hold!==undefined){
+        for (const [position, data] of Object.entries(props.wear_hold)){
+          if (data!==null){
+            //Assign the container id to the inventory's owner ID
+            data.props.container_id = this.owner_id;
+            let entity_id = Classes.create_entity(props.type, data.props);
+            this.wear_hold[position] = entity_id;
+          }
+        }  
+      }
+  }    
   }
 
   remove_entity(entity_id){

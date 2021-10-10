@@ -13,8 +13,6 @@ class Item {
 //Not meant to be called directly.
   constructor(){    
     //Base properties that exist for all Items.
-    // this.id=          (id===null)? Utils.id_generator.get_new_id() : id;
-
     this.id=          null;
     this.name=        null;
     this.description= "";
@@ -43,11 +41,12 @@ class Item {
     return [];
   }
 
-  get_data_obj(){
+  get_data_obj(){//TODO: change to save_obj?
     //Returns an object with all the properties of the instance.
     //Note: if overriden, the overiding class needs to get
     //all the props of the super-class, plus its own unique ones.
 
+    //Note: id is not save since it is already saved as key to the object in the JSON file.
     let obj = {
       type:           this.type,
       props: {
@@ -59,10 +58,19 @@ class Item {
     }
     return obj;
   }
+
+  override_props(props_obj){
+    //Override with props
+    if (props_obj!==null){
+      for (const [prop, vaule] of Object.entries(props_obj)){
+        this[prop]= vaule;
+      }
+    }
+  }
 }
 
 class Room extends Item {
-  constructor(props, id=null){
+  constructor(props=null, id=null){
       super();
 
       //Default props
@@ -83,16 +91,7 @@ class Room extends Item {
       this.lighting=  "white"; //CSS colors
 
       //Overide props if exist
-      if (props.name!==undefined) {this.name= props.name};
-      if (props.description!==undefined) {this.description= props.description};
-      if (props.lighting!==undefined) {this.lighting= props.lighting};
-      if (props.exits!==undefined){
-        for (const [direction, next_room_id] of Object.entries(props.exits)){
-          if (props.exits[direction]!==undefined){
-            this.exits[direction]= next_room_id;
-          }
-        }
-      }      
+      this.override_props(props);      
 
       //Add To world.
       World.world.add_to_world(this);
@@ -189,7 +188,7 @@ class Room extends Item {
       }      
     }
     return obj;
-  } ///TODO: continue props from here.
+  } 
 
   search_for_target(target){
     let entities_ids_arr = this.get_entities();    
@@ -210,20 +209,15 @@ class Room extends Item {
 
 class Entity extends Item {
   //Not meant to be called directly.
-  constructor(id, instance_props){
-      super(id, instance_props);
-
+  constructor(id=null){ //note: no props, since this is done on the subclass level
+      super();
       this.BASE_WEAR=  2;
       this.DECAY_RATE= 10; //1 wear point per 10 ticks.
 
-      this.container_id = instance_props.container_id;    
-      
-      let container= World.world.get_instance(instance_props.container_id);
-      container.add_entity(this.id);
-
-      World.world.add_to_world(this);
-
-      this.inventory=       new Inventory.Inventory(this.id, 0, false);
+      //Default props
+      this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+      this.container_id =  "0";
+      this.inventory=       null;
       this.is_gettable=     false;
       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
       this.is_food=         false;
@@ -232,6 +226,11 @@ class Entity extends Item {
       this.decay_rate=      this.DECAY_RATE;
       this.wear=            this.BASE_WEAR;
       this.decay_tick_counter= 0;
+      
+      //Add to World
+      let container= World.world.get_instance(instance_props.container_id);
+      container.add_entity(this.id);
+      World.world.add_to_world(this);
   }
   
   enable_decay(){    
@@ -273,6 +272,22 @@ class Entity extends Item {
     let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
     msg += `${this.description}  `;
     msg += `Wear level: ${this.wear}.`
+
+    if (this.inventory!==null){
+
+      msg += `It holds:  `;
+       
+      let items = this.inventory.get_all_slot_items();
+
+      if (items.length===0){
+        msg += `Nothing.`;            
+      } else {      
+        for (const id of items){
+          msg += `${this.type_string}  `;      
+        }
+      }
+    }
+
     return msg;
   }
 
@@ -281,13 +296,16 @@ class Entity extends Item {
   }
 
   get_data_obj(){
-    //Basic default save object.
+
     let obj = {
-      type:             this.type,
-      instance_properties: {
-        name:           this.name,
-        description:    this.description,
-        state:          this.state,
+      type:           this.type,
+      props: {
+        //Item default props
+        name:         this.name,
+        description:  this.description,
+        type_string:  this.type_string,
+        state:        this.state,
+        //Entity specific props
         container_id:   this.container_id,
         is_gettable:    this.is_gettable,
         wear_hold_slot: this.wear_hold_slot,
@@ -301,42 +319,55 @@ class Entity extends Item {
       }      
     }
     return obj;
-  }
+  }    
 }
+
+//TODO: continue props override in subclass only, from here. Then check what is saved.
 
 class AnimatedObject extends Entity {
   //Not meant to be called directly.
-  constructor(id, instance_props){
-    super(id, instance_props);
+  constructor(props, id){
+    super(props, id);
 
     this.BASE_HEALTH=       10;
     this.BASE_DAMAGE=       1;
     this.BASE_COUNTER=      5;
 
-    this.name=              'A Nameless entity';
+    //Default values
     this.health=            this.BASE_HEALTH;
     this.damage=            this.BASE_DAMAGE;          
     this.is_fighting_with=  null;//Never spawn into a battle.
     this.counter=           this.BASE_COUNTER;
+
+    //Overide with props
+    if (props.health!==undefined) {this.health= props.health};
+    if (props.damage!==undefined) {this.damage= props.damage};
+    if (props.counter!==undefined) {this.counter= props.counter};
   }
 
   get_data_obj(){
-    //Basic default save object.
-    //Should cover all the default properties.
-    //Overide if unique props exist.
     let obj = {
-      type:               this.type,
-      instance_properties: {
-        name:             this.name,
-        description:      this.description,
-        state:            this.state,
-        container_id:     this.container_id,
-        is_gettable:      this.is_gettable,
-        wear_hold_slot:   this.wear_hold_slot,
-        inventory:        this.inventory.get_data_object(),
+      type:           this.type,
+      props: {
+        //Item default props
+        name:         this.name,
+        description:  this.description,
+        type_string:  this.type_string,
+        state:        this.state,
+        //Entity specific props
+        container_id:   this.container_id,
+        is_gettable:    this.is_gettable,
+        wear_hold_slot: this.wear_hold_slot,
+        inventory:      this.inventory.get_data_object(),
+        is_food:        this.is_food,
+        restore_health_value: this.restore_health_value,
+        is_decaying: this.is_decaying,
+        decay_rate: this.decay_rate,
+        wear: this.wear,
+        decay_tick_counter: this.decay_tick_counter,
+        //AnimatedObject specific props
         health:           this.health,
         damage:           this.damage,
-        is_fighting_with: this.is_fighting_with,
         counter:          this.counter
       }      
     }
@@ -364,30 +395,25 @@ class AnimatedObject extends Entity {
     if (this.health<0) this.health= 0;
     return damage;
   }
+
+  get_look_string(){
+    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
+    msg += `${this.type_string}.  ${this.description}`
+    return msg;
+  }
 }
 
 class Dog extends AnimatedObject {
-  constructor(instance_props, id=null){
-    super(id, instance_props);
+  constructor(props, id=null){
+    super(props, id);
 
     this.BASE_HEALTH= 5;    
-
-    this.name=        (instance_props.name===undefined)?
-      `Archie` : instance_props.name;
-    
-    this.description=        (instance_props.description===undefined)?
-      `It's a cute but silly dog.` : instance_props.description;
-    
     this.type=        "Dog";
-    this.type_string= "A Dog";
+    this.type_string= "A Dog";  
+    this.name=        "Archie";
+    this.description= "A cute but silly dog.";
 
-
-    this.health=        (instance_props.health===undefined)?
-    this.BASE_HEALTH : instance_props.health;
-    this.damage=        (instance_props.damage===undefined)?
-      this.BASE_DAMAGE : instance_props.damage;
-    this.counter=        (instance_props.counter===undefined)?
-      this.BASE_COUNTER : instance_props.counter;    
+    this.override_props(props);//possible bug: should the save object keys be strings??
   }
 
   process_tick(){
@@ -414,42 +440,18 @@ class Dog extends AnimatedObject {
         this.state = 'Default';
         break;
     }
-  }  
-
-  get_look_string(){
-    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
-    msg += `${this.type_string}.  ${this.description}`
-    return msg;
-  }
+  }    
 }
 
 class Corpse extends Entity {
-  constructor(instance_props, id=null){
-    super(id, instance_props.container_id);
-
-    this.description =        instance_props.description;
+  constructor(props, id=null){
+    super(props, id);
+    
+    this.description=         "It's dead, Jim.";
     this.type=                "Corpse"
     this.type_string=         "A Corpse";
     this.decomposition_timer= 60;
-    this.inventory=           new Inventory.Inventory(this.id, 17, false);
-  }
-
-  get_data_obj(){
-    //Basic default save object.
-    let obj = {
-      type:                   this.type,
-      instance_properties: {
-        name:                 this.name,
-        description:          this.description,
-        state:                this.state,
-        container_id:         this.container_id,
-        is_gettable:          this.is_gettable,
-        wear_hold_slot:       this.wear_hold_slot,
-        inventory:            this.inventory.get_data_object(),
-        decomposition_timer:  this.decomposition_timer
-      }      
-    }
-    return obj;
+    this.inventory=           new Inventory.Inventory(this.id, 17, props, false);    
   }
 
   process_tick(){
@@ -478,27 +480,12 @@ class Corpse extends Entity {
   set_decomposition_timer(num_of_ticks){
     this.decomposition_timer = num_of_ticks;
   }
-
-  get_look_string(){    
-    let msg = `**[${this.type_string}]({type:${this.type}, id:${this.id}}, `;
-    msg += `It holds:  `;
-       
-    let items = this.inventory.get_all_slot_items();
-
-    if (items.length===0){
-      msg += `Nothing.`;            
-    } else {      
-      for (const id of items){
-        msg += `${this.type_string}  `;      
-      }
-    }
-    return msg;
-  }
+ 
 }
 
 class Screwdriver extends Entity {
-  constructor(instance_props, id=null){
-    super(id,instance_props.container_id);
+  constructor(props, id=null){
+    super(props, id);
 
     this.description =   "It's a philips screwdriver."
     this.type=          "Screwdriver"
@@ -528,9 +515,9 @@ class User extends AnimatedObject {
       this.BASE_DAMAGE : instance_props.damage;    
 
     this.inventory=     new Inventory.Inventory(this.id, 10);
-    if (instance_props.inventory!==undefined){      
-      this.inventory.update_from_obj(instance_props.inventory);
-    }
+    // if (instance_props.inventory!==undefined){      
+    //   this.inventory.update_from_obj(instance_props.inventory);
+    // }
       
     this.type=          "User";
     this.type_string=   "A User";    
@@ -708,7 +695,7 @@ class Candy extends Entity {
 }
 
 function create_entity(type, instance_pros, id=null){
-  //return null if the type is unrecoginzed.
+  //return entity_id or null if the type is unrecoginzed.
   let entity_id=null;
   type=         type.toLowerCase();
 
