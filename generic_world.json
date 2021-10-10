@@ -3,15 +3,9 @@
     "type": "Room",
     "instance_properties": {
       "name": "Room 1",
-      "description": "This is the first room of the game.",
-      "lighting": "white",
+      "description": "This is the first room of the game.",      
       "exits": {
-        "north": "1",
-        "south": null,
-        "west": null,
-        "east": null,
-        "up": null,
-        "down": null
+        "north": "1"
       }
     }
   },
@@ -20,45 +14,21 @@
     "instance_properties": {
       "name": "Room 2",
       "description": "This is the 2nd room of the game.",
-      "lighting": "white",
       "exits": {
-        "north": null,
-        "south": "0",
-        "west": null,
-        "east": null,
-        "up": null,
-        "down": null
+        "south": "0"
       }
     }
   },
   "3": {
     "type": "Dog",
-    "instance_properties": {
-      "name": "Archie",
-      "description": "It's a cute but stupid dog.",
-      "state": "Barking",
-      "container_id": "0",
-      "is_gettable": false,
-      "wear_hold_slot": null,
-      "inventory": {
-        "slots": []
-      },
-      "is_fighting_with": null,
-      "counter": 5
+    "instance_properties": {      
+      "container_id": "0"
     }
   },
   "4": {
     "type": "Screwdriver",
     "instance_properties": {
-      "name": null,
-      "description": "It's a philips screwdriver.",
-      "state": "Default",
-      "container_id": "0",
-      "is_gettable": true,
-      "wear_hold_slot": "Hands",
-      "inventory": {
-        "slots": []
-      }
+      "container_id": "1"
     }
   }
 }

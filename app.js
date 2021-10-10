@@ -686,17 +686,14 @@ class Game_Controller {
 
   create_new_user(ws_client, username, password){
 
-    let instance_props = {
+    let props = {
       name:         username,
       password:     password,
       container_id: World.FIRST_ROOM_ID
     }
 
-    let user = new Classes.User(
-      instance_props,
-      ws_client
-    );    
-    
+    let user = new Classes.User(props,ws_client);    
+
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
       `Hi ${user.name}, your ID is ${user.id}`);
 

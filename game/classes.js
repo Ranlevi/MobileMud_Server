@@ -61,9 +61,18 @@ class Item {
 
   override_props(props_obj){
     //Override with props
+    console.log(props_obj);
     if (props_obj!==null){
-      for (const [prop, vaule] of Object.entries(props_obj)){
-        this[prop]= vaule;
+      for (const [prop, value] of Object.entries(props_obj)){
+
+        if (prop==="container_id"){
+          let old_container= World.world.get_instance(this.container_id);
+          old_container.remove_entity(this.id);
+          let new_container= World.world.get_instance(value);
+          new_container.add_entity(this.id);
+        } else {
+          this[prop]= value;
+        }        
       }
     }
   }
@@ -179,7 +188,6 @@ class Room extends Item {
         //Item props
         name:         this.name,
         description:  this.description,
-        type_string:  this.type_string,
         state:        this.state,
         //Room Props
         lighting:     this.lighting,
@@ -228,7 +236,7 @@ class Entity extends Item {
       this.decay_tick_counter= 0;
       
       //Add to World
-      let container= World.world.get_instance(instance_props.container_id);
+      let container= World.world.get_instance(this.container_id);
       container.add_entity(this.id);
       World.world.add_to_world(this);
   }
@@ -303,13 +311,12 @@ class Entity extends Item {
         //Item default props
         name:         this.name,
         description:  this.description,
-        type_string:  this.type_string,
         state:        this.state,
         //Entity specific props
         container_id:   this.container_id,
         is_gettable:    this.is_gettable,
         wear_hold_slot: this.wear_hold_slot,
-        inventory:      this.inventory.get_data_object(),
+        inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
         is_food:        this.is_food,
         restore_health_value: this.restore_health_value,
         is_decaying: this.is_decaying,
@@ -322,12 +329,10 @@ class Entity extends Item {
   }    
 }
 
-//TODO: continue props override in subclass only, from here. Then check what is saved.
-
 class AnimatedObject extends Entity {
   //Not meant to be called directly.
-  constructor(props, id){
-    super(props, id);
+  constructor(id){
+    super(id);
 
     this.BASE_HEALTH=       10;
     this.BASE_DAMAGE=       1;
@@ -337,12 +342,7 @@ class AnimatedObject extends Entity {
     this.health=            this.BASE_HEALTH;
     this.damage=            this.BASE_DAMAGE;          
     this.is_fighting_with=  null;//Never spawn into a battle.
-    this.counter=           this.BASE_COUNTER;
-
-    //Overide with props
-    if (props.health!==undefined) {this.health= props.health};
-    if (props.damage!==undefined) {this.damage= props.damage};
-    if (props.counter!==undefined) {this.counter= props.counter};
+    this.counter=           this.BASE_COUNTER;    
   }
 
   get_data_obj(){
@@ -352,13 +352,12 @@ class AnimatedObject extends Entity {
         //Item default props
         name:         this.name,
         description:  this.description,
-        type_string:  this.type_string,
         state:        this.state,
         //Entity specific props
         container_id:   this.container_id,
         is_gettable:    this.is_gettable,
         wear_hold_slot: this.wear_hold_slot,
-        inventory:      this.inventory.get_data_object(),
+        inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
         is_food:        this.is_food,
         restore_health_value: this.restore_health_value,
         is_decaying: this.is_decaying,
@@ -405,7 +404,7 @@ class AnimatedObject extends Entity {
 
 class Dog extends AnimatedObject {
   constructor(props, id=null){
-    super(props, id);
+    super(id);
 
     this.BASE_HEALTH= 5;    
     this.type=        "Dog";
@@ -440,12 +439,13 @@ class Dog extends AnimatedObject {
         this.state = 'Default';
         break;
     }
-  }    
+  } 
+  
 }
 
 class Corpse extends Entity {
   constructor(props, id=null){
-    super(props, id);
+    super(id);
     
     this.description=         "It's dead, Jim.";
     this.type=                "Corpse"
@@ -480,47 +480,69 @@ class Corpse extends Entity {
   set_decomposition_timer(num_of_ticks){
     this.decomposition_timer = num_of_ticks;
   }
+
+  get_data_obj(){
+    let obj = {
+      type:           this.type,
+      props: {
+        //Item default props
+        name:         this.name,
+        description:  this.description,
+        state:        this.state,
+        //Entity specific props
+        container_id:   this.container_id,
+        is_gettable:    this.is_gettable,
+        wear_hold_slot: this.wear_hold_slot,
+        inventory:      this.inventory.get_data_object(),
+        is_food:        this.is_food,
+        restore_health_value: this.restore_health_value,
+        is_decaying: this.is_decaying,
+        decay_rate: this.decay_rate,
+        wear: this.wear,
+        decay_tick_counter: this.decay_tick_counter,
+        //Corpse specific props
+        decomposition_timer: this.decomposition_timer
+      }      
+    }
+  }
  
 }
 
 class Screwdriver extends Entity {
   constructor(props, id=null){
-    super(props, id);
+    super(id);
 
     this.description =   "It's a philips screwdriver."
     this.type=          "Screwdriver"
     this.type_string=   "A Screwdriver";
     this.is_gettable=   true;
     this.wear_hold_slot="Hands";    
+
+    this.override_props(props);
   }    
 }
 
 class User extends AnimatedObject {
-  constructor(instance_props, ws_client, id=null){
-    super(id, instance_props.container_id);    
+  constructor(props, ws_client, id=null){
+    super(id);    
     this.BASE_HEALTH= 100;
     this.BASE_DAMAGE= 1;  
     this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
 
     this.ws_client=     ws_client;
-    this.name=          instance_props.name;
-    this.password=      instance_props.password;
-    this.is_fighting_with= null; //never spawn a user into a battle.
-
-    this.description=   (instance_props.description===undefined)? 
-      "It's YOU, Bozo!" : instance_props.description;
-    this.health=        (instance_props.health===undefined)?
-      this.BASE_HEALTH : instance_props.health;
-    this.damage=        (instance_props.damage===undefined)?
-      this.BASE_DAMAGE : instance_props.damage;    
-
-    this.inventory=     new Inventory.Inventory(this.id, 10);
-    // if (instance_props.inventory!==undefined){      
-    //   this.inventory.update_from_obj(instance_props.inventory);
-    // }
-      
+    this.name=          "A Player";
     this.type=          "User";
-    this.type_string=   "A User";    
+    this.type_string=   "A User";
+    this.password=      null;
+    this.is_fighting_with= null; //never spawn a user into a battle.
+    this.description= "It's YOU, Bozo!";
+    this.health=       this.BASE_HEALTH;
+    this.damage=       this.BASE_DAMAGE;    
+
+    this.inventory=     new Inventory.Inventory(this.id, 10, props);
+
+    this.override_props(props);
+
   }
 
   process_tick(){
@@ -554,12 +576,30 @@ class User extends AnimatedObject {
 
   get_data_obj(){
     let obj = {
-      description:    this.description,
-      container_id:   this.container_id,
-      health:         this.health,
-      damage:         this.damage,      
-      password:       this.password,
-      inventory:      this.inventory.get_data_object()
+      type:           this.type,
+      props: {
+        //Item default props
+        name:         this.name,
+        description:  this.description,
+        state:        this.state,
+        //Entity specific props
+        container_id:   this.container_id,
+        is_gettable:    this.is_gettable,
+        wear_hold_slot: this.wear_hold_slot,
+        inventory:      this.inventory.get_data_object(),
+        is_food:        this.is_food,
+        restore_health_value: this.restore_health_value,
+        is_decaying: this.is_decaying,
+        decay_rate: this.decay_rate,
+        wear: this.wear,
+        decay_tick_counter: this.decay_tick_counter,
+        //AnimatedObject specific props
+        health:           this.health,
+        damage:           this.damage,
+        counter:          this.counter,
+        //User specific props
+        password:    this.password
+      }      
     }
     return obj;
   }
@@ -681,8 +721,8 @@ class User extends AnimatedObject {
 }
 
 class Candy extends Entity {
-  constructor(instance_props, id=null){
-    super(id,instance_props.container_id);
+  constructor(props, id=null){
+    super(props, id);
 
     this.description=           "A small piece of candy.";
     this.type=                  "Candy";
@@ -691,37 +731,39 @@ class Candy extends Entity {
     this.wear_hold_slot=        "Hands";
     this.is_food=               true;
     this.restore_health_value=  10;
+
+    this.override_props(props);
   }
 }
 
-function create_entity(type, instance_pros, id=null){
+function create_entity(type, props, id=null){
   //return entity_id or null if the type is unrecoginzed.
-  let entity_id=null;
+  let entity=null;
   type=         type.toLowerCase();
-
+  
   switch(type){
     case "room":
-      entity_id= new Room(instance_pros, id);
+      entity= new Room(props, id);
       break;
 
     case "dog":
-      entity_id= new Dog(instance_pros, id);                         
+      entity= new Dog(props, id);                         
       break;
 
     case "screwdriver":
-      entity_id= new Screwdriver(instance_pros, id);                          
+      entity= new Screwdriver(props, id);                          
       break;
 
     case "candy":
-      entity_id= new Candy(instance_pros, id);                          
+      entity= new Candy(props, id);                          
       break;
 
     case "corpse":
-      entity_id= new Candy(instance_pros, id);
+      entity= new Candy(props, id);
       break;
   }
 
-  return entity_id;
+  return entity.id;
 }
 
 exports.Item=             Item;
