@@ -72,6 +72,7 @@ class Item {
           old_container.remove_entity(this.id);
           let new_container= World.world.get_instance(value);
           new_container.add_entity(this.id);
+          this.container_id= value;
         } else {
           this[prop]= value;
         }        

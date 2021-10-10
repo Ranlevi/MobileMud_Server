@@ -86,12 +86,17 @@ The soultion is that props are overriding on the subclass level.
   The new user has some default props. 
   The inventory is created with the props passed as parameter.
     the inventory is created, and then the props.inventory are overriden.
+
   then the override_props() method is called with all the props.
+  the props are called one by one. 
+  If it's the inventory - ignored, since the inventory has it already.
+  If it's a container_id, the item is moved to the new container.
 
-  //contiune from here
+- Save/load world.
+  
 
-
-
+//TODO: simplify. get rid of inventory class. maybe make one giant Item class.,
+//with this.props that can be written and read as one.
                                                            
 - Development phases:
   - Basic World, single user moving around. look command.
