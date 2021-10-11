@@ -2,6 +2,63 @@ const Utils=      require('./utils');
 const World=      require('./world');
 const Inventory=  require('./inventory');
 
+class Item {
+  constructor(id=null){
+    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+    this.props = {
+      "name": null,
+      "description": null,
+      "type": null,
+      "type_string": null,
+      "is_container": null,
+      "container_limit": null
+    }
+  }
+}
+
+
+
+class User {
+  constructor(props, ws_client, id=null){
+
+    //Default Constants
+    this.BASE_HEALTH;
+
+    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+    this.ws_client=     ws_client;
+
+    //Default values for a new player.
+    this.props = {
+      "name": "",
+      "description": "It's you, bozo!",
+      "password": null,
+      "container_id": null,
+      "health": this.BASE_HEALTH,
+    }
+
+    this.update_props(props);
+  }
+
+  update_props(props){
+    for (const [key, value] of Object.entries(props)){
+
+      switch(key){
+        case("container_id"):
+          this.move_to_room(value);
+          break;
+
+        default:
+          this.props[key]= value;
+      }      
+    }
+  }
+
+  move_to_room(new_room_id){
+    console.log("User.move_to_room: Unimplemented");
+  }
+}
+
+
 //Notes on the design concept:
 //1. Minimal number of Classes.
 //2. Base classes exists to set default values and methods, for DRY, that
@@ -9,77 +66,77 @@ const Inventory=  require('./inventory');
 //3. Each class should be autonamous as possible, with it's own internal state
 //   and returning it's own look strings, etc.
 
-class Item {
-//Not meant to be called directly.
-  constructor(){    
-    //Base properties that exist for all Items.
-    this.id=          null;
-    this.name=        null;
-    this.description= "";
-    this.type=        "Item";
-    this.type_string= "An Item.";
-    this.state=       "Default";
-  }  
+// class Item {
+// //Not meant to be called directly.
+//   constructor(){    
+//     //Base properties that exist for all Items.
+//     this.id=          null;
+//     this.name=        null;
+//     this.description= "";
+//     this.type=        "Item";
+//     this.type_string= "An Item.";
+//     this.state=       "Default";
+//   }  
 
-  process_tick(){
-    //do nothing unless overided by instance
-  }
+//   process_tick(){
+//     //do nothing unless overided by instance
+//   }
 
-  get_look_string(){    
-    return "This is a generic item in the game. If you see this, Ran screwed up."
-  }
+//   get_look_string(){    
+//     return "This is a generic item in the game. If you see this, Ran screwed up."
+//   }
 
-  add_entity(id){
-    return false;//If not overriden by child, adding fails.
-  }
+//   add_entity(id){
+//     return false;//If not overriden by child, adding fails.
+//   }
 
-  remove_entity(id){
-    return false;//If not overriden by child, removing fails.
-  }
+//   remove_entity(id){
+//     return false;//If not overriden by child, removing fails.
+//   }
 
-  get_entities(){
-    return [];
-  }
+//   get_entities(){
+//     return [];
+//   }
 
-  get_data_obj(){//TODO: change to save_obj?
-    //Returns an object with all the properties of the instance.
-    //Note: if overriden, the overiding class needs to get
-    //all the props of the super-class, plus its own unique ones.
+//   get_data_obj(){//TODO: change to save_obj?
+//     //Returns an object with all the properties of the instance.
+//     //Note: if overriden, the overiding class needs to get
+//     //all the props of the super-class, plus its own unique ones.
 
-    //Note: id is not save since it is already saved as key to the object in the JSON file.
-    let obj = {
-      type:           this.type,
-      props: {
-        name:         this.name,
-        description:  this.description,
-        type_string:  this.type_string,
-        state:        this.state,
-      }      
-    }
-    return obj;
-  }
+//     //Note: id is not save since it is already saved as key to the object in the JSON file.
+//     let obj = {
+//       type:           this.type,
+//       props: {
+//         name:         this.name,
+//         description:  this.description,
+//         type_string:  this.type_string,
+//         state:        this.state,
+//       }      
+//     }
+//     return obj;
+//   }
 
-  override_props(props_obj){
-    //Override with props
+//   override_props(props_obj){
+//     //Override with props
     
-    if (props_obj!==null){
-      for (const [prop, value] of Object.entries(props_obj)){
+//     if (props_obj!==null){
+//       for (const [prop, value] of Object.entries(props_obj)){
 
-        if (prop==="inventory") continue;
+//         if (prop==="inventory") continue;
 
-        if (prop==="container_id"){
-          let old_container= World.world.get_instance(this.container_id);
-          old_container.remove_entity(this.id);
-          let new_container= World.world.get_instance(value);
-          new_container.add_entity(this.id);
-          this.container_id= value;
-        } else {
-          this[prop]= value;
-        }        
-      }
-    }
-  }
-}
+//         if (prop==="container_id"){
+//           let old_container= World.world.get_instance(this.container_id);
+//           old_container.remove_entity(this.id);
+//           let new_container= World.world.get_instance(value);
+//           new_container.add_entity(this.id);
+//           this.container_id= value;
+//         } else {
+//           this[prop]= value;
+//         }        
+//       }
+//     }
+//   }
+// }
 
 class Room extends Item {
   constructor(props=null, id=null){
@@ -525,202 +582,202 @@ class Screwdriver extends Entity {
   }    
 }
 
-class User extends AnimatedObject {
-  constructor(props, ws_client, id=null){
-    super(id);    
-    this.BASE_HEALTH= 5;
-    this.BASE_DAMAGE= 1;  
-    this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
+// class User extends AnimatedObject {
+//   constructor(props, ws_client, id=null){
+//     super(id);    
+//     this.BASE_HEALTH= 5;
+//     this.BASE_DAMAGE= 1;  
+//     this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
 
-    this.ws_client=     ws_client;
-    this.name=          "A Player";
-    this.type=          "User";
-    this.type_string=   "A User";
-    this.password=      null;
-    this.is_fighting_with= null; //never spawn a user into a battle.
-    this.description= "It's YOU, Bozo!";
-    this.health=       this.BASE_HEALTH;
-    this.damage=       this.BASE_DAMAGE;    
+//     this.ws_client=     ws_client;
+//     this.name=          "A Player";
+//     this.type=          "User";
+//     this.type_string=   "A User";
+//     this.password=      null;
+//     this.is_fighting_with= null; //never spawn a user into a battle.
+//     this.description= "It's YOU, Bozo!";
+//     this.health=       this.BASE_HEALTH;
+//     this.damage=       this.BASE_DAMAGE;    
 
-    this.inventory=     new Inventory.Inventory(this.id, 10, props.inventory);
+//     this.inventory=     new Inventory.Inventory(this.id, 10, props.inventory);
 
-    this.override_props(props);
-  }
+//     this.override_props(props);
+//   }
 
-  process_tick(){
+//   process_tick(){
     
-    this.counter +=1;
-    if (this.counter===this.HEALTH_DECLINE_RATE){
-      this.health -= 1;
-      this.counter = 0;
+//     this.counter +=1;
+//     if (this.counter===this.HEALTH_DECLINE_RATE){
+//       this.health -= 1;
+//       this.counter = 0;
 
-      Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
+//       Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
       
-    }
+//     }
 
-    if (this.health===0){
-      //Player is dead.
-      Utils.msg_sender.send_chat_msg_to_user(this.id,'world',`You are DEAD!`);
+//     if (this.health===0){
+//       //Player is dead.
+//       Utils.msg_sender.send_chat_msg_to_user(this.id,'world',`You are DEAD!`);
       
-      //Create a corpse
-      let instance_props= {
-        description:  this.description,
-        container_id: this.container_id
-      };
-      new Corpse(instance_props);
-      this.reset(World.FIRST_ROOM_ID)
-    }
-  }
+//       //Create a corpse
+//       let instance_props= {
+//         description:  this.description,
+//         container_id: this.container_id
+//       };
+//       new Corpse(instance_props);
+//       this.reset(World.FIRST_ROOM_ID)
+//     }
+//   }
 
-  set_password(pw){
-    this.password = pw;
-  }
+//   set_password(pw){
+//     this.password = pw;
+//   }
 
-  get_data_obj(){
-    let obj = {
-      type:           this.type,
-      props: {
-        //Item default props
-        name:         this.name,
-        description:  this.description,
-        state:        this.state,
-        //Entity specific props
-        container_id:   this.container_id,
-        is_gettable:    this.is_gettable,
-        wear_hold_slot: this.wear_hold_slot,
-        inventory:      this.inventory.get_data_object(),
-        is_food:        this.is_food,
-        restore_health_value: this.restore_health_value,
-        is_decaying: this.is_decaying,
-        decay_rate: this.decay_rate,
-        wear: this.wear,
-        decay_tick_counter: this.decay_tick_counter,
-        //AnimatedObject specific props
-        health:           this.health,
-        damage:           this.damage,
-        counter:          this.counter,
-        //User specific props
-        password:    this.password
-      }      
-    }
-    return obj;
-  }
+//   get_data_obj(){
+//     let obj = {
+//       type:           this.type,
+//       props: {
+//         //Item default props
+//         name:         this.name,
+//         description:  this.description,
+//         state:        this.state,
+//         //Entity specific props
+//         container_id:   this.container_id,
+//         is_gettable:    this.is_gettable,
+//         wear_hold_slot: this.wear_hold_slot,
+//         inventory:      this.inventory.get_data_object(),
+//         is_food:        this.is_food,
+//         restore_health_value: this.restore_health_value,
+//         is_decaying: this.is_decaying,
+//         decay_rate: this.decay_rate,
+//         wear: this.wear,
+//         decay_tick_counter: this.decay_tick_counter,
+//         //AnimatedObject specific props
+//         health:           this.health,
+//         damage:           this.damage,
+//         counter:          this.counter,
+//         //User specific props
+//         password:    this.password
+//       }      
+//     }
+//     return obj;
+//   }
     
-  reset(spawn_container_id){
-    this.health=            this.BASE_HEALTH;
-    this.damage=            this.BASE_DAMAGE;
-    this.state=             "Default";
-    this.is_fighting_with=  null;
-    this.inventory=         new Inventory.Inventory(this.id, 10);
+//   reset(spawn_container_id){
+//     this.health=            this.BASE_HEALTH;
+//     this.damage=            this.BASE_DAMAGE;
+//     this.state=             "Default";
+//     this.is_fighting_with=  null;
+//     this.inventory=         new Inventory.Inventory(this.id, 10);
 
-    let current_container = World.world.get_instance(this.container_id);
-    current_container.remove_entity(this.id);
+//     let current_container = World.world.get_instance(this.container_id);
+//     current_container.remove_entity(this.id);
 
-    let spawn_container = World.world.get_instance(spawn_container_id);
-    spawn_container.add_entity(this.id);
-    Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
-      `You respawned in the starting room.`);    
-  }
+//     let spawn_container = World.world.get_instance(spawn_container_id);
+//     spawn_container.add_entity(this.id);
+//     Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+//       `You respawned in the starting room.`);    
+//   }
 
-  get_look_string(){    
-    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
-    msg += `${this.type_string}.  ${this.description};`
-    return msg;    
-  }
+//   get_look_string(){    
+//     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
+//     msg += `${this.type_string}.  ${this.description};`
+//     return msg;    
+//   }
 
-  get_inv_content(){
-    return this.inventory.generate_inv_message(); 
-  }
+//   get_inv_content(){
+//     return this.inventory.generate_inv_message(); 
+//   }
 
-  search_target_in_slots(target){
-    let items_in_slots_arr = this.inventory.get_all_slot_items();
+//   search_target_in_slots(target){
+//     let items_in_slots_arr = this.inventory.get_all_slot_items();
 
-    for (const entity_id of items_in_slots_arr){
-      let entity = World.world.get_instance(entity_id);
-      if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-           (entity.type.toLowerCase()===target) || 
-           (target===entity_id)){
-        return entity_id;        
-      }    
-    }
-    return null;
-  }
+//     for (const entity_id of items_in_slots_arr){
+//       let entity = World.world.get_instance(entity_id);
+//       if ((entity.name!==null && entity.name.toLowerCase()===target) ||
+//            (entity.type.toLowerCase()===target) || 
+//            (target===entity_id)){
+//         return entity_id;        
+//       }    
+//     }
+//     return null;
+//   }
 
-  search_target_in_wear_hold(target){
-    let items_in_wear_hold_arr = this.inventory.get_all_wear_hold_items();
+//   search_target_in_wear_hold(target){
+//     let items_in_wear_hold_arr = this.inventory.get_all_wear_hold_items();
 
-    for (const entity_id of items_in_wear_hold_arr){
-      let entity = World.world.get_instance(entity_id);
-      if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-          (entity.type.toLowerCase()===target) || 
-          (target===entity_id)){
-        return entity_id;        
-      }    
-    }
-    return null;
-  }
+//     for (const entity_id of items_in_wear_hold_arr){
+//       let entity = World.world.get_instance(entity_id);
+//       if ((entity.name!==null && entity.name.toLowerCase()===target) ||
+//           (entity.type.toLowerCase()===target) || 
+//           (target===entity_id)){
+//         return entity_id;        
+//       }    
+//     }
+//     return null;
+//   }
 
-  drop_item_from_slots(entity_id){
-    //We assume the entity is in the slots.
-    //we drop it to the floor.
-    let success = false;
-    this.inventory.remove_from_slots(entity_id);
-    let container = World.world.get_instance(this.container_id);
-    container.add_entity(entity_id);
+//   drop_item_from_slots(entity_id){
+//     //We assume the entity is in the slots.
+//     //we drop it to the floor.
+//     let success = false;
+//     this.inventory.remove_from_slots(entity_id);
+//     let container = World.world.get_instance(this.container_id);
+//     container.add_entity(entity_id);
 
-    let entity = World.world.get_instance(entity_id);
-    entity.set_container_id(container.id);
+//     let entity = World.world.get_instance(entity_id);
+//     entity.set_container_id(container.id);
 
-    return success;
-  }
+//     return success;
+//   }
 
-  add_to_slots(entity_id){
-    let success = this.inventory.add_to_slots(entity_id);
+//   add_to_slots(entity_id){
+//     let success = this.inventory.add_to_slots(entity_id);
 
-    if (success){
-      let entity = World.world.get_instance(entity_id);
-      entity.set_container_id(this.id);
-    }
+//     if (success){
+//       let entity = World.world.get_instance(entity_id);
+//       entity.set_container_id(this.id);
+//     }
 
-    return success;
-  }
+//     return success;
+//   }
 
-  wear_or_hold_entity(entity_id){
-    //We assume the entity is in a slot.
-    //Remove it from slots, wear or hold it if free.
-    let success = this.inventory.move_entity_from_slots_to_wear_hold(entity_id);
-    return success;
-  }
+//   wear_or_hold_entity(entity_id){
+//     //We assume the entity is in a slot.
+//     //Remove it from slots, wear or hold it if free.
+//     let success = this.inventory.move_entity_from_slots_to_wear_hold(entity_id);
+//     return success;
+//   }
 
-  remove_from_wear_hold(entity_id){
-    //returns true/false
-    return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
-  }
+//   remove_from_wear_hold(entity_id){
+//     //returns true/false
+//     return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
+//   }
 
-  consume(entity_id){
-    //We assume the entity is on the user somewhere.
-    //restore health and remove the entity from the user and world.    
-    this.inventory.remove_entity(entity_id);
+//   consume(entity_id){
+//     //We assume the entity is on the user somewhere.
+//     //restore health and remove the entity from the user and world.    
+//     this.inventory.remove_entity(entity_id);
 
-    let entity = World.world.get_instance(entity_id);
+//     let entity = World.world.get_instance(entity_id);
     
-    this.health= this.health + entity.restore_health_value;
-    if (this.health>this.BASE_HEALTH){
-      this.health= this.BASE_HEALTH;
-    }
+//     this.health= this.health + entity.restore_health_value;
+//     if (this.health>this.BASE_HEALTH){
+//       this.health= this.BASE_HEALTH;
+//     }
 
-    this.counter= 0;
+//     this.counter= 0;
 
-    Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
+//     Utils.msg_sender.send_status_msg_to_user(this.id, this.health);
 
-    World.world.remove_from_world(entity_id);
-  }
+//     World.world.remove_from_world(entity_id);
+//   }
 
-  remove_entity(entity_id){
-    //We assume the entity is on the user somewhere.
-    this.inventory.remove_entity(entity_id);
-  }
-}
+//   remove_entity(entity_id){
+//     //We assume the entity is on the user somewhere.
+//     this.inventory.remove_entity(entity_id);
+//   }
+// }
 
 class Candy extends Entity {
   constructor(props, id=null){
@@ -738,35 +795,35 @@ class Candy extends Entity {
   }
 }
 
-function create_entity(type, props, id=null){
-  //return entity_id or null if the type is unrecoginzed.
-  let entity=null;
-  type=         type.toLowerCase();
+// function create_entity(type, props, id=null){
+//   //return entity_id or null if the type is unrecoginzed.
+//   let entity=null;
+//   type=         type.toLowerCase();
   
-  switch(type){
-    case "room":
-      entity= new Room(props, id);
-      break;
+//   switch(type){
+//     case "room":
+//       entity= new Room(props, id);
+//       break;
 
-    case "dog":
-      entity= new Dog(props, id);                         
-      break;
+//     case "dog":
+//       entity= new Dog(props, id);                         
+//       break;
 
-    case "screwdriver":
-      entity= new Screwdriver(props, id);                          
-      break;
+//     case "screwdriver":
+//       entity= new Screwdriver(props, id);                          
+//       break;
 
-    case "candy":
-      entity= new Candy(props, id);                          
-      break;
+//     case "candy":
+//       entity= new Candy(props, id);                          
+//       break;
 
-    case "corpse":
-      entity= new Candy(props, id);
-      break;
-  }
+//     case "corpse":
+//       entity= new Candy(props, id);
+//       break;
+//   }
 
-  return entity.id;
-}
+//   return entity.id;
+// }
 
 exports.Item=             Item;
 exports.AnimatedObject=   AnimatedObject;
