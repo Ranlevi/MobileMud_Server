@@ -9,6 +9,8 @@ const World=                require('./game/world');
 
 const LOAD_WORLD_FROM_SAVE=   true;
 const LOAD_GENERIC_WORLD=     true;
+const ENABLE_USER_SAVE=       false;
+const ENABLE_WORLD_SAVE=      false;
 const USER_SAVE_INTERVAL=     10;
 const WORLD_SAVE_INTERVAL=    10;
 const GEN_WORLD_NUM_OF_ROOMS= 2;
@@ -46,6 +48,7 @@ class Game_Controller {
   }
 
   load_users_db(){
+
     //Load users_db
     if (fs.existsSync('./users_db.json')){
       let data = JSON.parse(fs.readFileSync('./users_db.json'));
@@ -56,6 +59,7 @@ class Game_Controller {
   }
   
   load_world(){
+
     let path;
     if (LOAD_GENERIC_WORLD){
       path = `./generic_world.json`
@@ -67,9 +71,13 @@ class Game_Controller {
       let current_id;
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
-      for (const [id, props] of Object.entries(parsed_info)){
+      for (const [id, data] of Object.entries(parsed_info)){
         current_id=     id;
-        let entity_id=  Classes.Item(props, id);
+
+        if (data.type==="Room"){
+          new Classes.Room(data.props, id);
+        }
+         
         Utils.id_generator.set_new_current_id(current_id);        
       } 
       
@@ -79,6 +87,8 @@ class Game_Controller {
   }
 
   save_users_to_file(){
+    
+    if (!ENABLE_USER_SAVE) return;
         
     let data = {};
     World.world.world.forEach((item)=>{
@@ -96,12 +106,15 @@ class Game_Controller {
 
   save_world_to_file(){
     //Save all non-users, and items not held by users.
+
+    if (!ENABLE_WORLD_SAVE) return;
+
     let data = {};
     World.world.world.forEach((item)=>{
 
-      if (item instanceof Classes.Item){
-        data[item.id] = item.props; 
-      }
+      // if (item instanceof Classes.Item){
+      //   data[item.id] = item.props; 
+      // }
     });
 
     fs.writeFile(
@@ -139,65 +152,69 @@ class Game_Controller {
   }
 
   run_simulation_tick(){
-
-    World.world.world.forEach(
-      (item) => {
-
-        if (item instanceof Classes.AnimatedObject && item.is_fighting_with!==null){
-          let opponent = World.world.get_instance(item.is_fighting_with);
-
-          //Check if opponent disconnected or logged out
-          if (opponent===undefined){
-            item.is_fighting_with=  null;
-            item.health=            item.BASE_HEALTH;
-            
-          } else {
-          
-            //Opponent exists
-            let damage_dealt = item.strike_opponent(opponent.id); 
-
-            if (item instanceof Classes.User){
-              Utils.msg_sender.send_chat_msg_to_user(item.id,'world',
-              `You strike ${opponent.name}, dealing ${damage_dealt} HP.`);  
-            } 
-
-            if (opponent instanceof Classes.User){
-              Utils.msg_sender.send_chat_msg_to_user(opponent.id,'world',
-              `${item.name} strikes you, dealing ${damage_dealt} HP.`);
-            }
-            
-            if (opponent.health===0){
-              //Opponent has died
-              item.stop_battle();
-
-              Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
-                `${opponent.name} is DEAD!`);
-              
-              //Create a corpse
-              let instance_props= {
-                description:  opponent.description,
-                container_id: opponent.container_id
-              };
-              new Classes.Corpse(instance_props);
-              
-              if (opponent instanceof Classes.User){
-                opponent.reset(World.FIRST_ROOM_ID);
-
-              } else {
-                //Remove entity from the world
-                opponent.remove_from_world();
-              }          
-            }
-          }
-        } else {
-          item.process_tick();
-          if (item instanceof Classes.Entity){
-            item.process_decay();
-          }
-        }
-      }      
-    );
+    console.log('tick');
   }
+
+  // run_simulation_tick(){
+
+  //   World.world.world.forEach(
+  //     (item) => {
+
+  //       if (item instanceof Classes.AnimatedObject && item.is_fighting_with!==null){
+  //         let opponent = World.world.get_instance(item.is_fighting_with);
+
+  //         //Check if opponent disconnected or logged out
+  //         if (opponent===undefined){
+  //           item.is_fighting_with=  null;
+  //           item.health=            item.BASE_HEALTH;
+            
+  //         } else {
+          
+  //           //Opponent exists
+  //           let damage_dealt = item.strike_opponent(opponent.id); 
+
+  //           if (item instanceof Classes.User){
+  //             Utils.msg_sender.send_chat_msg_to_user(item.id,'world',
+  //             `You strike ${opponent.name}, dealing ${damage_dealt} HP.`);  
+  //           } 
+
+  //           if (opponent instanceof Classes.User){
+  //             Utils.msg_sender.send_chat_msg_to_user(opponent.id,'world',
+  //             `${item.name} strikes you, dealing ${damage_dealt} HP.`);
+  //           }
+            
+  //           if (opponent.health===0){
+  //             //Opponent has died
+  //             item.stop_battle();
+
+  //             Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
+  //               `${opponent.name} is DEAD!`);
+              
+  //             //Create a corpse
+  //             let instance_props= {
+  //               description:  opponent.description,
+  //               container_id: opponent.container_id
+  //             };
+  //             new Classes.Corpse(instance_props);
+              
+  //             if (opponent instanceof Classes.User){
+  //               opponent.reset(World.FIRST_ROOM_ID);
+
+  //             } else {
+  //               //Remove entity from the world
+  //               opponent.remove_from_world();
+  //             }          
+  //           }
+  //         }
+  //       } else {
+  //         item.process_tick();
+  //         if (item instanceof Classes.Entity){
+  //           item.process_decay();
+  //         }
+  //       }
+  //     }      
+  //   );
+  // }
   
   // new_client_connected(ws_client, username){
     
@@ -230,96 +247,61 @@ class Game_Controller {
       target = input_arr.slice(1).join(' ');
     } 
 
+    let user = World.world.get_instance(user_id);
+
     switch(cmd){
       case 'look':
       case 'l':
-        this.look_cmd(user_id,target);
+        user.look_cmd(target);
         break;
 
-      case 'kill':
-      case 'k':
-        this.kill_cmd(user_id, target);
-        break;
-
-      case 'get':
-      case 'g':
-        this.get_cmd(user_id, target);
-        break;
-
-      case 'drop':
-      case 'd':
-        this.drop_cmd(user_id, target);
-        break;
-
-      case 'wear':
-      case 'we':
-      case 'hold':
-      case 'h':
-        this.wear_hold_cmd(user_id, target);
-        break;
-
-      case 'remove':
-      case 'r':
-        this.remove_cmd(user_id, target);
-        break;
-
-      case 'inventory':
-      case 'inv':
-      case 'i':
-        this.inv_cmd(user_id);
-        break;      
-
-      case 'say':
-      case 'sa':
-        this.say_cmd(user_id, target);
-        break;
-
-      case 'create':
-      case 'c':
-        this.create_cmd(user_id, target);
-        break;
-
-      case 'eat':
-      case 'ea':
-      case 'drink':
-      case 'dr':
-        this.eat_drink_cmd(user_id, target);
-        break;
-  
       case 'north':
       case 'n':
-        this.move_cmd('north', user_id);
-        break;
-  
-      case 'south':
-      case 's':
-        this.move_cmd('south', user_id);
-        break;
-  
-      case 'west':
-      case 'w':
-        this.move_cmd('west', user_id);
-        break;
-  
-      case 'east':
-      case 'e':
-        this.move_cmd('east', user_id);
-        break;
-  
-      case 'up':
-      case 'u':
-        this.move_cmd('up', user_id);
-        break;
-  
-      case 'down':
-      case 'd':
-        this.move_cmd('down', user_id);
+        user.move_to_direction('north');
         break;
 
+      case 'south':
+      case 's':
+        user.move_to_direction('south');
+        break;
+      
       default:
         Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  
   }
+
+  // look_cmd(user_id, target){
+  //   let user=       World.world.get_instance(user_id);
+
+  //   if (target===null){
+  //     //Look at the room the user is in.
+  //     Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, user.get_look_string());        
+  //     return;
+  //   }
+
+  //   //Target is not null.
+  //   //Search order: wear_hold, slots, container.
+  //   let entity_id = user.search_target_in_wear_hold(target);
+
+  //   if (entity_id===null){
+  //     entity_id= user.search_target_in_slots(target);
+
+  //     if (entity_id===null){
+  //       entity_id = container.search_for_target(target);
+
+  //       if (entity_id===null){
+  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+  //           `There is no ${target} around.`);      
+  //         return;
+  //       }
+  //     }
+  //   }    
+
+  //   //Target found.
+  //   let entity = World.world.get_instance(entity_id);
+  //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
+  // }
+
 
   //TODO: refactor like get_cmd
   // kill_cmd(user_id, target){
@@ -359,38 +341,7 @@ class Game_Controller {
   //   }
   // }
     
-  // look_cmd(user_id, target){
-  //   let user=       World.world.get_instance(user_id);
-
-  //   if (target===null){
-  //     //Look at the room the user is in.
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, user.get_look_string());        
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   //Search order: wear_hold, slots, container.
-  //   let entity_id = user.search_target_in_wear_hold(target);
-
-  //   if (entity_id===null){
-  //     entity_id= user.search_target_in_slots(target);
-
-  //     if (entity_id===null){
-  //       entity_id = container.search_for_target(target);
-
-  //       if (entity_id===null){
-  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //           `There is no ${target} around.`);      
-  //         return;
-  //       }
-  //     }
-  //   }    
-
-  //   //Target found.
-  //   let entity = World.world.get_instance(entity_id);
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
-  // }
-
+ 
   // move_cmd(direction, user_id){    
 
   //   let user=         World.world.get_instance(user_id);
@@ -674,7 +625,6 @@ class Game_Controller {
 
     Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
 
-    this.process_user_input('look', user.id);    
     return user.id;
   }
 }

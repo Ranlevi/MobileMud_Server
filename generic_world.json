@@ -1,8 +1,22 @@
 {
   "0": {
     "type": "Room",
-    "type_string": "A Room",
-    "name": "Room 1",
-    "description": "This is the first room of the game."    
+    "props": {
+      "name": "The Starting Room",
+      "description": "This is the 1st room of the game.",
+      "exits": {
+        "north": "1"
+      }
+    }        
+  },
+  "1": {
+    "type": "Room",
+    "props": {
+      "name": "The Next Room",
+      "description": "This is the 2nd room of the game.",
+      "exits": {
+        "south": "0"
+      }
+    }
   }
 }

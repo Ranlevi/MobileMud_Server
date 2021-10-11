@@ -1,22 +1,140 @@
 const Utils=      require('./utils');
 const World=      require('./world');
-const Inventory=  require('./inventory');
 
-class Item {
-  constructor(id=null){
-    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-    this.props = {
-      "name": null,
-      "description": null,
-      "type": null,
-      "type_string": null,
-      "is_container": null,
-      "container_limit": null
+class Room {
+  constructor(props=null, id=null){
+      
+      this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+    
+      //Default props
+      this.props = {
+        "name": "Room",
+        "type": "Room",
+        "description": "A simple, 3m by 3m room.",
+        "entities": new Set(),
+        "exits": {
+          "north": null, //direction: id
+            "south": null,
+            "west":  null,
+            "east":  null,
+            "up":    null,
+            "down":  null
+        },
+        "lighting": "white", //CSS colors
+      }
+
+      // Add To world.
+      World.world.add_to_world(this);
+
+      if (props!==null) this.update_props(props);    
+  }
+  
+  // add_exit(direction, next_room_id){
+  //   this.exits[direction] = next_room_id;
+  // }
+
+  update_props(props){
+    for (const [key, value] of Object.entries(props)){
+      this.props[key]= value;            
     }
   }
+
+  
+  add_entity(entity_id){
+    this.props["entities"].add(entity_id);
+  }
+  
+  remove_entity(entity_id){
+    this.props["entities"].delete(entity_id);
+  }
+  
+  // get_entities(){
+  //   //this.entities is a Set(), so we convert it to an array.
+  //   let arr = [];
+  //   for (const entity_id of this.entities){
+  //   arr.push(entity_id);
+  //   }
+  //   return arr;
+  // }  
+  
+  // get_users(){
+  //   let arr = [];
+  //   for (let entity_id of this.entities){
+  //     let entity = World.world.get_instance(entity_id);
+  //     if (entity instanceof User){
+  //       arr.push(entity_id);
+  //     }
+  //   }
+  //   return arr;
+  // }
+  
+  // set_lighting(color){
+  //   this.lighting = color;
+  // }
+
+  get_look_string(){
+        
+    let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}, `;
+    msg += `lighting: ${this.props["lighting"]})**  ${this.props["description"]}  `;
+    msg += `Exits:  `;
+
+    for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
+      if (next_room_id!==null){
+          msg += `[${direction}]({type:"Command"}) `
+      }
+    }
+
+    msg += '  '; //new paragraph
+
+    if (this.props["entities"].size===1){    
+      //Only the player is in the room.
+      msg += 'The room is empty.';
+    } else {
+      msg += 'In the room:  ';
+
+      for (const entity_id of this.props["entities"]){
+        let entity = World.world.get_instance(entity_id);
+        msg += `${entity.get_short_look_string()}  `;
+      }
+    }
+
+    return msg;
+  }
+
+  // get_data_obj(){  
+    
+  //   let obj = {
+  //     type:           this.type,
+  //     props: {
+  //       //Item props
+  //       name:         this.name,
+  //       description:  this.description,
+  //       state:        this.state,
+  //       //Room Props
+  //       lighting:     this.lighting,
+  //       exits:        this.exits
+  //       //Note: entities are not saved in the room, but by themselves.
+  //     }      
+  //   }
+  //   return obj;
+  // } 
+
+  // search_for_target(target){
+  //   let entities_ids_arr = this.get_entities();    
+
+  // for (const entity_id of entities_ids_arr){
+  //   let entity = World.world.get_instance(entity_id);
+    
+  //   if ((entity.name!==null && entity.name.toLowerCase()===target) ||
+  //       (entity.type.toLowerCase()==target) ||
+  //       (target===entity.id)){
+  //         return entity_id;    
+  //   }          
+  // }
+
+  // return null; //no target found
+  // }
 }
-
-
 
 class User {
   constructor(props, ws_client, id=null){
@@ -29,14 +147,19 @@ class User {
 
     //Default values for a new player.
     this.props = {
-      "name": "",
+      "name": "A Player",
       "description": "It's you, bozo!",
       "password": null,
-      "container_id": null,
+      "container_id": "0",
       "health": this.BASE_HEALTH,
     }
 
+    // Add To world.
+    World.world.add_to_world(this);
+
+
     this.update_props(props);
+
   }
 
   update_props(props){
@@ -54,7 +177,68 @@ class User {
   }
 
   move_to_room(new_room_id){
-    console.log("User.move_to_room: Unimplemented");
+    let current_room = World.world.get_instance(this.props["container_id"]);
+    current_room.remove_entity(this.id);
+    let new_room = World.world.get_instance(new_room_id);
+    new_room.add_entity(this.id);
+
+    this.look_cmd();
+  }
+
+  move_to_direction(direction){
+    let current_room = World.world.get_instance(this.props["container_id"]);
+    let next_room_id = current_room.props["exits"][direction];
+  
+    if (next_room_id===null){
+      //Exit does not exist
+      Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+        `There's no exit to ${direction}.`);      
+      return;
+    }
+  
+    //Exit exists.
+    this.move_to_room(next_room_id);
+    Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+    `You travel ${direction}.`);
+  }
+
+  look_cmd(target=null){
+    //target can be an idea, a type or a name.
+
+    if (target===null){
+      //Look at the room the user is in.
+      let room = World.world.get_instance(this.props["container_id"]);  
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, room.get_look_string());        
+      return;
+    }
+
+    // look_cmd(user_id, target){
+  //   let user=       World.world.get_instance(user_id);
+
+
+  //   //Target is not null.
+  //   //Search order: wear_hold, slots, container.
+  //   let entity_id = user.search_target_in_wear_hold(target);
+
+  //   if (entity_id===null){
+  //     entity_id= user.search_target_in_slots(target);
+
+  //     if (entity_id===null){
+  //       entity_id = container.search_for_target(target);
+
+  //       if (entity_id===null){
+  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
+  //           `There is no ${target} around.`);      
+  //         return;
+  //       }
+  //     }
+  //   }    
+
+  //   //Target found.
+  //   let entity = World.world.get_instance(entity_id);
+  //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
+  // }
+
   }
 }
 
@@ -138,449 +322,314 @@ class User {
 //   }
 // }
 
-class Room extends Item {
-  constructor(props=null, id=null){
-      super();
 
-      //Default props
-      this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-      this.name= "Room";
-      this.description="A simple, 3m by 3m room, with white walls."
-      this.type=        "Room"
-      this.type_string= "A Room"; 
-      this.entities=    new Set();//Note: saved entities are added when created.
-      this.exits= {
-        "north": null, //direction: id
-        "south": null,
-        "west":  null,
-        "east":  null,
-        "up":    null,
-        "down":  null
-        },
-      this.lighting=  "white"; //CSS colors
 
-      //Overide props if exist
-      this.override_props(props);      
+// class Entity extends Item {
+//   //Not meant to be called directly.
+//   constructor(id=null){ //note: no props, since this is done on the subclass level
+//       super();
+//       this.BASE_WEAR=  2;
+//       this.DECAY_RATE= 10; //1 wear point per 10 ticks.
 
-      //Add To world.
-      World.world.add_to_world(this);
-  }
-  
-  add_exit(direction, next_room_id){
-    this.exits[direction] = next_room_id;
-  }
-  
-  add_entity(entity_id){
-    this.entities.add(entity_id);
-  }
-  
-  remove_entity(entity_id){
-    this.entities.delete(entity_id);
-  }
-  
-  get_entities(){
-    //this.entities is a Set(), so we convert it to an array.
-    let arr = [];
-    for (const entity_id of this.entities){
-    arr.push(entity_id);
-    }
-    return arr;
-  }  
-  
-  get_users(){
-    let arr = [];
-    for (let entity_id of this.entities){
-      let entity = World.world.get_instance(entity_id);
-      if (entity instanceof User){
-        arr.push(entity_id);
-      }
-    }
-    return arr;
-  }
-  
-  set_lighting(color){
-    this.lighting = color;
-  }
-
-  get_look_string(){
-        
-    let msg = `**[${this.name}]({type:"Room", id:${this.id}}, `;
-    msg += `lighting: ${this.lighting})**  ${this.description}  `;
-    msg += `Exits:  `;
-
-    for (const [direction, next_room_id] of Object.entries(this.exits)){
-      if (next_room_id!==null){
-          msg += `[${direction}]({type:"Command"}) `
-      }
-    }
-
-    msg += '  '; //new paragraph
-
-    // let entities_arr = room.get_entities();
-    if (this.entities.size===1){    
-      //Only the player is in the room.
-      msg += 'The room is empty.';
-    } else {
-      msg += 'In the room:  ';
-
-      for (const entity_id of this.entities){        
-
-        let entity = World.world.get_instance(entity_id);
-
-        if (entity.name===null){
-          msg += `[${entity.type_string}]({type:${entity.type_string}, `;
-          msg += `id:${entity.id}}), ${entity.type_string}.  `;
-        } else {
-          msg += `[${entity.name}]({type:${entity.type_string}, `;
-          msg += `id:${entity.id}}), ${entity.type_string}.  `;       
-        }
-      }
-    }
-
-    return msg;
-  }
-
-  get_data_obj(){  
-    
-    let obj = {
-      type:           this.type,
-      props: {
-        //Item props
-        name:         this.name,
-        description:  this.description,
-        state:        this.state,
-        //Room Props
-        lighting:     this.lighting,
-        exits:        this.exits
-        //Note: entities are not saved in the room, but by themselves.
-      }      
-    }
-    return obj;
-  } 
-
-  search_for_target(target){
-    let entities_ids_arr = this.get_entities();    
-
-  for (const entity_id of entities_ids_arr){
-    let entity = World.world.get_instance(entity_id);
-    
-    if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-        (entity.type.toLowerCase()==target) ||
-        (target===entity.id)){
-          return entity_id;    
-    }          
-  }
-
-  return null; //no target found
-  }
-}
-
-class Entity extends Item {
-  //Not meant to be called directly.
-  constructor(id=null){ //note: no props, since this is done on the subclass level
-      super();
-      this.BASE_WEAR=  2;
-      this.DECAY_RATE= 10; //1 wear point per 10 ticks.
-
-      //Default props
-      this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-      this.container_id =  "0";
-      this.inventory=       null;
-      this.is_gettable=     false;
-      this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
-      this.is_food=         false;
-      this.restore_health_value= 0;
-      this.is_decaying=     false;
-      this.decay_rate=      this.DECAY_RATE;
-      this.wear=            this.BASE_WEAR;
-      this.decay_tick_counter= 0;
+//       //Default props
+//       this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+//       this.container_id =  "0";
+//       this.inventory=       null;
+//       this.is_gettable=     false;
+//       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
+//       this.is_food=         false;
+//       this.restore_health_value= 0;
+//       this.is_decaying=     false;
+//       this.decay_rate=      this.DECAY_RATE;
+//       this.wear=            this.BASE_WEAR;
+//       this.decay_tick_counter= 0;
       
-      //Add to World
-      let container= World.world.get_instance(this.container_id);
-      container.add_entity(this.id);
-      World.world.add_to_world(this);
-  }
+//       //Add to World
+//       let container= World.world.get_instance(this.container_id);
+//       container.add_entity(this.id);
+//       World.world.add_to_world(this);
+//   }
   
-  enable_decay(){    
-    this.is_decaying= true;
-  }
+//   enable_decay(){    
+//     this.is_decaying= true;
+//   }
 
-  disable_decay(){
-    this.is_decaying= false;
-  }
+//   disable_decay(){
+//     this.is_decaying= false;
+//   }
 
-  process_decay(){
-    if (this.is_decaying){
+//   process_decay(){
+//     if (this.is_decaying){
 
-      this.decay_tick_counter +=1;
-      if (this.decay_tick_counter===this.decay_rate){
-        this.decay_tick_counter=0;
-        this.wear -= 1;
+//       this.decay_tick_counter +=1;
+//       if (this.decay_tick_counter===this.decay_rate){
+//         this.decay_tick_counter=0;
+//         this.wear -= 1;
   
-        if (this.wear===0){
-          //remove entity from the world and user.
-          let container = World.world.get_instance(this.container_id);
-          if (container instanceof User){
-            Utils.msg_sender.send_chat_msg_to_user(container.id, 'world',
-              `${this.type_string} has decayed and disintegrated.`);
-          }
-          this.remove_from_world();          
-        }
-      }
-    }    
-  }
+//         if (this.wear===0){
+//           //remove entity from the world and user.
+//           let container = World.world.get_instance(this.container_id);
+//           if (container instanceof User){
+//             Utils.msg_sender.send_chat_msg_to_user(container.id, 'world',
+//               `${this.type_string} has decayed and disintegrated.`);
+//           }
+//           this.remove_from_world();          
+//         }
+//       }
+//     }    
+//   }
 
-  remove_from_world(){
-    let container = World.world.get_instance(this.container_id);
-    container.remove_entity(this.id);
-    World.world.remove_from_world(this.id);
-  }
+//   remove_from_world(){
+//     let container = World.world.get_instance(this.container_id);
+//     container.remove_entity(this.id);
+//     World.world.remove_from_world(this.id);
+//   }
 
-  get_look_string(){
-    let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
-    msg += `${this.description}  `;
-    msg += `Wear level: ${this.wear}.`
+//   get_look_string(){
+//     let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
+//     msg += `${this.description}  `;
+//     msg += `Wear level: ${this.wear}.`
 
-    if (this.inventory!==null){
+//     if (this.inventory!==null){
 
-      msg += `It holds:  `;
+//       msg += `It holds:  `;
        
-      let items = this.inventory.get_all_slot_items();
+//       let items = this.inventory.get_all_slot_items();
 
-      if (items.length===0){
-        msg += `Nothing.`;            
-      } else {      
-        for (const id of items){
-          msg += `${this.type_string}  `;      
-        }
-      }
-    }
+//       if (items.length===0){
+//         msg += `Nothing.`;            
+//       } else {      
+//         for (const id of items){
+//           msg += `${this.type_string}  `;      
+//         }
+//       }
+//     }
 
-    return msg;
-  }
+//     return msg;
+//   }
 
-  set_container_id(id){
-    this.container_id= id;
-  }
+//   set_container_id(id){
+//     this.container_id= id;
+//   }
 
-  get_data_obj(){
+//   get_data_obj(){
 
-    let obj = {
-      type:           this.type,
-      props: {
-        //Item default props
-        name:         this.name,
-        description:  this.description,
-        state:        this.state,
-        //Entity specific props
-        container_id:   this.container_id,
-        is_gettable:    this.is_gettable,
-        wear_hold_slot: this.wear_hold_slot,
-        inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
-        is_food:        this.is_food,
-        restore_health_value: this.restore_health_value,
-        is_decaying: this.is_decaying,
-        decay_rate: this.decay_rate,
-        wear: this.wear,
-        decay_tick_counter: this.decay_tick_counter
-      }      
-    }
-    return obj;
-  }    
-}
+//     let obj = {
+//       type:           this.type,
+//       props: {
+//         //Item default props
+//         name:         this.name,
+//         description:  this.description,
+//         state:        this.state,
+//         //Entity specific props
+//         container_id:   this.container_id,
+//         is_gettable:    this.is_gettable,
+//         wear_hold_slot: this.wear_hold_slot,
+//         inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
+//         is_food:        this.is_food,
+//         restore_health_value: this.restore_health_value,
+//         is_decaying: this.is_decaying,
+//         decay_rate: this.decay_rate,
+//         wear: this.wear,
+//         decay_tick_counter: this.decay_tick_counter
+//       }      
+//     }
+//     return obj;
+//   }    
+// }
 
-class AnimatedObject extends Entity {
-  //Not meant to be called directly.
-  constructor(id){
-    super(id);
+// class AnimatedObject extends Entity {
+//   //Not meant to be called directly.
+//   constructor(id){
+//     super(id);
 
-    this.BASE_HEALTH=       10;
-    this.BASE_DAMAGE=       1;
-    this.BASE_COUNTER=      5;
+//     this.BASE_HEALTH=       10;
+//     this.BASE_DAMAGE=       1;
+//     this.BASE_COUNTER=      5;
 
-    //Default values
-    this.health=            this.BASE_HEALTH;
-    this.damage=            this.BASE_DAMAGE;          
-    this.is_fighting_with=  null;//Never spawn into a battle.
-    this.counter=           this.BASE_COUNTER;    
-  }
+//     //Default values
+//     this.health=            this.BASE_HEALTH;
+//     this.damage=            this.BASE_DAMAGE;          
+//     this.is_fighting_with=  null;//Never spawn into a battle.
+//     this.counter=           this.BASE_COUNTER;    
+//   }
 
-  get_data_obj(){
-    let obj = {
-      type:           this.type,
-      props: {
-        //Item default props
-        name:         this.name,
-        description:  this.description,
-        state:        this.state,
-        //Entity specific props
-        container_id:   this.container_id,
-        is_gettable:    this.is_gettable,
-        wear_hold_slot: this.wear_hold_slot,
-        inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
-        is_food:        this.is_food,
-        restore_health_value: this.restore_health_value,
-        is_decaying: this.is_decaying,
-        decay_rate: this.decay_rate,
-        wear: this.wear,
-        decay_tick_counter: this.decay_tick_counter,
-        //AnimatedObject specific props
-        health:           this.health,
-        damage:           this.damage,
-        counter:          this.counter
-      }      
-    }
-    return obj;
-  }
+//   get_data_obj(){
+//     let obj = {
+//       type:           this.type,
+//       props: {
+//         //Item default props
+//         name:         this.name,
+//         description:  this.description,
+//         state:        this.state,
+//         //Entity specific props
+//         container_id:   this.container_id,
+//         is_gettable:    this.is_gettable,
+//         wear_hold_slot: this.wear_hold_slot,
+//         inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
+//         is_food:        this.is_food,
+//         restore_health_value: this.restore_health_value,
+//         is_decaying: this.is_decaying,
+//         decay_rate: this.decay_rate,
+//         wear: this.wear,
+//         decay_tick_counter: this.decay_tick_counter,
+//         //AnimatedObject specific props
+//         health:           this.health,
+//         damage:           this.damage,
+//         counter:          this.counter
+//       }      
+//     }
+//     return obj;
+//   }
 
-  start_battle_with(id){
-    this.is_fighting_with = id;
-  }
+//   start_battle_with(id){
+//     this.is_fighting_with = id;
+//   }
 
-  stop_battle(){
-    this.is_fighting_with = null;
-  }
+//   stop_battle(){
+//     this.is_fighting_with = null;
+//   }
 
-  strike_opponent(opponent_id){
-    //basic striking. Can be overriden.
-    let opponent=     World.world.get_instance(opponent_id);
-    let damage_dealt= opponent.receive_damage(this.damage);
-    return damage_dealt;
-  }
+//   strike_opponent(opponent_id){
+//     //basic striking. Can be overriden.
+//     let opponent=     World.world.get_instance(opponent_id);
+//     let damage_dealt= opponent.receive_damage(this.damage);
+//     return damage_dealt;
+//   }
 
-  receive_damage(damage){
-    //Basic damage reception, can be overided.
-    this.health = this.health - damage;
-    if (this.health<0) this.health= 0;
-    return damage;
-  }
+//   receive_damage(damage){
+//     //Basic damage reception, can be overided.
+//     this.health = this.health - damage;
+//     if (this.health<0) this.health= 0;
+//     return damage;
+//   }
 
-  get_look_string(){
-    let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
-    msg += `${this.type_string}.  ${this.description}`
-    return msg;
-  }
-}
+//   get_look_string(){
+//     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
+//     msg += `${this.type_string}.  ${this.description}`
+//     return msg;
+//   }
+// }
 
-class Dog extends AnimatedObject {
-  constructor(props, id=null){
-    super(id);
+// class Dog extends AnimatedObject {
+//   constructor(props, id=null){
+//     super(id);
 
-    this.BASE_HEALTH= 10;    
-    this.type=        "Dog";
-    this.type_string= "A Dog";  
-    this.name=        "Archie";
-    this.description= "A cute but silly dog.";
+//     this.BASE_HEALTH= 10;    
+//     this.type=        "Dog";
+//     this.type_string= "A Dog";  
+//     this.name=        "Archie";
+//     this.description= "A cute but silly dog.";
 
-    this.override_props(props);//possible bug: should the save object keys be strings??
-  }
+//     this.override_props(props);//possible bug: should the save object keys be strings??
+//   }
 
-  process_tick(){
+//   process_tick(){
     
-    //Overide in inherited class.
-    switch(this.state){
+//     //Overide in inherited class.
+//     switch(this.state){
 
-      case("Default"):
-        //Action
-        this.counter -= 1;
+//       case("Default"):
+//         //Action
+//         this.counter -= 1;
 
-        //Transition
-        if (this.counter===0){
-        this.state = 'Barking';          
-        } 
-        break;
+//         //Transition
+//         if (this.counter===0){
+//         this.state = 'Barking';          
+//         } 
+//         break;
 
-      case('Barking'):
-        //Action
-        this.counter = 5;
-        Utils.msg_sender.send_chat_msg_to_room(this.id,'world','Archie Barks.');        
+//       case('Barking'):
+//         //Action
+//         this.counter = 5;
+//         Utils.msg_sender.send_chat_msg_to_room(this.id,'world','Archie Barks.');        
 
-        //Transition
-        this.state = 'Default';
-        break;
-    }
-  } 
+//         //Transition
+//         this.state = 'Default';
+//         break;
+//     }
+//   } 
   
-}
+// }
 
-class Corpse extends Entity {
-  constructor(props, id=null){
-    super(id);
+// class Corpse extends Entity {
+//   constructor(props, id=null){
+//     super(id);
     
-    this.description=         "It's dead, Jim.";
-    this.type=                "Corpse"
-    this.type_string=         "A Corpse";
-    this.decomposition_timer= 60;
-    this.inventory=           new Inventory.Inventory(this.id, 17, props, false);    
-  }
+//     this.description=         "It's dead, Jim.";
+//     this.type=                "Corpse"
+//     this.type_string=         "A Corpse";
+//     this.decomposition_timer= 60;
+//     this.inventory=           new Inventory.Inventory(this.id, 17, props, false);    
+//   }
 
-  process_tick(){
-    this.decomposition_timer -= 1;
+//   process_tick(){
+//     this.decomposition_timer -= 1;
 
-    if (this.decomposition_timer===0){
+//     if (this.decomposition_timer===0){
       
-      //Sending a msg before the actuall removal, since we
-      //cant do anything after the removal.
-      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-        'The corpse has decomposed and disappered.');    
+//       //Sending a msg before the actuall removal, since we
+//       //cant do anything after the removal.
+//       Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
+//         'The corpse has decomposed and disappered.');    
 
-      //Remove all the items in the inventory from the world.
-      let ids_arr = this.inventory.get_all_entities_ids();
-      for (const id of ids_arr){
-        World.world.remove_from_world(id);
-      }
+//       //Remove all the items in the inventory from the world.
+//       let ids_arr = this.inventory.get_all_entities_ids();
+//       for (const id of ids_arr){
+//         World.world.remove_from_world(id);
+//       }
 
-      //Remove the corpse from its container and the world.
-      let container = World.world.get_instance(this.container_id);
-      container.remove_entity(this.id);
-      World.world.remove_from_world(this.id);
-    }
-  }
+//       //Remove the corpse from its container and the world.
+//       let container = World.world.get_instance(this.container_id);
+//       container.remove_entity(this.id);
+//       World.world.remove_from_world(this.id);
+//     }
+//   }
 
-  set_decomposition_timer(num_of_ticks){
-    this.decomposition_timer = num_of_ticks;
-  }
+//   set_decomposition_timer(num_of_ticks){
+//     this.decomposition_timer = num_of_ticks;
+//   }
 
-  get_data_obj(){
-    let obj = {
-      type:           this.type,
-      props: {
-        //Item default props
-        name:         this.name,
-        description:  this.description,
-        state:        this.state,
-        //Entity specific props
-        container_id:   this.container_id,
-        is_gettable:    this.is_gettable,
-        wear_hold_slot: this.wear_hold_slot,
-        inventory:      this.inventory.get_data_object(),
-        is_food:        this.is_food,
-        restore_health_value: this.restore_health_value,
-        is_decaying: this.is_decaying,
-        decay_rate: this.decay_rate,
-        wear: this.wear,
-        decay_tick_counter: this.decay_tick_counter,
-        //Corpse specific props
-        decomposition_timer: this.decomposition_timer
-      }      
-    }
-  }
+//   get_data_obj(){
+//     let obj = {
+//       type:           this.type,
+//       props: {
+//         //Item default props
+//         name:         this.name,
+//         description:  this.description,
+//         state:        this.state,
+//         //Entity specific props
+//         container_id:   this.container_id,
+//         is_gettable:    this.is_gettable,
+//         wear_hold_slot: this.wear_hold_slot,
+//         inventory:      this.inventory.get_data_object(),
+//         is_food:        this.is_food,
+//         restore_health_value: this.restore_health_value,
+//         is_decaying: this.is_decaying,
+//         decay_rate: this.decay_rate,
+//         wear: this.wear,
+//         decay_tick_counter: this.decay_tick_counter,
+//         //Corpse specific props
+//         decomposition_timer: this.decomposition_timer
+//       }      
+//     }
+//   }
  
-}
+// }
 
-class Screwdriver extends Entity {
-  constructor(props, id=null){
-    super(id);
+// class Screwdriver extends Entity {
+//   constructor(props, id=null){
+//     super(id);
 
-    this.description =   "It's a philips screwdriver."
-    this.type=          "Screwdriver"
-    this.type_string=   "A Screwdriver";
-    this.is_gettable=   true;
-    this.wear_hold_slot="Hands";    
+//     this.description =   "It's a philips screwdriver."
+//     this.type=          "Screwdriver"
+//     this.type_string=   "A Screwdriver";
+//     this.is_gettable=   true;
+//     this.wear_hold_slot="Hands";    
 
-    this.override_props(props);
-  }    
-}
+//     this.override_props(props);
+//   }    
+// }
 
 // class User extends AnimatedObject {
 //   constructor(props, ws_client, id=null){
@@ -779,21 +828,21 @@ class Screwdriver extends Entity {
 //   }
 // }
 
-class Candy extends Entity {
-  constructor(props, id=null){
-    super(props, id);
+// class Candy extends Entity {
+//   constructor(props, id=null){
+//     super(props, id);
 
-    this.description=           "A small piece of candy.";
-    this.type=                  "Candy";
-    this.type_string=           "A Candy";
-    this.is_gettable=           true;
-    this.wear_hold_slot=        "Hands";
-    this.is_food=               true;
-    this.restore_health_value=  10;
+//     this.description=           "A small piece of candy.";
+//     this.type=                  "Candy";
+//     this.type_string=           "A Candy";
+//     this.is_gettable=           true;
+//     this.wear_hold_slot=        "Hands";
+//     this.is_food=               true;
+//     this.restore_health_value=  10;
 
-    this.override_props(props);
-  }
-}
+//     this.override_props(props);
+//   }
+// }
 
 // function create_entity(type, props, id=null){
 //   //return entity_id or null if the type is unrecoginzed.
@@ -825,13 +874,13 @@ class Candy extends Entity {
 //   return entity.id;
 // }
 
-exports.Item=             Item;
-exports.AnimatedObject=   AnimatedObject;
-exports.Corpse=           Corpse;
-exports.Entity=           Entity;
+// exports.Item=             Item;
+// exports.AnimatedObject=   AnimatedObject;
+// exports.Corpse=           Corpse;
+// exports.Entity=           Entity;
 exports.User=             User;
-exports.Dog=              Dog;
+// exports.Dog=              Dog;
 exports.Room=             Room;
-exports.Screwdriver=      Screwdriver;
-exports.Candy=            Candy;
-exports.create_entity=    create_entity;
+// exports.Screwdriver=      Screwdriver;
+// exports.Candy=            Candy;
+// exports.create_entity=    create_entity;
