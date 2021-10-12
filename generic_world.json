@@ -4,6 +4,7 @@
     "props": {
       "name": "The Starting Room",
       "description": "This is the 1st room of the game.",
+      "entities": ["3"],
       "exits": {
         "north": "1"
       }
@@ -17,6 +18,13 @@
       "exits": {
         "south": "0"
       }
+    }
+  }, 
+  "3": {
+    "type": "Screwdriver",
+    "props": {
+      "description": "A flathead screwdriver.",        
+      "container_id": "1"
     }
   }
 }

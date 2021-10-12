@@ -96,6 +96,14 @@ function get_opposite_direction(direction){
   }
 }
 
+function move_to_room(id, current_room_id, new_room_id){
+  let current_room = World.world.get_instance(current_room_id);
+  current_room.remove_entity(id);
+  let new_room = World.world.get_instance(new_room_id);
+  new_room.add_entity(id);
+  World.world.get_instance(id).set_container_id(new_room_id);
+}
+
 // class Queue {
 //   constructor(){
 //     this.elements = []; //Index 0 is the front, i.e. next msg to be retrieved.
@@ -128,4 +136,5 @@ function get_opposite_direction(direction){
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
+exports.move_to_room=           move_to_room;
 // exports.Queue=                  Queue;

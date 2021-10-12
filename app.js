@@ -74,10 +74,19 @@ class Game_Controller {
       for (const [id, data] of Object.entries(parsed_info)){
         current_id=     id;
 
-        if (data.type==="Room"){
-          new Classes.Room(data.props, id);
+        switch(data.type){
+          case "Room":
+            new Classes.Room(data.props, id);
+            break;
+          
+          case "Screwdriver":
+            new Classes.Item(data.type, data.props, id);
+            break;
+
+          default:
+            console.error(`GC.load_world: Unknown type: ${data.type}`);
         }
-         
+                 
         Utils.id_generator.set_new_current_id(current_id);        
       } 
       
@@ -248,7 +257,7 @@ class Game_Controller {
     } 
 
     let user = World.world.get_instance(user_id);
-
+    
     switch(cmd){
       case 'look':
       case 'l':
@@ -268,40 +277,7 @@ class Game_Controller {
       default:
         Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  
-  }
-
-  // look_cmd(user_id, target){
-  //   let user=       World.world.get_instance(user_id);
-
-  //   if (target===null){
-  //     //Look at the room the user is in.
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, user.get_look_string());        
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   //Search order: wear_hold, slots, container.
-  //   let entity_id = user.search_target_in_wear_hold(target);
-
-  //   if (entity_id===null){
-  //     entity_id= user.search_target_in_slots(target);
-
-  //     if (entity_id===null){
-  //       entity_id = container.search_for_target(target);
-
-  //       if (entity_id===null){
-  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //           `There is no ${target} around.`);      
-  //         return;
-  //       }
-  //     }
-  //   }    
-
-  //   //Target found.
-  //   let entity = World.world.get_instance(entity_id);
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
-  // }
-
+  }  
 
   //TODO: refactor like get_cmd
   // kill_cmd(user_id, target){
@@ -633,8 +609,6 @@ let game_controller=  new Game_Controller();
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
-  let state = 'Not Logged In';
-  let user_id = null;
   
   ws_client.on('close', () => {
     // console.log(`Client User ID ${user_id} disconnected`);
@@ -642,18 +616,19 @@ wss.on('connection', (ws_client) => {
 
   ws_client.onmessage = (event) => {
     
-    let state= "Not Logged In";
-    let user_id= null;
-    let incoming_msg = JSON.parse(event.data);
+    // let state= "Not Logged In";
+    // let user_id= null;
+    let incoming_msg = JSON.parse(event.data);    
 
     if (incoming_msg.type==="Login"){
-      state = 'Logged In';
+      // var state = 'Logged In';
       user_id = game_controller.create_new_user(
         ws_client, 
         incoming_msg.content.username, 
         incoming_msg.content.password);
 
     } else if (incoming_msg.type==="User Input"){
+      
       game_controller.process_user_input(incoming_msg.content, user_id);
     }
     

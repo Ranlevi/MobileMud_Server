@@ -35,10 +35,21 @@ class Room {
 
   update_props(props){
     for (const [key, value] of Object.entries(props)){
-      this.props[key]= value;            
+
+      switch(key){
+        case "entities":
+          for (const id of value){
+            this.add_entity(id);            
+          }
+          break;
+
+        default:
+          this.props[key]= value;
+      }
+
+      
     }
   }
-
   
   add_entity(entity_id){
     this.props["entities"].add(entity_id);
@@ -48,30 +59,15 @@ class Room {
     this.props["entities"].delete(entity_id);
   }
   
-  // get_entities(){
-  //   //this.entities is a Set(), so we convert it to an array.
-  //   let arr = [];
-  //   for (const entity_id of this.entities){
-  //   arr.push(entity_id);
-  //   }
-  //   return arr;
-  // }  
+  get_entities_ids(){
+    //entities is a Set(), so we convert it to an array.
+    let arr = [];
+    for (const entity_id of this.props["entities"]){
+    arr.push(entity_id);
+    }
+    return arr;
+  }  
   
-  // get_users(){
-  //   let arr = [];
-  //   for (let entity_id of this.entities){
-  //     let entity = World.world.get_instance(entity_id);
-  //     if (entity instanceof User){
-  //       arr.push(entity_id);
-  //     }
-  //   }
-  //   return arr;
-  // }
-  
-  // set_lighting(color){
-  //   this.lighting = color;
-  // }
-
   get_look_string(){
         
     let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}, `;
@@ -101,65 +97,40 @@ class Room {
     return msg;
   }
 
-  // get_data_obj(){  
-    
-  //   let obj = {
-  //     type:           this.type,
-  //     props: {
-  //       //Item props
-  //       name:         this.name,
-  //       description:  this.description,
-  //       state:        this.state,
-  //       //Room Props
-  //       lighting:     this.lighting,
-  //       exits:        this.exits
-  //       //Note: entities are not saved in the room, but by themselves.
-  //     }      
-  //   }
-  //   return obj;
-  // } 
-
-  // search_for_target(target){
-  //   let entities_ids_arr = this.get_entities();    
-
-  // for (const entity_id of entities_ids_arr){
-  //   let entity = World.world.get_instance(entity_id);
-    
-  //   if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-  //       (entity.type.toLowerCase()==target) ||
-  //       (target===entity.id)){
-  //         return entity_id;    
-  //   }          
-  // }
-
-  // return null; //no target found
-  // }
 }
 
 class User {
   constructor(props, ws_client, id=null){
 
     //Default Constants
-    this.BASE_HEALTH;
+    this.BASE_HEALTH= 100;
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
     this.ws_client=     ws_client;
 
     //Default values for a new player.
     this.props = {
-      "name": "A Player",
+      "name": "A User",
+      "type": "User",
       "description": "It's you, bozo!",
       "password": null,
       "container_id": "0",
       "health": this.BASE_HEALTH,
+      "body_slots": {
+        'Head':       null,
+        'Torso':      null,
+        'Legs':       null,
+        'Feet':       null,
+        'Right Hand': null,
+        'Left Hand':  null
+      },
+      "misc_slots": new Set(),
     }
 
     // Add To world.
     World.world.add_to_world(this);
 
-
     this.update_props(props);
-
   }
 
   update_props(props){
@@ -177,12 +148,12 @@ class User {
   }
 
   move_to_room(new_room_id){
-    let current_room = World.world.get_instance(this.props["container_id"]);
-    current_room.remove_entity(this.id);
-    let new_room = World.world.get_instance(new_room_id);
-    new_room.add_entity(this.id);
-
+    Utils.move_to_room(this.id, this.props["container_id"], new_room_id);
     this.look_cmd();
+  }
+
+  set_container_id(new_container_id){
+    this.props["container_id"] = new_container_id;
   }
 
   move_to_direction(direction){
@@ -197,13 +168,15 @@ class User {
     }
   
     //Exit exists.
-    this.move_to_room(next_room_id);
     Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
     `You travel ${direction}.`);
+
+    this.move_to_room(next_room_id);
+    
   }
 
   look_cmd(target=null){
-    //target can be an idea, a type or a name.
+    //target can be an id, a type or a name.
 
     if (target===null){
       //Look at the room the user is in.
@@ -212,20 +185,21 @@ class User {
       return;
     }
 
-    // look_cmd(user_id, target){
-  //   let user=       World.world.get_instance(user_id);
+    //Target is not null.
+    //Search order: body_slots, misc_slots, room.
+    let id_arr = this.get_body_slots_ids();
+    id_arr = id_arr.concat(this.get_misc_slots_ids());
+    id_arr = id_arr.concat(World.world.get_instance(this.props["container_id"])).get_entities_ids();
 
-
-  //   //Target is not null.
-  //   //Search order: wear_hold, slots, container.
-  //   let entity_id = user.search_target_in_wear_hold(target);
-
-  //   if (entity_id===null){
-  //     entity_id= user.search_target_in_slots(target);
-
-  //     if (entity_id===null){
-  //       entity_id = container.search_for_target(target);
-
+    for (const id of id_arr){
+      let entity = World.world.get_instance(id);
+      if ((entity.props["name"].toLowerCase()===target) ||
+          (entity.props["type"].toLowerCase()==target) ||
+          (target===entity.id)){
+          return entity_id;    
+    }
+    }
+    
   //       if (entity_id===null){
   //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
   //           `There is no ${target} around.`);      
@@ -239,6 +213,65 @@ class User {
   //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
   // }
 
+  }
+
+  get_short_look_string(){
+    let msg = `[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}`;
+    return msg;
+  }
+}
+
+class Item {
+  constructor(type, props=null, id=null){
+      
+    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+  
+    this.props = {};
+    if (type==="Screwdriver"){
+      this.props = {
+        "name": type,
+        "type": type,
+        "type_string": "A Screwdriver",
+        "description": "A philips screwdriver.",        
+        "container_id": "0"
+      }
+    }
+
+    // Add To world.
+    World.world.add_to_world(this);
+
+    if (props!==null) this.update_props(props);    
+  }
+
+  update_props(props){
+    for (const [key, value] of Object.entries(props)){
+
+      switch(key){
+        case("container_id"):
+          Utils.move_to_room(this.id, this.props["container_id"], value);
+          break;
+
+        default:
+          this.props[key]= value;
+      }      
+    }
+  }
+
+  set_container_id(new_container_id){
+    this.props["container_id"] = new_container_id;
+  }
+
+  get_look_string(){
+        
+    let msg = `**[${this.props["type_string"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
+    msg += `${this.props["description"]}  `;    
+
+    return msg;
+  }
+
+  get_short_look_string(){
+    let msg = `[${this.props["type_string"]}]({type:${this.props["type"]}, id:${this.id}}`;
+    return msg;
   }
 }
 
@@ -874,7 +907,7 @@ class User {
 //   return entity.id;
 // }
 
-// exports.Item=             Item;
+exports.Item=             Item;
 // exports.AnimatedObject=   AnimatedObject;
 // exports.Corpse=           Corpse;
 // exports.Entity=           Entity;
