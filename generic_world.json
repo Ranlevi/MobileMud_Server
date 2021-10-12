@@ -26,5 +26,17 @@
       "description": "A flathead screwdriver.",        
       "container_id": "1"
     }
+  },
+  "4": {
+    "type": "Candy",
+    "props": {
+      "container_id": "0"
+    }
+  },
+  "5": {
+    "type": "Dog",
+    "props": {
+      "container_id": "0"
+    }
   }
 }

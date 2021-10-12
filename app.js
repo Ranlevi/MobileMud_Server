@@ -80,7 +80,12 @@ class Game_Controller {
             break;
           
           case "Screwdriver":
+          case "Candy":
             new Classes.Item(data.type, data.props, id);
+            break;
+
+          case "Dog":
+            new Classes.NPC(data.type, data.props, id)
             break;
 
           default:
@@ -273,7 +278,28 @@ class Game_Controller {
       case 's':
         user.move_to_direction('south');
         break;
+
+      case 'east':
+      case 'e':
+        user.move_to_direction('east');
+        break;
       
+      case 'west':
+      case 'w':
+        user.move_to_direction('east');
+        break;
+
+      case 'get':
+      case 'g':
+        user.get_cmd(target);
+        break;
+
+      case "inventory":
+      case "inv":
+      case "i":
+        user.inv_cmd();
+        break;
+
       default:
         Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  

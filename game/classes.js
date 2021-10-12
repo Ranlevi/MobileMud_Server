@@ -27,12 +27,8 @@ class Room {
       World.world.add_to_world(this);
 
       if (props!==null) this.update_props(props);    
-  }
+  }  
   
-  // add_exit(direction, next_room_id){
-  //   this.exits[direction] = next_room_id;
-  // }
-
   update_props(props){
     for (const [key, value] of Object.entries(props)){
 
@@ -61,11 +57,7 @@ class Room {
   
   get_entities_ids(){
     //entities is a Set(), so we convert it to an array.
-    let arr = [];
-    for (const entity_id of this.props["entities"]){
-    arr.push(entity_id);
-    }
-    return arr;
+    return Array.from(this.props["entities"]);
   }  
   
   get_look_string(){
@@ -125,6 +117,7 @@ class User {
         'Left Hand':  null
       },
       "misc_slots": new Set(),
+      "misc_slots_size_limit": 10,
     }
 
     // Add To world.
@@ -189,29 +182,116 @@ class User {
     //Search order: body_slots, misc_slots, room.
     let id_arr = this.get_body_slots_ids();
     id_arr = id_arr.concat(this.get_misc_slots_ids());
-    id_arr = id_arr.concat(World.world.get_instance(this.props["container_id"])).get_entities_ids();
 
-    for (const id of id_arr){
-      let entity = World.world.get_instance(id);
-      if ((entity.props["name"].toLowerCase()===target) ||
-          (entity.props["type"].toLowerCase()==target) ||
-          (target===entity.id)){
-          return entity_id;    
+    let room = World.world.get_instance(this.props["container_id"]);
+    id_arr = id_arr.concat(room.get_entities_ids());
+
+    let entity_id = Utils.search_for_target(target, id_arr);
+
+    if (entity_id===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+      `There is no ${target} around.`);
+    } else {
+      let entity = World.world.get_instance(entity_id);
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, entity.get_look_string());
+    }       
+  }
+
+  get_cmd(target=null){
+    //Pick an item from the room, place in a misc_slot.
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to get?`);        
+      return;
     }
+
+    //Target is not null
+    let room = World.world.get_instance(this.props["container_id"]);
+    let id_arr = room.get_entities_ids();
+
+    let entity_id = Utils.search_for_target(target, id_arr);
+
+    if (entity_id===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `There's no ${target} around.`);        
+      return;
     }
+
+    //Target found.
+    //Check is misc_slots are full.
+    if (this.props["misc_slots_size_limit"]===this.props["misc_slots"].size){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You are carrying too many things already.`);
+      return;
+    }
+
+    //The user can carry the item.
+    room.remove_entity(entity_id);
+    this.props["misc_slots"].add(entity_id);
+    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
+  }
+
+  inv_cmd(){
+    let msg = `You are wearing:  `;
+
+    let is_wearing_something = false;
+    for (const [position, id] of Object.entries(this.props["body_slots"])){
+      if (id!==null){
+        is_wearing_something = true;
+        let item = World.world.get_instance(id);
+        msg += `${position}: ${item.get_short_look_string()}`;
+      }
+    }
+
+    if (!is_wearing_something){
+      msg += 'Nothing.  ';
+    }
+
+    msg += 'You are carrying:  '
+    let is_carrying_something = false;
+    for (const id of this.props["misc_slots"]){
+      is_carrying_something = true;
+      let item = World.world.get_instance(id);
+      msg += `${item.get_short_look_string()}`;
+    }
+
+    if (!is_carrying_something){
+      msg += 'Nothing.  ';
+    }
+
+    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, msg);
+  }
+
+  get_body_slots_ids(){
+    let arr = [];
+    for (const id of Object.values(this.props["body_slots"])){
+      if (id!==null){
+        arr.push(id);
+      }
+    }
+    return arr;
+  }
+
+  get_misc_slots_ids(){
+    return Array.from(this.props["misc_slots"]);
+  }
+
+  get_look_string(){
+    let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
+    msg += `${this.props["description"]}  `;
     
-  //       if (entity_id===null){
-  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //           `There is no ${target} around.`);      
-  //         return;
-  //       }
-  //     }
-  //   }    
+    msg += `${this.props["name"]} carries:  `;
+    let is_wearing_something = false;
+    for (const id of Object.values(this.props["body_slots"])){
+      if (id!==null){
+        is_wearing_something = true;
+        let item = World.world.get_instance(id);
+        msg += `${item.get_short_look_string()}`;
+      }
+    }
 
-  //   //Target found.
-  //   let entity = World.world.get_instance(entity_id);
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, entity.get_look_string());        
-  // }
+    if (!is_wearing_something){
+      msg += 'Nothing interesting.';
+    }
+
+    return msg;
 
   }
 
@@ -227,14 +307,31 @@ class Item {
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
   
     this.props = {};
-    if (type==="Screwdriver"){
-      this.props = {
-        "name": type,
-        "type": type,
-        "type_string": "A Screwdriver",
-        "description": "A philips screwdriver.",        
-        "container_id": "0"
-      }
+    switch(type){
+      case ("Screwdriver"):
+        this.props = {
+          "name": type,
+          "type": type,
+          "type_string": "A Screwdriver",
+          "description": "A philips screwdriver.",        
+          "container_id": "0",
+          "is_consumable": false,
+        }
+        break;
+
+      case ("Candy"):
+        this.props = {
+          "name": type,
+          "type": type,
+          "type_string": "A Candy",
+          "description": "A sweet candy bar.",        
+          "container_id": "0",
+          "is_consumable": true,
+        }
+        break;      
+
+      default:
+        console.error(`Item constructor: unknown type - ${type}`);
     }
 
     // Add To world.
@@ -274,6 +371,127 @@ class Item {
     return msg;
   }
 }
+
+class NPC {
+  constructor(type, props=null, id=null){
+
+    //Default Constants
+    this.BASE_HEALTH= 10;
+
+    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+
+    //Default values for a new NPC
+    this.props = {};
+    switch(type){
+      case ("Dog"):
+        this.props = {
+          "name": "Archie",
+          "type": "Dog",
+          "description": "It's a cute but silly dog.",      
+          "container_id": "0",
+          "health": this.BASE_HEALTH,
+          "state": "Default",
+          "state_counter": 0,
+          "body_slots": {
+            'Head':       null,
+            'Torso':      null,
+            'Legs':       null,
+            'Feet':       null,
+            'Right Hand': null,
+            'Left Hand':  null
+          },
+          "misc_slots": new Set(),
+          "misc_slots_size_limit": 10,
+        }
+        break;
+
+      default:
+        console.error(`NPC constructor: unknown type - ${type}`);
+    }
+    
+
+    // Add To world.
+    World.world.add_to_world(this);
+
+    if (props!==null) this.update_props(props);
+  }
+
+  update_props(props){
+    for (const [key, value] of Object.entries(props)){
+
+      switch(key){
+        case("container_id"):
+          this.move_to_room(value);
+          break;
+
+        default:
+          this.props[key]= value;
+      }      
+    }
+  }
+
+  set_container_id(new_container_id){
+    this.props["container_id"] = new_container_id;
+  }
+
+  move_to_room(new_room_id){
+    Utils.move_to_room(this.id, this.props["container_id"], new_room_id);    
+  }
+
+  get_look_string(){
+    let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
+    msg += `${this.props["description"]}  `;
+    
+    msg += `${this.props["name"]} carries:  `;
+    let is_wearing_something = false;
+    for (const id of Object.values(this.props["body_slots"])){
+      if (id!==null){
+        is_wearing_something = true;
+        let item = World.world.get_instance(id);
+        msg += `${item.get_short_look_string()}`;
+      }
+    }
+
+    if (!is_wearing_something){
+      msg += 'Nothing interesting.';
+    }
+
+    return msg;
+  }
+
+  get_short_look_string(){
+    let msg = `[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}`;
+    return msg;
+  }
+
+  do_tick(){
+        
+    switch(this.props["state"]){
+
+      case("Default"):
+        //Action
+        this.props["state_counter"] += 1;
+
+        //Transition
+        if (this.counter===5){
+          this.props["state"] = 'Barking';          
+        } 
+        break;
+
+      case('Barking'):
+        //Action
+        this.props["state_counter"]= 0;
+        Utils.msg_sender.send_chat_msg_to_room(this.id,'world',`${this.props["name"]} Barks.`);        
+
+        //Transition
+        this.props["state"] = 'Default';
+        break;
+    }
+  } 
+
+  }
+}
+
 
 
 //Notes on the design concept:
@@ -914,6 +1132,7 @@ exports.Item=             Item;
 exports.User=             User;
 // exports.Dog=              Dog;
 exports.Room=             Room;
+exports.NPC=              NPC;
 // exports.Screwdriver=      Screwdriver;
 // exports.Candy=            Candy;
 // exports.create_entity=    create_entity;

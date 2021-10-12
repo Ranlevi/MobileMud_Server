@@ -104,6 +104,21 @@ function move_to_room(id, current_room_id, new_room_id){
   World.world.get_instance(id).set_container_id(new_room_id);
 }
 
+function search_for_target(target, array_of_ids){
+  //scans an array for a given target.
+  for (const id of array_of_ids){
+    let entity = World.world.get_instance(id);
+    if ((entity.props["name"].toLowerCase()===target) ||
+    (entity.props["type"].toLowerCase()==target) ||
+    (target===entity.id)){
+      return id;
+    }
+  }
+
+  //No target found
+  return null;
+}
+
 // class Queue {
 //   constructor(){
 //     this.elements = []; //Index 0 is the front, i.e. next msg to be retrieved.
@@ -137,4 +152,5 @@ exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
 exports.move_to_room=           move_to_room;
+exports.search_for_target=      search_for_target;
 // exports.Queue=                  Queue;
