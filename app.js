@@ -10,7 +10,7 @@ const World=                require('./game/world');
 const LOAD_WORLD_FROM_SAVE=   true;
 const LOAD_GENERIC_WORLD=     true;
 const ENABLE_USER_SAVE=       false;
-const ENABLE_WORLD_SAVE=      false;
+const ENABLE_WORLD_SAVE=      true;
 const USER_SAVE_INTERVAL=     10;
 const WORLD_SAVE_INTERVAL=    10;
 const GEN_WORLD_NUM_OF_ROOMS= 2;
@@ -126,9 +126,9 @@ class Game_Controller {
     let data = {};
     World.world.world.forEach((item)=>{
 
-      // if (item instanceof Classes.Item){
-      //   data[item.id] = item.props; 
-      // }
+      if (!(item instanceof Classes.User)){
+        data[item.id] = item.props; 
+      }
     });
 
     fs.writeFile(
@@ -167,6 +167,64 @@ class Game_Controller {
 
   run_simulation_tick(){
     console.log('tick');
+    World.world.world.forEach(
+      (item) => {
+
+        if (item instanceof Classes.User || item instanceof Classes.NPC){
+          if (item.props["is_fighting_with"]!==null){
+            let opponent = World.world.get_instance(item.props["is_fighting_with"].is_fighting_with);
+
+            //Check if opponent disconnected or logged out
+            if (opponent===undefined){
+              item.stop_battle();
+              item.reset_health();
+            }
+
+            //Opponent exists.
+            //Do damage.
+            let damage_dealt = item.calc_damage(); 
+            let damage_recieved = opponent.recieve_damage(damage_dealt);
+
+            Utils.msg_sender.send_chat_msg_to_room(item.id, 'world',
+              `${item.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
+
+            //Check & Handle death of the opponent.
+            if (opponent.props["health"]===0){
+              //Opponent has died
+              item.stop_battle();
+
+              Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
+                `${opponent.props["name"]} is DEAD!`);
+
+              //Create a corpse and remove the opponent
+              opponent.do_death();
+            }
+
+
+
+          }
+              
+  //             if (opponent instanceof Classes.User){
+  //               opponent.reset(World.FIRST_ROOM_ID);
+
+  //             } else {
+  //               //Remove entity from the world
+  //               opponent.remove_from_world();
+  //             }          
+  //           }
+  //         }
+  //       } else {
+  //         item.process_tick();
+  //         if (item instanceof Classes.Entity){
+  //           item.process_decay();
+  //         }
+ 
+
+
+        if (item instanceof Classes.NPC){
+          item.do_tick();
+        }
+      });
   }
 
   // run_simulation_tick(){

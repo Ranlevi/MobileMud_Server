@@ -59,6 +59,17 @@ class Room {
     //entities is a Set(), so we convert it to an array.
     return Array.from(this.props["entities"]);
   }  
+
+  get_users(){
+    let id_arr = [];
+    for (const id of this.props["entities"]){
+      let entity = World.world.get_instance(id);
+      if (entity instanceof User){
+        id_arr.push(id);
+      }      
+    }
+    return id_arr;
+  }
   
   get_look_string(){
         
@@ -96,6 +107,7 @@ class User {
 
     //Default Constants
     this.BASE_HEALTH= 100;
+    this.BASE_DAMAGE= 1;
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
     this.ws_client=     ws_client;
@@ -118,6 +130,7 @@ class User {
       },
       "misc_slots": new Set(),
       "misc_slots_size_limit": 10,
+      "is_fighting_with": null,
     }
 
     // Add To world.
@@ -137,6 +150,25 @@ class User {
         default:
           this.props[key]= value;
       }      
+    }
+  }
+
+  reset_health(){
+    this.props["health"] = this.BASE_HEALTH;
+  }
+
+  stop_battle(){
+    this.props["is_fighting_with"] = null;
+  }
+
+  calc_damage(){
+    return this.BASE_DAMAGE;
+  }
+
+  recieve_damage(damage_from_opponent){
+    this.props["health"] -= damage_from_opponent;
+    if (this.props["health"]<0){
+      this.props["health"] = 0;
     }
   }
 
@@ -271,7 +303,7 @@ class User {
 
   get_misc_slots_ids(){
     return Array.from(this.props["misc_slots"]);
-  }
+  }  
 
   get_look_string(){
     let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
@@ -316,6 +348,8 @@ class Item {
           "description": "A philips screwdriver.",        
           "container_id": "0",
           "is_consumable": false,
+          "slots": null,
+          "slots_size_limit": 0,
         }
         break;
 
@@ -327,8 +361,23 @@ class Item {
           "description": "A sweet candy bar.",        
           "container_id": "0",
           "is_consumable": true,
+          "slots": null,
+          "slots_size_limit": 0,
         }
         break;      
+      
+      case ("Corpse"):
+        this.props = {
+          "name": type,
+          "type": type,
+          "type_string": "A Corpse",
+          "description": "It's dead, Jim.",
+          "container_id": "0",
+          "is_consumable": false,
+          "slots": new Set(),
+          "slots_size_limit": 16, //max num of items for a user.
+        }
+        break;
 
       default:
         console.error(`Item constructor: unknown type - ${type}`);
@@ -370,6 +419,18 @@ class Item {
     let msg = `[${this.props["type_string"]}]({type:${this.props["type"]}, id:${this.id}}`;
     return msg;
   }
+
+  add_to_slots(id){
+    
+    if (this.props["slots"].size===this.props["slots_size_limit"]){
+      //slots are full.
+      return false;
+    }
+
+    //Slots are not full.
+    this.props["slots"].add(id);
+    return true;
+  }
 }
 
 class NPC {
@@ -377,6 +438,7 @@ class NPC {
 
     //Default Constants
     this.BASE_HEALTH= 10;
+    this.BASE_DAMAGE= 1;
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
@@ -402,6 +464,7 @@ class NPC {
           },
           "misc_slots": new Set(),
           "misc_slots_size_limit": 10,
+          "is_fighting_with": null,
         }
         break;
 
@@ -438,6 +501,26 @@ class NPC {
     Utils.move_to_room(this.id, this.props["container_id"], new_room_id);    
   }
 
+  reset_health(){
+    this.props["health"] = this.BASE_HEALTH;
+  }
+
+  stop_battle(){
+    this.props["is_fighting_with"] = null;
+  }
+
+  calc_damage(){
+    return this.BASE_DAMAGE;
+  }
+
+  recieve_damage(damage_from_opponent){
+    this.props["health"] -= damage_from_opponent;
+    if (this.props["health"]<0){
+      this.props["health"] = 0;
+    }
+    return damage_from_opponent;
+  }
+
   get_look_string(){
     let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
     msg += `${this.props["description"]}  `;
@@ -465,7 +548,7 @@ class NPC {
   }
 
   do_tick(){
-        
+    
     switch(this.props["state"]){
 
       case("Default"):
@@ -473,7 +556,7 @@ class NPC {
         this.props["state_counter"] += 1;
 
         //Transition
-        if (this.counter===5){
+        if (this.props["state_counter"]===5){
           this.props["state"] = 'Barking';          
         } 
         break;
@@ -487,120 +570,41 @@ class NPC {
         this.props["state"] = 'Default';
         break;
     }
-  } 
-
   }
+
+  do_death(){
+    //create corpse, move all items to it, remove item from the world.
+    let props = {
+      "description": `This is the corpse of ${this.props["name"]}.`
+    }
+    let corpse = new Item("Corpse", props);
+
+    let id_arr = this.get_body_slots_ids();
+    id_arr.concat(this.get_misc_slots_ids());
+
+    for (const id of id_arr){
+      corpse.add_to_slots(id);
+    }
+    
+  }
+
+  get_body_slots_ids(){
+    let arr = [];
+    for (const id of Object.values(this.props["body_slots"])){
+      if (id!==null){
+        arr.push(id);
+      }
+    }
+    return arr;
+  }
+
+  get_misc_slots_ids(){
+    return Array.from(this.props["misc_slots"]);
+  }  
+
 }
 
 
-
-//Notes on the design concept:
-//1. Minimal number of Classes.
-//2. Base classes exists to set default values and methods, for DRY, that
-//   should be overwritten by the specific instance class.
-//3. Each class should be autonamous as possible, with it's own internal state
-//   and returning it's own look strings, etc.
-
-// class Item {
-// //Not meant to be called directly.
-//   constructor(){    
-//     //Base properties that exist for all Items.
-//     this.id=          null;
-//     this.name=        null;
-//     this.description= "";
-//     this.type=        "Item";
-//     this.type_string= "An Item.";
-//     this.state=       "Default";
-//   }  
-
-//   process_tick(){
-//     //do nothing unless overided by instance
-//   }
-
-//   get_look_string(){    
-//     return "This is a generic item in the game. If you see this, Ran screwed up."
-//   }
-
-//   add_entity(id){
-//     return false;//If not overriden by child, adding fails.
-//   }
-
-//   remove_entity(id){
-//     return false;//If not overriden by child, removing fails.
-//   }
-
-//   get_entities(){
-//     return [];
-//   }
-
-//   get_data_obj(){//TODO: change to save_obj?
-//     //Returns an object with all the properties of the instance.
-//     //Note: if overriden, the overiding class needs to get
-//     //all the props of the super-class, plus its own unique ones.
-
-//     //Note: id is not save since it is already saved as key to the object in the JSON file.
-//     let obj = {
-//       type:           this.type,
-//       props: {
-//         name:         this.name,
-//         description:  this.description,
-//         type_string:  this.type_string,
-//         state:        this.state,
-//       }      
-//     }
-//     return obj;
-//   }
-
-//   override_props(props_obj){
-//     //Override with props
-    
-//     if (props_obj!==null){
-//       for (const [prop, value] of Object.entries(props_obj)){
-
-//         if (prop==="inventory") continue;
-
-//         if (prop==="container_id"){
-//           let old_container= World.world.get_instance(this.container_id);
-//           old_container.remove_entity(this.id);
-//           let new_container= World.world.get_instance(value);
-//           new_container.add_entity(this.id);
-//           this.container_id= value;
-//         } else {
-//           this[prop]= value;
-//         }        
-//       }
-//     }
-//   }
-// }
-
-
-
-// class Entity extends Item {
-//   //Not meant to be called directly.
-//   constructor(id=null){ //note: no props, since this is done on the subclass level
-//       super();
-//       this.BASE_WEAR=  2;
-//       this.DECAY_RATE= 10; //1 wear point per 10 ticks.
-
-//       //Default props
-//       this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-//       this.container_id =  "0";
-//       this.inventory=       null;
-//       this.is_gettable=     false;
-//       this.wear_hold_slot=  null; //Hands, Feet, Head, Torso, Legs.
-//       this.is_food=         false;
-//       this.restore_health_value= 0;
-//       this.is_decaying=     false;
-//       this.decay_rate=      this.DECAY_RATE;
-//       this.wear=            this.BASE_WEAR;
-//       this.decay_tick_counter= 0;
-      
-//       //Add to World
-//       let container= World.world.get_instance(this.container_id);
-//       container.add_entity(this.id);
-//       World.world.add_to_world(this);
-//   }
-  
 //   enable_decay(){    
 //     this.is_decaying= true;
 //   }
@@ -629,179 +633,6 @@ class NPC {
 //       }
 //     }    
 //   }
-
-//   remove_from_world(){
-//     let container = World.world.get_instance(this.container_id);
-//     container.remove_entity(this.id);
-//     World.world.remove_from_world(this.id);
-//   }
-
-//   get_look_string(){
-//     let msg = `This is [${this.type_string}]({type:${this.type}, id:${this.id}}), `;
-//     msg += `${this.description}  `;
-//     msg += `Wear level: ${this.wear}.`
-
-//     if (this.inventory!==null){
-
-//       msg += `It holds:  `;
-       
-//       let items = this.inventory.get_all_slot_items();
-
-//       if (items.length===0){
-//         msg += `Nothing.`;            
-//       } else {      
-//         for (const id of items){
-//           msg += `${this.type_string}  `;      
-//         }
-//       }
-//     }
-
-//     return msg;
-//   }
-
-//   set_container_id(id){
-//     this.container_id= id;
-//   }
-
-//   get_data_obj(){
-
-//     let obj = {
-//       type:           this.type,
-//       props: {
-//         //Item default props
-//         name:         this.name,
-//         description:  this.description,
-//         state:        this.state,
-//         //Entity specific props
-//         container_id:   this.container_id,
-//         is_gettable:    this.is_gettable,
-//         wear_hold_slot: this.wear_hold_slot,
-//         inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
-//         is_food:        this.is_food,
-//         restore_health_value: this.restore_health_value,
-//         is_decaying: this.is_decaying,
-//         decay_rate: this.decay_rate,
-//         wear: this.wear,
-//         decay_tick_counter: this.decay_tick_counter
-//       }      
-//     }
-//     return obj;
-//   }    
-// }
-
-// class AnimatedObject extends Entity {
-//   //Not meant to be called directly.
-//   constructor(id){
-//     super(id);
-
-//     this.BASE_HEALTH=       10;
-//     this.BASE_DAMAGE=       1;
-//     this.BASE_COUNTER=      5;
-
-//     //Default values
-//     this.health=            this.BASE_HEALTH;
-//     this.damage=            this.BASE_DAMAGE;          
-//     this.is_fighting_with=  null;//Never spawn into a battle.
-//     this.counter=           this.BASE_COUNTER;    
-//   }
-
-//   get_data_obj(){
-//     let obj = {
-//       type:           this.type,
-//       props: {
-//         //Item default props
-//         name:         this.name,
-//         description:  this.description,
-//         state:        this.state,
-//         //Entity specific props
-//         container_id:   this.container_id,
-//         is_gettable:    this.is_gettable,
-//         wear_hold_slot: this.wear_hold_slot,
-//         inventory:      (this.inventory===null)? null : this.inventory.get_data_object(),
-//         is_food:        this.is_food,
-//         restore_health_value: this.restore_health_value,
-//         is_decaying: this.is_decaying,
-//         decay_rate: this.decay_rate,
-//         wear: this.wear,
-//         decay_tick_counter: this.decay_tick_counter,
-//         //AnimatedObject specific props
-//         health:           this.health,
-//         damage:           this.damage,
-//         counter:          this.counter
-//       }      
-//     }
-//     return obj;
-//   }
-
-//   start_battle_with(id){
-//     this.is_fighting_with = id;
-//   }
-
-//   stop_battle(){
-//     this.is_fighting_with = null;
-//   }
-
-//   strike_opponent(opponent_id){
-//     //basic striking. Can be overriden.
-//     let opponent=     World.world.get_instance(opponent_id);
-//     let damage_dealt= opponent.receive_damage(this.damage);
-//     return damage_dealt;
-//   }
-
-//   receive_damage(damage){
-//     //Basic damage reception, can be overided.
-//     this.health = this.health - damage;
-//     if (this.health<0) this.health= 0;
-//     return damage;
-//   }
-
-//   get_look_string(){
-//     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
-//     msg += `${this.type_string}.  ${this.description}`
-//     return msg;
-//   }
-// }
-
-// class Dog extends AnimatedObject {
-//   constructor(props, id=null){
-//     super(id);
-
-//     this.BASE_HEALTH= 10;    
-//     this.type=        "Dog";
-//     this.type_string= "A Dog";  
-//     this.name=        "Archie";
-//     this.description= "A cute but silly dog.";
-
-//     this.override_props(props);//possible bug: should the save object keys be strings??
-//   }
-
-//   process_tick(){
-    
-//     //Overide in inherited class.
-//     switch(this.state){
-
-//       case("Default"):
-//         //Action
-//         this.counter -= 1;
-
-//         //Transition
-//         if (this.counter===0){
-//         this.state = 'Barking';          
-//         } 
-//         break;
-
-//       case('Barking'):
-//         //Action
-//         this.counter = 5;
-//         Utils.msg_sender.send_chat_msg_to_room(this.id,'world','Archie Barks.');        
-
-//         //Transition
-//         this.state = 'Default';
-//         break;
-//     }
-//   } 
-  
-// }
 
 // class Corpse extends Entity {
 //   constructor(props, id=null){
@@ -841,68 +672,8 @@ class NPC {
 //     this.decomposition_timer = num_of_ticks;
 //   }
 
-//   get_data_obj(){
-//     let obj = {
-//       type:           this.type,
-//       props: {
-//         //Item default props
-//         name:         this.name,
-//         description:  this.description,
-//         state:        this.state,
-//         //Entity specific props
-//         container_id:   this.container_id,
-//         is_gettable:    this.is_gettable,
-//         wear_hold_slot: this.wear_hold_slot,
-//         inventory:      this.inventory.get_data_object(),
-//         is_food:        this.is_food,
-//         restore_health_value: this.restore_health_value,
-//         is_decaying: this.is_decaying,
-//         decay_rate: this.decay_rate,
-//         wear: this.wear,
-//         decay_tick_counter: this.decay_tick_counter,
-//         //Corpse specific props
-//         decomposition_timer: this.decomposition_timer
-//       }      
-//     }
-//   }
- 
-// }
-
-// class Screwdriver extends Entity {
-//   constructor(props, id=null){
-//     super(id);
-
-//     this.description =   "It's a philips screwdriver."
-//     this.type=          "Screwdriver"
-//     this.type_string=   "A Screwdriver";
-//     this.is_gettable=   true;
-//     this.wear_hold_slot="Hands";    
-
-//     this.override_props(props);
-//   }    
-// }
 
 // class User extends AnimatedObject {
-//   constructor(props, ws_client, id=null){
-//     super(id);    
-//     this.BASE_HEALTH= 5;
-//     this.BASE_DAMAGE= 1;  
-//     this.HEALTH_DECLINE_RATE=10; //1 health point per 10 ticks  
-
-//     this.ws_client=     ws_client;
-//     this.name=          "A Player";
-//     this.type=          "User";
-//     this.type_string=   "A User";
-//     this.password=      null;
-//     this.is_fighting_with= null; //never spawn a user into a battle.
-//     this.description= "It's YOU, Bozo!";
-//     this.health=       this.BASE_HEALTH;
-//     this.damage=       this.BASE_DAMAGE;    
-
-//     this.inventory=     new Inventory.Inventory(this.id, 10, props.inventory);
-
-//     this.override_props(props);
-//   }
 
 //   process_tick(){
     
@@ -929,39 +700,6 @@ class NPC {
 //     }
 //   }
 
-//   set_password(pw){
-//     this.password = pw;
-//   }
-
-//   get_data_obj(){
-//     let obj = {
-//       type:           this.type,
-//       props: {
-//         //Item default props
-//         name:         this.name,
-//         description:  this.description,
-//         state:        this.state,
-//         //Entity specific props
-//         container_id:   this.container_id,
-//         is_gettable:    this.is_gettable,
-//         wear_hold_slot: this.wear_hold_slot,
-//         inventory:      this.inventory.get_data_object(),
-//         is_food:        this.is_food,
-//         restore_health_value: this.restore_health_value,
-//         is_decaying: this.is_decaying,
-//         decay_rate: this.decay_rate,
-//         wear: this.wear,
-//         decay_tick_counter: this.decay_tick_counter,
-//         //AnimatedObject specific props
-//         health:           this.health,
-//         damage:           this.damage,
-//         counter:          this.counter,
-//         //User specific props
-//         password:    this.password
-//       }      
-//     }
-//     return obj;
-//   }
     
 //   reset(spawn_container_id){
 //     this.health=            this.BASE_HEALTH;
@@ -977,81 +715,6 @@ class NPC {
 //     spawn_container.add_entity(this.id);
 //     Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
 //       `You respawned in the starting room.`);    
-//   }
-
-//   get_look_string(){    
-//     let msg = `This is [${this.name}]({type:${this.type}, id:${this.id}}), `;
-//     msg += `${this.type_string}.  ${this.description};`
-//     return msg;    
-//   }
-
-//   get_inv_content(){
-//     return this.inventory.generate_inv_message(); 
-//   }
-
-//   search_target_in_slots(target){
-//     let items_in_slots_arr = this.inventory.get_all_slot_items();
-
-//     for (const entity_id of items_in_slots_arr){
-//       let entity = World.world.get_instance(entity_id);
-//       if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-//            (entity.type.toLowerCase()===target) || 
-//            (target===entity_id)){
-//         return entity_id;        
-//       }    
-//     }
-//     return null;
-//   }
-
-//   search_target_in_wear_hold(target){
-//     let items_in_wear_hold_arr = this.inventory.get_all_wear_hold_items();
-
-//     for (const entity_id of items_in_wear_hold_arr){
-//       let entity = World.world.get_instance(entity_id);
-//       if ((entity.name!==null && entity.name.toLowerCase()===target) ||
-//           (entity.type.toLowerCase()===target) || 
-//           (target===entity_id)){
-//         return entity_id;        
-//       }    
-//     }
-//     return null;
-//   }
-
-//   drop_item_from_slots(entity_id){
-//     //We assume the entity is in the slots.
-//     //we drop it to the floor.
-//     let success = false;
-//     this.inventory.remove_from_slots(entity_id);
-//     let container = World.world.get_instance(this.container_id);
-//     container.add_entity(entity_id);
-
-//     let entity = World.world.get_instance(entity_id);
-//     entity.set_container_id(container.id);
-
-//     return success;
-//   }
-
-//   add_to_slots(entity_id){
-//     let success = this.inventory.add_to_slots(entity_id);
-
-//     if (success){
-//       let entity = World.world.get_instance(entity_id);
-//       entity.set_container_id(this.id);
-//     }
-
-//     return success;
-//   }
-
-//   wear_or_hold_entity(entity_id){
-//     //We assume the entity is in a slot.
-//     //Remove it from slots, wear or hold it if free.
-//     let success = this.inventory.move_entity_from_slots_to_wear_hold(entity_id);
-//     return success;
-//   }
-
-//   remove_from_wear_hold(entity_id){
-//     //returns true/false
-//     return this.inventory.move_entity_from_wear_hold_to_slots(entity_id);    
 //   }
 
 //   consume(entity_id){
@@ -1073,66 +736,7 @@ class NPC {
 //     World.world.remove_from_world(entity_id);
 //   }
 
-//   remove_entity(entity_id){
-//     //We assume the entity is on the user somewhere.
-//     this.inventory.remove_entity(entity_id);
-//   }
-// }
-
-// class Candy extends Entity {
-//   constructor(props, id=null){
-//     super(props, id);
-
-//     this.description=           "A small piece of candy.";
-//     this.type=                  "Candy";
-//     this.type_string=           "A Candy";
-//     this.is_gettable=           true;
-//     this.wear_hold_slot=        "Hands";
-//     this.is_food=               true;
-//     this.restore_health_value=  10;
-
-//     this.override_props(props);
-//   }
-// }
-
-// function create_entity(type, props, id=null){
-//   //return entity_id or null if the type is unrecoginzed.
-//   let entity=null;
-//   type=         type.toLowerCase();
-  
-//   switch(type){
-//     case "room":
-//       entity= new Room(props, id);
-//       break;
-
-//     case "dog":
-//       entity= new Dog(props, id);                         
-//       break;
-
-//     case "screwdriver":
-//       entity= new Screwdriver(props, id);                          
-//       break;
-
-//     case "candy":
-//       entity= new Candy(props, id);                          
-//       break;
-
-//     case "corpse":
-//       entity= new Candy(props, id);
-//       break;
-//   }
-
-//   return entity.id;
-// }
-
 exports.Item=             Item;
-// exports.AnimatedObject=   AnimatedObject;
-// exports.Corpse=           Corpse;
-// exports.Entity=           Entity;
 exports.User=             User;
-// exports.Dog=              Dog;
 exports.Room=             Room;
 exports.NPC=              NPC;
-// exports.Screwdriver=      Screwdriver;
-// exports.Candy=            Candy;
-// exports.create_entity=    create_entity;

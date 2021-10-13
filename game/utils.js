@@ -64,8 +64,8 @@ class Message_Sender {
   send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
     
     let user = World.world.get_instance(sender_id);
-    let container = World.world.get_instance(user.container_id);
-    let arr = container.get_users();
+    let room = World.world.get_instance(user.props["container_id"]);
+    let arr = room.get_users();
     for (const id of arr){
       if (id===sender_id && dont_send_to_user) continue;      
       this.send_chat_msg_to_user(id, sender, text);
