@@ -24,7 +24,7 @@
     "type": "Screwdriver",
     "props": {
       "description": "A flathead screwdriver.",        
-      "container_id": "1"
+      "container_id": "5"
     }
   },
   "4": {
@@ -36,7 +36,8 @@
   "5": {
     "type": "Dog",
     "props": {
-      "container_id": "0"
+      "container_id": "0",
+      "misc_slots": ["3"]
     }
   }
 }

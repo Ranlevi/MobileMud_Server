@@ -170,9 +170,10 @@ class Game_Controller {
     World.world.world.forEach(
       (item) => {
 
-        if (item instanceof Classes.User || item instanceof Classes.NPC){
-          if (item.props["is_fighting_with"]!==null){
-            let opponent = World.world.get_instance(item.props["is_fighting_with"].is_fighting_with);
+        if ((item instanceof Classes.User || item instanceof Classes.NPC) && 
+            (item.props["is_fighting_with"]!==null)){
+
+            let opponent = World.world.get_instance(item.props["is_fighting_with"]);
 
             //Check if opponent disconnected or logged out
             if (opponent===undefined){
@@ -199,109 +200,17 @@ class Game_Controller {
               //Create a corpse and remove the opponent
               opponent.do_death();
             }
-
-
-
-          }
-              
-  //             if (opponent instanceof Classes.User){
-  //               opponent.reset(World.FIRST_ROOM_ID);
-
-  //             } else {
-  //               //Remove entity from the world
-  //               opponent.remove_from_world();
-  //             }          
-  //           }
-  //         }
-  //       } else {
-  //         item.process_tick();
-  //         if (item instanceof Classes.Entity){
-  //           item.process_decay();
-  //         }
- 
-
-
-        if (item instanceof Classes.NPC){
-          item.do_tick();
+        } else if (item instanceof Classes.NPC){
+            item.do_tick();
         }
-      });
+      }
+    );
   }
-
-  // run_simulation_tick(){
-
-  //   World.world.world.forEach(
-  //     (item) => {
-
-  //       if (item instanceof Classes.AnimatedObject && item.is_fighting_with!==null){
-  //         let opponent = World.world.get_instance(item.is_fighting_with);
-
-  //         //Check if opponent disconnected or logged out
-  //         if (opponent===undefined){
-  //           item.is_fighting_with=  null;
-  //           item.health=            item.BASE_HEALTH;
-            
-  //         } else {
-          
-  //           //Opponent exists
-  //           let damage_dealt = item.strike_opponent(opponent.id); 
-
-  //           if (item instanceof Classes.User){
-  //             Utils.msg_sender.send_chat_msg_to_user(item.id,'world',
-  //             `You strike ${opponent.name}, dealing ${damage_dealt} HP.`);  
-  //           } 
-
-  //           if (opponent instanceof Classes.User){
-  //             Utils.msg_sender.send_chat_msg_to_user(opponent.id,'world',
-  //             `${item.name} strikes you, dealing ${damage_dealt} HP.`);
-  //           }
-            
-  //           if (opponent.health===0){
-  //             //Opponent has died
-  //             item.stop_battle();
-
-  //             Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
-  //               `${opponent.name} is DEAD!`);
-              
-  //             //Create a corpse
-  //             let instance_props= {
-  //               description:  opponent.description,
-  //               container_id: opponent.container_id
-  //             };
-  //             new Classes.Corpse(instance_props);
               
   //             if (opponent instanceof Classes.User){
   //               opponent.reset(World.FIRST_ROOM_ID);
 
-  //             } else {
-  //               //Remove entity from the world
-  //               opponent.remove_from_world();
-  //             }          
-  //           }
-  //         }
-  //       } else {
-  //         item.process_tick();
-  //         if (item instanceof Classes.Entity){
-  //           item.process_decay();
-  //         }
-  //       }
-  //     }      
-  //   );
-  // }
-  
-  // new_client_connected(ws_client, username){
-    
-  //   let user_data = World.users_db.get(username);   
-    
-  //   let user = new Classes.User(user_data.props, ws_client);
-
-  //   Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
-  //     `Welcome back ${user.name}.`);
-
-  //   Utils.msg_sender.send_status_msg_to_user(user.id, user.health);
-
-  //   this.process_incoming_message('look', user.id);    
-  //   return user.id;
-  // }
+ 
 
   process_user_input(text, user_id){
 
@@ -356,6 +265,11 @@ class Game_Controller {
       case "inv":
       case "i":
         user.inv_cmd();
+        break;
+
+      case "kill":
+      case "k":
+        user.kill_cmd(target);
         break;
 
       default:

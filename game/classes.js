@@ -11,7 +11,7 @@ class Room {
         "name": "Room",
         "type": "Room",
         "description": "A simple, 3m by 3m room.",
-        "entities": new Set(),
+        "entities": [],
         "exits": {
           "north": null, //direction: id
             "south": null,
@@ -23,41 +23,34 @@ class Room {
         "lighting": "white", //CSS colors
       }
 
+      if (props!==null){
+        for (const [key, value] of Object.entries(props)){
+          this.props[key]= value;
+        }
+      }
+
       // Add To world.
       World.world.add_to_world(this);
 
-      if (props!==null) this.update_props(props);    
   }  
-  
-  update_props(props){
-    for (const [key, value] of Object.entries(props)){
-
-      switch(key){
-        case "entities":
-          for (const id of value){
-            this.add_entity(id);            
-          }
-          break;
-
-        default:
-          this.props[key]= value;
-      }
-
-      
-    }
-  }
-  
+    
   add_entity(entity_id){
-    this.props["entities"].add(entity_id);
+    this.props["entities"].push(entity_id);
   }
   
   remove_entity(entity_id){
-    this.props["entities"].delete(entity_id);
+    //try to remove entity.
+    let success = false;
+    let ix = this.props["entities"].indexOf(entity_id);
+    if (ix!==-1){
+      this.props["entities"].splice(ix,1);
+      success = true;
+    }
+    return success;
   }
   
   get_entities_ids(){
-    //entities is a Set(), so we convert it to an array.
-    return Array.from(this.props["entities"]);
+    return this.props["entities"];
   }  
 
   get_users(){
@@ -85,7 +78,7 @@ class Room {
 
     msg += '  '; //new paragraph
 
-    if (this.props["entities"].size===1){    
+    if (this.props["entities"].length===1){    
       //Only the player is in the room.
       msg += 'The room is empty.';
     } else {
@@ -99,7 +92,6 @@ class Room {
 
     return msg;
   }
-
 }
 
 class User {
@@ -128,29 +120,20 @@ class User {
         'Right Hand': null,
         'Left Hand':  null
       },
-      "misc_slots": new Set(),
+      "misc_slots": [],
       "misc_slots_size_limit": 10,
       "is_fighting_with": null,
     }
 
-    // Add To world.
-    World.world.add_to_world(this);
-
-    this.update_props(props);
-  }
-
-  update_props(props){
-    for (const [key, value] of Object.entries(props)){
-
-      switch(key){
-        case("container_id"):
-          this.move_to_room(value);
-          break;
-
-        default:
-          this.props[key]= value;
-      }      
+    //Note: body_slots is fully replaced by loaded props, so they need to be full.
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
     }
+
+    // Add To world.
+    World.world.add_to_world(this);    
   }
 
   reset_health(){
@@ -249,15 +232,45 @@ class User {
 
     //Target found.
     //Check is misc_slots are full.
-    if (this.props["misc_slots_size_limit"]===this.props["misc_slots"].size){
+    if (this.props["misc_slots_size_limit"]===this.props["misc_slots"].length){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You are carrying too many things already.`);
       return;
     }
 
     //The user can carry the item.
     room.remove_entity(entity_id);
-    this.props["misc_slots"].add(entity_id);
+    this.props["misc_slots"].push(entity_id);
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
+  }
+
+  kill_cmd(target=null){
+
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Who do you want to kill?`);        
+      return;
+    }
+
+    //Target not null
+    let room = World.world.get_instance(this.props["container_id"]);
+    let id_arr = room.get_entities_ids();
+
+    let entity_id = Utils.search_for_target(target, id_arr);
+
+    if (entity_id===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `There's no ${target} around.`);        
+      return;
+    }
+
+    //Target found
+    let entity = World.world.get_instance(entity_id);
+    if (!(entity instanceof NPC)){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Come on, you can't kill that.`);        
+      return;
+    }
+
+    //Target is killable...
+    this.props["is_fighting_with"] = entity_id;
+    entity.props["is_fighting_with"] = this.id;
   }
 
   inv_cmd(){
@@ -302,7 +315,7 @@ class User {
   }
 
   get_misc_slots_ids(){
-    return Array.from(this.props["misc_slots"]);
+    return this.props["misc_slots"];
   }  
 
   get_look_string(){
@@ -374,7 +387,7 @@ class Item {
           "description": "It's dead, Jim.",
           "container_id": "0",
           "is_consumable": false,
-          "slots": new Set(),
+          "slots": [],
           "slots_size_limit": 16, //max num of items for a user.
         }
         break;
@@ -383,24 +396,13 @@ class Item {
         console.error(`Item constructor: unknown type - ${type}`);
     }
 
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
+    }
     // Add To world.
     World.world.add_to_world(this);
-
-    if (props!==null) this.update_props(props);    
-  }
-
-  update_props(props){
-    for (const [key, value] of Object.entries(props)){
-
-      switch(key){
-        case("container_id"):
-          Utils.move_to_room(this.id, this.props["container_id"], value);
-          break;
-
-        default:
-          this.props[key]= value;
-      }      
-    }
   }
 
   set_container_id(new_container_id){
@@ -422,13 +424,16 @@ class Item {
 
   add_to_slots(id){
     
-    if (this.props["slots"].size===this.props["slots_size_limit"]){
+    if (this.props["slots"].length===this.props["slots_size_limit"]){
       //slots are full.
       return false;
     }
 
     //Slots are not full.
-    this.props["slots"].add(id);
+    //Add to slots and update the container id of the moved item.
+    this.props["slots"].push(id);
+    let entity = World.world.get_instance(id);
+    entity.set_container_id(this.id);
     return true;
   }
 }
@@ -462,7 +467,7 @@ class NPC {
             'Right Hand': null,
             'Left Hand':  null
           },
-          "misc_slots": new Set(),
+          "misc_slots": [],
           "misc_slots_size_limit": 10,
           "is_fighting_with": null,
         }
@@ -472,25 +477,14 @@ class NPC {
         console.error(`NPC constructor: unknown type - ${type}`);
     }
     
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
+    }
 
     // Add To world.
     World.world.add_to_world(this);
-
-    if (props!==null) this.update_props(props);
-  }
-
-  update_props(props){
-    for (const [key, value] of Object.entries(props)){
-
-      switch(key){
-        case("container_id"):
-          this.move_to_room(value);
-          break;
-
-        default:
-          this.props[key]= value;
-      }      
-    }
   }
 
   set_container_id(new_container_id){
@@ -575,17 +569,34 @@ class NPC {
   do_death(){
     //create corpse, move all items to it, remove item from the world.
     let props = {
-      "description": `This is the corpse of ${this.props["name"]}.`
+      "description": `This is the corpse of ${this.props["name"]}.`,
+      "container_id": this.props["container_id"]
     }
     let corpse = new Item("Corpse", props);
 
+    //Move the items from the NPC to the corpse
     let id_arr = this.get_body_slots_ids();
-    id_arr.concat(this.get_misc_slots_ids());
-
     for (const id of id_arr){
       corpse.add_to_slots(id);
+      this.remove_entity_from_misc_slots(id);
     }
-    
+
+    for (const [position, id] of Object.entries(this.props["body_slots"])){
+      if (id!==null){
+        corpse.add_to_slots(id);
+        this.props["body_slots"][position] = null;
+      }
+    }
+
+    //Remove the NPC from the world and from the room
+    let room = World.world.get_instance(this.props["container_id"]);
+    room.remove_entity(this.id);
+    World.world.remove_from_world(this.id);    
+  }
+
+  remove_entity_from_misc_slots(id){
+    //assumes the entity exists in the slots
+    this.props["misc_slots"].delete(id)
   }
 
   get_body_slots_ids(){
@@ -598,9 +609,7 @@ class NPC {
     return arr;
   }
 
-  get_misc_slots_ids(){
-    return Array.from(this.props["misc_slots"]);
-  }  
+  
 
 }
 
