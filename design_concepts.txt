@@ -69,11 +69,9 @@ Architecture:
     - set/release ownership of rooms and objects.
   The two can be in the same game, but in different zones. 
 
-A screwdriver item has a description that does not change, hence no need to save the description in the save file.
-A dog is created by the developer or player. It can have different name and description, that loads from file.
-Idealy, all dogs will be identical, and only their instance state needs to be saved.
-If we create a dog instance, it will always have a default name/description.
-The soultion is that props are overriding on the subclass level.
+Note: if the texts are too long for the chat interface, consider using emojies as aliases,
+and cutting off extra unneeded texts.
+
 
 - Save/Load user.
   sim calles user.get_data_obj(), which returns an object with All

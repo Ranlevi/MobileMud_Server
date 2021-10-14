@@ -205,9 +205,6 @@ class Game_Controller {
     );
   }
               
-  //             if (opponent instanceof Classes.User){
-  //               opponent.reset(World.FIRST_ROOM_ID);
-
   process_user_input(text, user_id){
 
     if (text==='') return;
@@ -255,6 +252,18 @@ class Game_Controller {
       case 'get':
       case 'g':
         user.get_cmd(target);
+        break;
+
+      case 'drop':
+      case 'dr':
+        user.drop_cmd(target);
+        break;
+
+      case 'hold':
+      case 'h':
+      case 'wear':
+      case 'we':
+        user.wear_or_hold_cmd(target);
         break;
 
       case "inventory":
@@ -352,154 +361,6 @@ wss.on('connection', (ws_client) => {
 
 
 
-  //TODO: refactor like get_cmd
-  // kill_cmd(user_id, target){
-
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `Who do you want to kill?`);      
-
-  //   } else {
-
-  //     let user=       World.world.get_instance(user_id);
-  //     let container = World.world.get_instance(user.container_id);
-  //     let entity_id = container.search_for_target(target);
-
-  //     if (entity_id===null){
-  //       Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //         `There is no ${target} around.`);       
-  //     } else {
-
-  //       let opponent = World.world.get_instance(entity_id);
-
-  //       if (!(opponent instanceof Classes.AnimatedObject)){
-  //         Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //           `You can't fight it.`);          
-  //         return;
-  //       }
-
-  //       user.start_battle_with(opponent.id);
-  //       opponent.start_battle_with(user.id);
-
-  //       //give the offence a bit of an advantage of striking first
-  //       let damage_dealt = user.strike_opponent(opponent.id);
-
-  //       Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //         `${user.name} attacks ${opponent.name}, dealing ${damage_dealt} HP.`);        
-  //     }      
-  //   }
-  // }
-    
- 
-  // move_cmd(direction, user_id){    
-
-  //   let user=         World.world.get_instance(user_id);
-  //   let current_container= World.world.get_instance(user.container_id);
-
-  //   if (current_container.exits[direction]===null){
-  //     //Exit does not exist
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `There's no exit to ${direction}.`);      
-  //     return;
-  //   }
-
-  //   //Exit exists.
-  //   let new_container=   World.world.get_instance(current_container.exits[direction]);
-
-  //   user.container_id = new_container.id;
-  //   current_container.remove_entity(user.id);
-  //   new_container.add_entity(user_id);
-
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //     `You travel ${direction} to ${new_container.name}.`);
-    
-  //   this.process_incoming_message('look', user.id);
-  // }
-
-  // get_cmd(user_id, target){
-  //   //pick up the target and place in a slot.
-
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to get?`);      
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   let user=       World.world.get_instance(user_id);
-  //   let container=  World.world.get_instance(user.container_id);
-  //   let entity_id = container.search_for_target(target);
-
-  //   if (entity_id===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `There is no ${target} around.`);      
-  //     return;
-  //   }
-
-  //   //Target found.
-  //   let entity = World.world.get_instance(entity_id);
-
-  //   if (!entity.is_gettable){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You can't pick it up.`);      
-  //     return;
-  //   }
-
-  //   //Target can be picked up.
-  //   let success = user.add_to_slots(entity_id);
-
-  //   if (success){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You pick up ${entity.type_string} and place it in a slot.`);
-      
-  //     Utils.msg_sender.send_chat_msg_to_room(user_id,'world',
-  //       `${user.name} picks up ${entity.type_string}`,
-  //       true
-  //     );      
-
-  //     let container = World.world.get_instance(user.container_id);
-  //     container.remove_entity(entity_id);
-
-  //     entity.enable_decay();
-
-  //   } else {
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You don't have a free slot to put it in.`);      
-  //   }   
-  // }
-
-  // drop_cmd(user_id, target){
-  //   //drop a target from the slots to the room.
-
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to drop?`);
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   let user=       World.world.get_instance(user_id);
-  //   let entity_id=  user.search_target_in_slots(target);
-
-  //   if (entity_id===null){
-  //     //Target was not found in slots.
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You don't have it in your slots.`);      
-  //     return;
-  //   } 
-    
-  //   //Target was found
-  //   user.drop_item_from_slots(entity_id);
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //     `You drop it to the floor.`);    
-
-  //   let entity = World.world.get_instance(entity_id);
-  //   entity.disable_decay();
-
-  //   Utils.msg_sender.send_chat_msg_to_room(user_id,'world',
-  //     `${user.name} drops ${entity.type_string}`,
-  //     true);    
-  // }
 
   // wear_hold_cmd(user_id, target){
   //   //take an entity from the slots and wear/hold in a pre-specified position.
