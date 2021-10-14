@@ -174,13 +174,11 @@ class Game_Controller {
             (item.props["is_fighting_with"]!==null)){
 
             let opponent = World.world.get_instance(item.props["is_fighting_with"]);
-
             //Check if opponent disconnected or logged out
             if (opponent===undefined){
               item.stop_battle();
               item.reset_health();
             }
-
             //Opponent exists.
             //Do damage.
             let damage_dealt = item.calc_damage(); 
@@ -210,8 +208,6 @@ class Game_Controller {
   //             if (opponent instanceof Classes.User){
   //               opponent.reset(World.FIRST_ROOM_ID);
 
- 
-
   process_user_input(text, user_id){
 
     if (text==='') return;
@@ -238,22 +234,22 @@ class Game_Controller {
 
       case 'north':
       case 'n':
-        user.move_to_direction('north');
+        user.move_cmd('north');
         break;
 
       case 'south':
       case 's':
-        user.move_to_direction('south');
+        user.move_cmd('south');
         break;
 
       case 'east':
       case 'e':
-        user.move_to_direction('east');
+        user.move_cmd('east');
         break;
       
       case 'west':
       case 'w':
-        user.move_to_direction('east');
+        user.move_cmd('east');
         break;
 
       case 'get':
@@ -276,6 +272,85 @@ class Game_Controller {
         Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  
   }  
+
+  create_new_user(ws_client, username, password){
+
+    let props = {
+      "name":         username,
+      "password":     password,
+      "container_id": World.FIRST_ROOM_ID
+    }
+
+    let user = new Classes.User(props, ws_client);
+    
+    let room = World.world.get_instance(World.FIRST_ROOM_ID);
+    room.add_entity(user.id);
+    
+    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
+      `Hi ${user.props["name"]}, your ID is ${user.id}`);
+
+    Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
+    user.look_cmd();
+
+    return user.id;
+  }
+}
+
+let game_controller=  new Game_Controller();
+
+//-- WebSockets
+wss.on('connection', (ws_client) => {  
+  
+  ws_client.on('close', () => {
+    // console.log(`Client User ID ${user_id} disconnected`);
+  });
+
+  ws_client.onmessage = (event) => {
+    
+    // let state= "Not Logged In";
+    // let user_id= null;
+    let incoming_msg = JSON.parse(event.data);    
+
+    if (incoming_msg.type==="Login"){
+      // var state = 'Logged In';
+      user_id = game_controller.create_new_user(
+        ws_client, 
+        incoming_msg.content.username, 
+        incoming_msg.content.password);
+
+    } else if (incoming_msg.type==="User Input"){
+      
+      game_controller.process_user_input(incoming_msg.content, user_id);
+    }
+    
+    // if (state==="Not Logged In" && incoming_msg.type==="Login"){
+    //   //Check if User is already registered.
+    //   let user_data = World.users_db.get(incoming_msg.content.username);
+    //   if (user_data!==undefined){                
+    //     if (incoming_msg.content.password===user_data.props.password){
+    //       state= 'Logged In';
+    //       user_id = game_controller.create_existing_user(ws_client, incoming_msg.content.username);                  
+    //     } else {
+    //       ws_client.close(4000, 'Wrong Username or Password.');
+    //     }
+
+    //   } else {
+    //     //A new user
+    //     state = 'Logged In';
+    //     user_id = game_controller.create_new_user(
+    //       ws_client, 
+    //       incoming_msg.content.username, 
+    //       incoming_msg.content.password);          
+    //   }
+
+    // } else if (state==='Logged In' && incoming_msg.type==="User Input"){
+      
+    //   game_controller.process_incoming_message(incoming_msg.content, user_id);
+    // }
+  }
+});
+
+
 
   //TODO: refactor like get_cmd
   // kill_cmd(user_id, target){
@@ -583,76 +658,3 @@ class Game_Controller {
   //   Utils.msg_sender.send_chat_msg_to_room(user_id, 'world', 
   //     `${user.name} consumes ${entity.type_string}`, true);
   // }
-
-  create_new_user(ws_client, username, password){
-
-    let props = {
-      "name":         username,
-      "password":     password,
-      "container_id": World.FIRST_ROOM_ID
-    }
-
-    let user = new Classes.User(props, ws_client);    
-    
-    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
-      `Hi ${user.props["name"]}, your ID is ${user.id}`);
-
-    Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
-
-    return user.id;
-  }
-}
-
-let game_controller=  new Game_Controller();
-
-//-- WebSockets
-wss.on('connection', (ws_client) => {  
-  
-  ws_client.on('close', () => {
-    // console.log(`Client User ID ${user_id} disconnected`);
-  });
-
-  ws_client.onmessage = (event) => {
-    
-    // let state= "Not Logged In";
-    // let user_id= null;
-    let incoming_msg = JSON.parse(event.data);    
-
-    if (incoming_msg.type==="Login"){
-      // var state = 'Logged In';
-      user_id = game_controller.create_new_user(
-        ws_client, 
-        incoming_msg.content.username, 
-        incoming_msg.content.password);
-
-    } else if (incoming_msg.type==="User Input"){
-      
-      game_controller.process_user_input(incoming_msg.content, user_id);
-    }
-    
-    // if (state==="Not Logged In" && incoming_msg.type==="Login"){
-    //   //Check if User is already registered.
-    //   let user_data = World.users_db.get(incoming_msg.content.username);
-    //   if (user_data!==undefined){                
-    //     if (incoming_msg.content.password===user_data.props.password){
-    //       state= 'Logged In';
-    //       user_id = game_controller.create_existing_user(ws_client, incoming_msg.content.username);                  
-    //     } else {
-    //       ws_client.close(4000, 'Wrong Username or Password.');
-    //     }
-
-    //   } else {
-    //     //A new user
-    //     state = 'Logged In';
-    //     user_id = game_controller.create_new_user(
-    //       ws_client, 
-    //       incoming_msg.content.username, 
-    //       incoming_msg.content.password);          
-    //   }
-
-    // } else if (state==='Logged In' && incoming_msg.type==="User Input"){
-      
-    //   game_controller.process_incoming_message(incoming_msg.content, user_id);
-    // }
-  }
-});

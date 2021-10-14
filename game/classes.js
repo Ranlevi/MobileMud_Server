@@ -112,20 +112,19 @@ class User {
       "password": null,
       "container_id": "0",
       "health": this.BASE_HEALTH,
-      "body_slots": {
+      "wearing": {
         'Head':       null,
         'Torso':      null,
         'Legs':       null,
-        'Feet':       null,
-        'Right Hand': null,
-        'Left Hand':  null
+        'Feet':       null
       },
-      "misc_slots": [],
-      "misc_slots_size_limit": 10,
+      "holding": null,
+      "slots": [],
+      "slots_size_limit": 10,
       "is_fighting_with": null,
     }
 
-    //Note: body_slots is fully replaced by loaded props, so they need to be full.
+    //Note: wearing is fully replaced by loaded props, so they need to be full.
     if (props!==null){
       for (const [key, value] of Object.entries(props)){
         this.props[key]= value;
@@ -153,18 +152,14 @@ class User {
     if (this.props["health"]<0){
       this.props["health"] = 0;
     }
-  }
-
-  move_to_room(new_room_id){
-    Utils.move_to_room(this.id, this.props["container_id"], new_room_id);
-    this.look_cmd();
+    return damage_from_opponent;
   }
 
   set_container_id(new_container_id){
     this.props["container_id"] = new_container_id;
   }
 
-  move_to_direction(direction){
+  move_cmd(direction){
     let current_room = World.world.get_instance(this.props["container_id"]);
     let next_room_id = current_room.props["exits"][direction];
   
@@ -179,7 +174,12 @@ class User {
     Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
     `You travel ${direction}.`);
 
-    this.move_to_room(next_room_id);
+    current_room.remove_entity(this.id);
+    let next_room = World.world.get_instance(next_room_id);
+    next_room.add_entity(this.id);
+    this.props["container_id"]= next_room_id;
+
+    this.look_cmd();
     
   }
 
@@ -195,8 +195,14 @@ class User {
 
     //Target is not null.
     //Search order: body_slots, misc_slots, room.
-    let id_arr = this.get_body_slots_ids();
-    id_arr = id_arr.concat(this.get_misc_slots_ids());
+    let id_arr = [];
+    for (const id of Object.values(this.props["wearing"])){
+      if (id!==null) id_arr.push(id);
+    }
+
+    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
+    
+    id_arr = id_arr.concat(this.props["slots"]);
 
     let room = World.world.get_instance(this.props["container_id"]);
     id_arr = id_arr.concat(room.get_entities_ids());
@@ -213,7 +219,7 @@ class User {
   }
 
   get_cmd(target=null){
-    //Pick an item from the room, place in a misc_slot.
+    //Pick an item from the room, place in a slot.
     if (target===null){      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to get?`);        
       return;
@@ -232,19 +238,19 @@ class User {
 
     //Target found.
     //Check is misc_slots are full.
-    if (this.props["misc_slots_size_limit"]===this.props["misc_slots"].length){
+    if (this.props["slots_size_limit"]===this.props["slots"].length){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You are carrying too many things already.`);
       return;
     }
 
     //The user can carry the item.
     room.remove_entity(entity_id);
-    this.props["misc_slots"].push(entity_id);
+    this.props["slots"].push(entity_id);
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
   }
 
   kill_cmd(target=null){
-
+    
     if (target===null){      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Who do you want to kill?`);        
       return;
@@ -277,7 +283,7 @@ class User {
     let msg = `You are wearing:  `;
 
     let is_wearing_something = false;
-    for (const [position, id] of Object.entries(this.props["body_slots"])){
+    for (const [position, id] of Object.entries(this.props["wearing"])){
       if (id!==null){
         is_wearing_something = true;
         let item = World.world.get_instance(id);
@@ -289,9 +295,17 @@ class User {
       msg += 'Nothing.  ';
     }
 
+    msg += "You are holding: "
+    if (this.props["holding"]!==null){
+      let item = World.world.get_instance(this.props["holding"]);
+      msg += `${item.get_short_look_string()}`;
+    } else {
+      msg += "Nothing.  ";
+    }
+
     msg += 'You are carrying:  '
     let is_carrying_something = false;
-    for (const id of this.props["misc_slots"]){
+    for (const id of this.props["slots"]){
       is_carrying_something = true;
       let item = World.world.get_instance(id);
       msg += `${item.get_short_look_string()}`;
@@ -304,27 +318,13 @@ class User {
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, msg);
   }
 
-  get_body_slots_ids(){
-    let arr = [];
-    for (const id of Object.values(this.props["body_slots"])){
-      if (id!==null){
-        arr.push(id);
-      }
-    }
-    return arr;
-  }
-
-  get_misc_slots_ids(){
-    return this.props["misc_slots"];
-  }  
-
   get_look_string(){
     let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
     msg += `${this.props["description"]}  `;
     
-    msg += `${this.props["name"]} carries:  `;
+    msg += `${this.props["name"]} is wearing:  `;
     let is_wearing_something = false;
-    for (const id of Object.values(this.props["body_slots"])){
+    for (const id of Object.values(this.props["wearing"])){
       if (id!==null){
         is_wearing_something = true;
         let item = World.world.get_instance(id);
@@ -336,13 +336,70 @@ class User {
       msg += 'Nothing interesting.';
     }
 
-    return msg;
+    msg += `${this.props["name"]} is holding:  `;
+    if (this.props["holding"]!==null){
+      let item = World.world.get_instance(this.props["holding"]);
+      msg += `${item.get_short_look_string()}`;
+    } else {
+      msg += "Nothing.  ";
+    }
 
+    return msg;
   }
 
   get_short_look_string(){
     let msg = `[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}`;
     return msg;
+  }
+
+  do_death(){
+    //create corpse, move all items to it, remove item from the world.
+    let room = World.world.get_instance(this.props["container_id"]);
+
+    let props = {
+      "description": `This is the corpse of ${this.props["name"]}.`,
+      "container_id": this.props["container_id"]
+    }
+    let corpse = new Item("Corpse", props);
+    room.add_entity(corpse.id);
+
+    //Move the items from the NPC to the corpse
+    for (const id of Object.values[this.props["wearing"]]){
+      if (id!==null){
+        corpse.add_to_slots(id);
+        let item = World.world.get_short_look_string(id);
+        item.set_container_id(corpse.id);
+      }      
+    }
+
+    if (this.props["holding"]!==null){
+      corpse.add_to_slots(id);
+      let item = World.world.get_short_look_string(id);
+      item.set_container_id(corpse.id);
+    }
+
+    if (this.props["slots"]!==null){
+      for (const id of this.props["slots"]){
+        corpse.add_to_slots(id);
+        let item = World.world.get_short_look_string(id);
+        item.set_container_id(corpse.id);
+      }
+    }
+
+    room.remove_entity(this.id);
+    let spawn_room = World.world.get_instance(World.FIRST_ROOM_ID);
+    spawn_room.add_entity(this.id);
+    this.reset_health();
+
+    this.props["wearing"] = {
+      'Head':       null,
+      'Torso':      null,
+      'Legs':       null,
+      'Feet':       null
+    };
+    this.props["holding"] = null;
+    this.props["slots"]= [];
+
   }
 }
 
@@ -459,16 +516,10 @@ class NPC {
           "health": this.BASE_HEALTH,
           "state": "Default",
           "state_counter": 0,
-          "body_slots": {
-            'Head':       null,
-            'Torso':      null,
-            'Legs':       null,
-            'Feet':       null,
-            'Right Hand': null,
-            'Left Hand':  null
-          },
-          "misc_slots": [],
-          "misc_slots_size_limit": 10,
+          "wearing": null,
+          "holding": null,
+          "slots": null,
+          "slots_size_limit": 10,
           "is_fighting_with": null,
         }
         break;
@@ -518,21 +569,29 @@ class NPC {
   get_look_string(){
     let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
     msg += `${this.props["description"]}  `;
-    
-    msg += `${this.props["name"]} carries:  `;
-    let is_wearing_something = false;
-    for (const id of Object.values(this.props["body_slots"])){
-      if (id!==null){
-        is_wearing_something = true;
-        let item = World.world.get_instance(id);
-        msg += `${item.get_short_look_string()}`;
+
+    if (this.props["wearing"]!==null){
+
+      msg += `${this.props["name"]} is wearing:  `;
+      let is_wearing_something = false;
+      for (const id of Object.values(this.props["wearing"])){
+        if (id!==null){
+          is_wearing_something = true;
+          let item = World.world.get_instance(id);
+          msg += `${item.get_short_look_string()}`;
+        }
+      }
+  
+      if (!is_wearing_something){
+        msg += 'Nothing interesting.';
       }
     }
-
-    if (!is_wearing_something){
-      msg += 'Nothing interesting.';
+    
+    if (this.props["holding"]!==null){
+      let item = World.world.get_instance(this.props["holding"]);
+      msg += `${this.props["name"]} is wearing:  ${item.get_short_look_string()}`;
     }
-
+    
     return msg;
   }
 
@@ -568,48 +627,56 @@ class NPC {
 
   do_death(){
     //create corpse, move all items to it, remove item from the world.
+    let room = World.world.get_instance(this.props["container_id"]);
+
     let props = {
       "description": `This is the corpse of ${this.props["name"]}.`,
       "container_id": this.props["container_id"]
     }
     let corpse = new Item("Corpse", props);
+    room.add_entity(corpse.id);
 
     //Move the items from the NPC to the corpse
-    let id_arr = this.get_body_slots_ids();
-    for (const id of id_arr){
-      corpse.add_to_slots(id);
-      this.remove_entity_from_misc_slots(id);
+    if (this.props["wearing"]!==null){
+      for (const id of Object.values[this.props["wearing"]]){
+        if (id!==null){
+          corpse.add_to_slots(id);
+          let item = World.world.get_short_look_string(id);
+          item.set_container_id(corpse.id);
+        }        
+      }
     }
 
-    for (const [position, id] of Object.entries(this.props["body_slots"])){
-      if (id!==null){
+    if (this.props["holding"]!==null){
+      corpse.add_to_slots(id);
+      let item = World.world.get_short_look_string(id);
+      item.set_container_id(corpse.id);
+    }
+
+    if (this.props["slots"]!==null){
+      for (const id of this.props["slots"]){
         corpse.add_to_slots(id);
-        this.props["body_slots"][position] = null;
+        let item = World.world.get_short_look_string(id);
+        item.set_container_id(corpse.id);
       }
     }
 
     //Remove the NPC from the world and from the room
-    let room = World.world.get_instance(this.props["container_id"]);
+    
     room.remove_entity(this.id);
     World.world.remove_from_world(this.id);    
   }
 
-  remove_entity_from_misc_slots(id){
-    //assumes the entity exists in the slots
-    this.props["misc_slots"].delete(id)
-  }
-
-  get_body_slots_ids(){
-    let arr = [];
-    for (const id of Object.values(this.props["body_slots"])){
-      if (id!==null){
-        arr.push(id);
-      }
+  remove_entity_from_slots(id){
+    //try to remove entity.
+    let success = false;
+    let ix = this.props["slots"].indexOf(id);
+    if (ix!==-1){
+      this.props["slots"].splice(ix,1);
+      success = true;
     }
-    return arr;
+    return success;
   }
-
-  
 
 }
 
