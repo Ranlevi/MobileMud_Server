@@ -15,6 +15,7 @@
     "props": {
       "name": "The Next Room",
       "description": "This is the 2nd room of the game.",
+      "entities": ["6"],
       "exits": {
         "south": "0"
       }
@@ -38,6 +39,12 @@
     "props": {
       "container_id": "0",
       "misc_slots": []
+    }
+  },
+  "6": {
+    "type": "T-Shirt",
+    "props": {
+      "container_id": "1"
     }
   }
 }

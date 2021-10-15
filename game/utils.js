@@ -14,7 +14,7 @@ class ID_Generator {
   set_new_current_id(id){
     this.current_id = parseInt(id,10);
   }
-  }
+}
 const id_generator_instance = new ID_Generator();
 
 class Message_Sender {
@@ -120,38 +120,9 @@ function search_for_target(target, array_of_ids){
   return null;
 }
 
-// class Queue {
-//   constructor(){
-//     this.elements = []; //Index 0 is the front, i.e. next msg to be retrieved.
-//   }
-
-//   load(elements_arr){
-//     //Element at index 0 is the first msg.
-//     for (let i=0;i<elements_arr.length;i++){
-//       this.elements.push(elements_arr[i]);
-//     }
-//   }
-
-//   dequeue(){
-//     if (this.elements.length!==0){
-//       let msg = this.elements.shift();
-//       if (this.elements.length!==0){
-//         msg += '[Next]({type:"Command"}) [End]({type:"Command"})';
-//       }       
-//       return msg;
-//     } else {
-//       return null;
-//     }      
-//   }
-  
-//   clear(){
-//     this.elements = [];
-//   }
-// }
     
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
 exports.move_to_room=           move_to_room;
 exports.search_for_target=      search_for_target;
-// exports.Queue=                  Queue;

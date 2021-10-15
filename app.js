@@ -8,8 +8,8 @@ const Classes=              require('./game/classes');
 const World=                require('./game/world');
 
 const LOAD_WORLD_FROM_SAVE=   true;
-const LOAD_GENERIC_WORLD=     true;
-const ENABLE_USER_SAVE=       false;
+const LOAD_GENERIC_WORLD=     false;
+const ENABLE_USER_SAVE=       true;
 const ENABLE_WORLD_SAVE=      true;
 const USER_SAVE_INTERVAL=     10;
 const WORLD_SAVE_INTERVAL=    10;
@@ -72,8 +72,8 @@ class Game_Controller {
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
       for (const [id, data] of Object.entries(parsed_info)){
-        current_id=     id;
-
+        current_id=  id;
+        
         switch(data.type){
           case "Room":
             new Classes.Room(data.props, id);
@@ -81,6 +81,7 @@ class Game_Controller {
           
           case "Screwdriver":
           case "Candy":
+          case "T-Shirt":
             new Classes.Item(data.type, data.props, id);
             break;
 
@@ -104,11 +105,22 @@ class Game_Controller {
     
     if (!ENABLE_USER_SAVE) return;
         
-    let data = {};
+    let data = {
+      "users": {},
+      "items": {}
+    };
+
+    World.world.users.forEach((user)=>{
+      data["users"][user.props["name"]] = user.props;
+    });
+
     World.world.world.forEach((item)=>{
-      if (item instanceof Classes.User){    
-        data[item.name] = item.props; 
-      }
+      let container = World.world.get_instance(item.props["container_id"]);
+
+      if (container instanceof Classes.User){        
+        data["items"][item.id] = item.props;                
+        
+      };
     });
 
     fs.writeFile(`./users_db.json`, 
@@ -125,17 +137,37 @@ class Game_Controller {
 
     let data = {};
     World.world.world.forEach((item)=>{
+      let container = World.world.get_instance(item.props["container_id"]);
 
-      if (!(item instanceof Classes.User)){
-        data[item.id] = item.props; 
+      if (!(container instanceof Classes.User)){
+        //Save all items not carried by users.
+        data[item.id] = {
+          "type": item.props["type"],
+          "props": Object.assign({}, item.props)
+        };        
       }
+
+      if (item instanceof Classes.Room){
+        //If the item is a room - remove users from it's entities        
+        data[item.id]["props"]["entities"] = [];
+        
+        for (const id of item.props["entities"]){
+          let entity = World.world.get_instance(id);
+          if (!(entity instanceof Classes.User)){
+            data[item.id]["props"]["entities"].push(id);
+          }
+        }
+
+      }
+
     });
 
     fs.writeFile(
       `./world_save.json`, 
       JSON.stringify(data),  
       function(err){if (err) console.log(err);}
-    );        
+    );   
+    console.log('World saved.');         
   }
   
   game_loop(){
@@ -167,42 +199,25 @@ class Game_Controller {
 
   run_simulation_tick(){
     console.log('tick');
+
     World.world.world.forEach(
       (item) => {
 
-        if ((item instanceof Classes.User || item instanceof Classes.NPC) && 
-            (item.props["is_fighting_with"]!==null)){
-
-            let opponent = World.world.get_instance(item.props["is_fighting_with"]);
-            //Check if opponent disconnected or logged out
-            if (opponent===undefined){
-              item.stop_battle();
-              item.reset_health();
-            }
-            //Opponent exists.
-            //Do damage.
-            let damage_dealt = item.calc_damage(); 
-            let damage_recieved = opponent.recieve_damage(damage_dealt);
-
-            Utils.msg_sender.send_chat_msg_to_room(item.id, 'world',
-              `${item.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
-
-            //Check & Handle death of the opponent.
-            if (opponent.props["health"]===0){
-              //Opponent has died
-              item.stop_battle();
-
-              Utils.msg_sender.send_chat_msg_to_room(item.id,'world',
-                `${opponent.props["name"]} is DEAD!`);
-
-              //Create a corpse and remove the opponent
-              opponent.do_death();
-            }
-        } else if (item instanceof Classes.NPC){
+        if (item instanceof Classes.NPC){
+          if (item.props["is_fighting_with"]!==null){
+            item.do_battle(); 
+          } else {
             item.do_tick();
-        }
+          }
+        }       
       }
     );
+
+    World.world.users.forEach((user)=> {
+      if (user.props["is_fighting_with"]!==null){
+        user.do_battle();
+      }
+    });
   }
               
   process_user_input(text, user_id){
@@ -266,6 +281,11 @@ class Game_Controller {
         user.wear_or_hold_cmd(target);
         break;
 
+      case "remove":
+      case "r":
+        user.remove_cmd(target);
+        break;
+
       case "inventory":
       case "inv":
       case "i":
@@ -303,6 +323,16 @@ class Game_Controller {
 
     return user.id;
   }
+
+  load_existing_user(ws_client, username){
+    //note - need to fix the container id of the items the user holds.
+    //create items and place them in the player.
+    let user_data = World.users_db.get(username);
+
+    let user = new Classes.User(props, ws_client)
+
+
+  }
 }
 
 let game_controller=  new Game_Controller();
@@ -311,24 +341,45 @@ let game_controller=  new Game_Controller();
 wss.on('connection', (ws_client) => {  
   
   ws_client.on('close', () => {
-    // console.log(`Client User ID ${user_id} disconnected`);
+    console.log(`Client User ID ${user_id} disconnected`);
   });
 
-  ws_client.onmessage = (event) => {
+  ws_client.onmessage = (event) => {    
     
-    // let state= "Not Logged In";
-    // let user_id= null;
     let incoming_msg = JSON.parse(event.data);    
 
     if (incoming_msg.type==="Login"){
-      // var state = 'Logged In';
-      user_id = game_controller.create_new_user(
-        ws_client, 
-        incoming_msg.content.username, 
-        incoming_msg.content.password);
-
-    } else if (incoming_msg.type==="User Input"){
       
+      let user_data = World.users_db.get(incoming_msg.content.username);
+      
+      if (user_data===undefined){
+        //This is a new player.
+        user_id = game_controller.create_new_user(
+          ws_client, 
+          incoming_msg.content.username, 
+          incoming_msg.content.password);
+        state = "Logged In";
+
+      } else {
+        //An existing player.
+        //Check passworld.
+        if (user_data["users"][incoming_msg.content.username]["password"]===
+            incoming_msg.content.password){
+              //Valid passworld
+              user_id = game_controller.load_existing_user(
+                ws_client, 
+                incoming_msg.content.username,
+                user_data["users"][incoming_msg.content.username]);
+              state = "Logged In";
+        } else {
+          //invalid password
+          ws_client.close(4000, 'Wrong Username or Password.');
+        }        
+      }
+
+      
+
+    } else if (incoming_msg.type==="User Input"){      
       game_controller.process_user_input(incoming_msg.content, user_id);
     }
     
@@ -361,95 +412,6 @@ wss.on('connection', (ws_client) => {
 
 
 
-
-  // wear_hold_cmd(user_id, target){
-  //   //take an entity from the slots and wear/hold in a pre-specified position.
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to wear or hold?`);      
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   let user=       World.world.get_instance(user_id);
-  //   let entity_id = user.search_target_in_slots(target);
-
-  //   if (entity_id===null){
-  //     //Target was not found in slots.
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You don't have it in your slots.`);      
-  //     return;
-  //   } 
-
-  //   //Target was found
-  //   let entity = World.world.get_instance(entity_id);
-
-  //   if (entity.wear_hold_slot===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You can't wear or hold it.`);      
-  //     return;
-  //   }
-
-  //   //Target can be worn or held.
-  //   let success = user.wear_or_hold_entity(entity_id);
-
-  //   if (success){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',`Done.`);      
-  //   } else {
-  //     //position is unavailable.
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       "You're already wearing or holding something there.");      
-  //   }
-  // }
-
-  // remove_cmd(user_id, target){
-  //   //remove a worn or held entity, and place it in a slot.
-
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to remove?`);      
-  //     return;
-  //   }
-
-  //   //Target is not null
-  //   let user=       World.world.get_instance(user_id);
-  //   let entity_id=  user.search_target_in_wear_hold(target);
-
-  //   if (entity_id===null){
-  //     //target was not found
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You're not wearing or holding it.`);      
-  //     return;
-  //   }
-
-  //   //Target is worn or held.
-  //   let success = user.remove_from_wear_hold(entity_id);
-  //   if (success){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You remove it and place it in one of your slots.`);     
-
-  //   } else {
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You don't have a free slot to put it in.`);      
-  //   }
-  // }
-
-  // inv_cmd(user_id){
-  //   //generates inventory messages and loads them to the user's msg queue.
-  //   //send the first message.
-  //   let user = World.world.get_instance(user_id);
-    
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //     user.get_inv_content());    
-  // }
-
-  // say_cmd(user_id, content){
-  //   //send the content to all users in the room.
-  //   let user = World.world.get_instance(user_id);
-  //   let msg = `${user.name} says: ${content}`;
-
-  //   Utils.msg_sender.send_chat_msg_to_room(user_id,'world', msg);    
-  // }
 
   // create_cmd(user_id, type){
   //   //Creates an entity and places it in the room.

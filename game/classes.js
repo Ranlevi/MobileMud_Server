@@ -22,12 +22,13 @@ class Room {
         },
         "lighting": "white", //CSS colors
       }
-
+      
       if (props!==null){
         for (const [key, value] of Object.entries(props)){
           this.props[key]= value;
         }
       }
+      
 
       // Add To world.
       World.world.add_to_world(this);
@@ -239,13 +240,18 @@ class User {
     //Target found.
     //Check is misc_slots are full.
     if (this.props["slots_size_limit"]===this.props["slots"].length){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You are carrying too many things already.`);
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You are carrying too many things already.`);
       return;
     }
 
     //The user can carry the item.
     room.remove_entity(entity_id);
     this.props["slots"].push(entity_id);
+
+    let entity = World.world.get_instance(entity_id);
+    entity.set_container_id(this.id);
+
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
   }
 
@@ -314,29 +320,134 @@ class User {
     }
 
     //Target is not null
-    let id_arr = this.props["slots"];
-    
+    let id_arr = this.props["slots"];    
     let room = World.world.get_instance(this.props["container_id"]);
-    id_arr = id_arr.concat(room.get_entities_ids()); //TODO continues from here!
-
+    id_arr = id_arr.concat(room.get_entities_ids()); 
     let entity_id = Utils.search_for_target(target, id_arr);
-
+   
     if (entity_id===null){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `There's no ${target} around.`);        
       return;
     }
 
     //Target found.
-    //Check is misc_slots are full.
-    if (this.props["slots_size_limit"]===this.props["slots"].length){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You are carrying too many things already.`);
+    //Try to get it from the slots.
+    let entity = null;
+    let target_location = null;
+    for (const id of this.props["slots"]){
+      if (id===entity_id){
+        entity = World.world.get_instance(id);
+        target_location= "slots";
+      }
+    }
+
+    if (entity===null){
+      //Target is not in the slots, must be in the room.
+      let id_arr = room.get_entities_ids();
+      for (const id of id_arr){
+        if (id===entity_id){
+          entity = World.world.get_instance(id);
+          target_location="room";
+        }
+      } 
+    }
+
+    //Entity found.
+    //Check if the required slot is taken
+    let required_slot = entity.props["wear_hold_slot"];
+    switch(required_slot){
+      case("Head"):
+      case("Torso"):
+      case("Legs"):
+      case("Feet"):
+        if (this.props["wearing"][required_slot]!==null){
+          Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+            `You're already wearing something on your ${required_slot}.`);
+            return;
+        } else {
+          this.props["wearing"][required_slot] = entity_id;
+        }
+        break;
+      
+      case("Hold"):
+        if (this.props["holding"]!==null){
+          Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+            `You're already holding something.`);
+            return;
+        } else {
+          this.props["holding"] = entity_id;
+        }
+        break;
+
+
+      default:
+        console.error(`User.wear_of_hold_cmd: item with unknown wear_hold_slot: ${entity.props["type"]}`);
+        return;
+    }
+
+    //Remove the target from it's current position
+    if (target_location==="slots"){
+      let ix = this.props["slots"].indexOf(entity_id);
+      if (ix!==-1){
+        this.props["slots"].splice(ix,1);
+      }
+    } else {
+      //Must be room
+      room.remove_entity(entity_id);
+    }
+
+    entity.set_container_id(this.id);
+
+    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Done.`);
+  }
+
+  remove_cmd(target=null){
+    //get a target from the wearing or holding slots and place it in the slots.
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to remove?`);        
       return;
     }
 
-    //The user can carry the item.
-    room.remove_entity(entity_id);
+    //Target is not null
+    let id_arr = [];
+    for (const id of Object.values(this.props["wearing"])){
+      if (id!==null) id_arr.push(id);
+    }
+
+    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
+    let entity_id = Utils.search_for_target(target, id_arr);
+
+    if (entity_id===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You're not wearing or holding ${target}`);        
+      return;
+    }
+
+    //Target exists
+    //Check if the slots are not full
+    if (this.props["slots"].length===this.props["slots_size_limit"]){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You are carrying too many things already.`);
+      return;
+    }
+
+    //Slots are avaiable
+    //Remove it from it's current slot.
+    for (const [position, id] of Object.entries(this.props["wearing"])){
+      if (id===entity_id){
+        this.props["wearing"][position]= null;
+      };
+    }
+
+    if (this.props["holding"]===entity_id){
+      this.props["holding"] = null;
+    }
+
     this.props["slots"].push(entity_id);
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
+
+    let entity = World.world.get_instance(entity_id);
+    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+     `You remove ${entity.props["name"]}`);
   }
 
   kill_cmd(target=null){
@@ -487,6 +598,35 @@ class User {
     this.props["slots"]= [];
 
   }
+
+  do_battle(){
+    let opponent = World.world.get_instance(this.props["is_fighting_with"]);
+    //Check if opponent disconnected or logged out
+    if (opponent===undefined){
+      this.stop_battle();
+      this.reset_health();
+    }
+
+    //Opponent exists.
+    //Do damage.
+    let damage_dealt = this.calc_damage(); 
+    let damage_recieved = opponent.recieve_damage(damage_dealt);
+
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
+    `${this.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
+
+    //Check & Handle death of the opponent.
+    if (opponent.props["health"]===0){
+      //Opponent has died
+      this.stop_battle();
+
+      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
+        `${opponent.props["name"]} is DEAD!`);
+
+      //Create a corpse and remove the opponent
+      opponent.do_death();
+    }    
+  }
 }
 
 class Item {
@@ -498,7 +638,7 @@ class Item {
     switch(type){
       case ("Screwdriver"):
         this.props = {
-          "name": type,
+          "name": "A Screwdriver",
           "type": type,
           "type_string": "A Screwdriver",
           "description": "A philips screwdriver.",        
@@ -510,7 +650,7 @@ class Item {
 
       case ("Candy"):
         this.props = {
-          "name": type,
+          "name": "A Candy",
           "type": type,
           "type_string": "A Candy",
           "description": "A sweet candy bar.",        
@@ -518,7 +658,19 @@ class Item {
           "is_consumable": true,
           "wear_hold_slot": "Hold", //Hold, Head, Torso...
         }
-        break;           
+        break;
+
+      case ("T-Shirt"):
+        this.props = {
+          "name": "A T-Shirt",
+          "type": type,
+          "type_string": "A T-Shirt",
+          "description": "A plain red T-Shirt.",        
+          "container_id": "0",
+          "is_consumable": false,
+          "wear_hold_slot": "Torso", //Hold, Head, Torso...
+        }
+        break;
       
       default:
         console.error(`Item constructor: unknown type - ${type}`);
@@ -726,6 +878,36 @@ class NPC {
     }
     return success;
   }
+
+  do_battle(){
+    let opponent = World.world.get_instance(this.props["is_fighting_with"]);
+    //Check if opponent disconnected or logged out
+    if (opponent===undefined){
+      this.stop_battle();
+      this.reset_health();
+    }
+
+    //Opponent exists.
+    //Do damage.
+    let damage_dealt = this.calc_damage(); 
+    let damage_recieved = opponent.recieve_damage(damage_dealt);
+
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
+    `${this.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
+
+    //Check & Handle death of the opponent.
+    if (opponent.props["health"]===0){
+      //Opponent has died
+      this.stop_battle();
+
+      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
+        `${opponent.props["name"]} is DEAD!`);
+
+      //Create a corpse and remove the opponent
+      opponent.do_death();
+    }    
+  }
+
 
 }
 
