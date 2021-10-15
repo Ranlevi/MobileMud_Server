@@ -5,7 +5,7 @@
       "type": "User",
       "description": "It's you, bozo!",
       "password": "12345678",
-      "container_id": "0",
+      "container_id": "1",
       "health": 5,
       "wearing": {
         "Head": null,

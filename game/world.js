@@ -4,7 +4,7 @@ class World {
   //World state.
   constructor(){
     this.world = new Map(); //id: item instance.
-    this.users = new Map(); //id: item instance
+    this.users = new Map();
   }
 
   get_instance(instance_id){
@@ -38,7 +38,7 @@ class World {
 }
 const FIRST_ROOM_ID        = '0';
 const world=      new World();
-let users_db=     new Map(); //username: {saved_data} 
+let users_db=     null;
 
 exports.world=    world;
 exports.users_db= users_db;

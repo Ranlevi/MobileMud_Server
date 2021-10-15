@@ -51,10 +51,7 @@ class Game_Controller {
 
     //Load users_db
     if (fs.existsSync('./users_db.json')){
-      let data = JSON.parse(fs.readFileSync('./users_db.json'));
-      for (const [username, props] of Object.entries(data)){
-        World.users_db.set(username, props);
-      }
+      World.users_db = JSON.parse(fs.readFileSync('./users_db.json'));
     }
   }
   
@@ -235,7 +232,7 @@ class Game_Controller {
     } else {
       target = input_arr.slice(1).join(' ');
     } 
-
+    
     let user = World.world.get_instance(user_id);
     
     switch(cmd){
@@ -325,13 +322,52 @@ class Game_Controller {
   }
 
   load_existing_user(ws_client, username){
-    //note - need to fix the container id of the items the user holds.
-    //create items and place them in the player.
-    let user_data = World.users_db.get(username);
+    
+    console.log('Loading existing user');
 
-    let user = new Classes.User(props, ws_client)
+    let user_data = World.users_db["users"][username];
 
+    let user = new Classes.User(user_data, ws_client);
 
+    let room = World.world.get_instance(user.props["container_id"]);
+    room.add_entity(user.id);
+
+    //Get the items the user carries
+    for (const [position, id] of Object.entries(user.props["wearing"])){
+      if (id!==null){
+        //get the saved item
+        let props = World.users_db["items"][id];
+        let entity = new Classes.Item(props["type"], props);
+
+        entity.set_container_id(user.id);
+        user.props["wearing"][position] = entity.id;        
+      }
+    }
+
+    if (user.props["holding"]!==null){
+      let props = World.users_db["items"][user.props["holding"]];
+      let entity = new Classes.Item(props["type"], props);
+
+      entity.set_container_id(user.id);
+      user.props["holding"] = entity.id;        
+    }
+
+    let temp_arr = user.props["slots"];
+    user.props["slots"] = [];
+    for (const id of temp_arr){
+      let props = World.users_db["items"][id];
+      let entity = new Classes.Item(props["type"], props);
+
+      entity.set_container_id(user.id);
+      user.props["slots"].push(entity.id);
+    }
+
+    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
+    `Hi ${user.props["name"]}, your ID is ${user.id}`);
+
+    Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
+    user.look_cmd();
+    return user.id;
   }
 }
 
@@ -350,7 +386,7 @@ wss.on('connection', (ws_client) => {
 
     if (incoming_msg.type==="Login"){
       
-      let user_data = World.users_db.get(incoming_msg.content.username);
+      let user_data = World.users_db["users"][incoming_msg.content.username];
       
       if (user_data===undefined){
         //This is a new player.
@@ -363,13 +399,11 @@ wss.on('connection', (ws_client) => {
       } else {
         //An existing player.
         //Check passworld.
-        if (user_data["users"][incoming_msg.content.username]["password"]===
-            incoming_msg.content.password){
+        if (user_data["password"]===incoming_msg.content.password){
               //Valid passworld
               user_id = game_controller.load_existing_user(
                 ws_client, 
-                incoming_msg.content.username,
-                user_data["users"][incoming_msg.content.username]);
+                incoming_msg.content.username);
               state = "Logged In";
         } else {
           //invalid password
