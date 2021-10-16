@@ -99,11 +99,13 @@ class User {
   constructor(props, ws_client, id=null){
 
     //Default Constants
-    this.BASE_HEALTH= 5;
+    this.BASE_HEALTH= 50;
     this.BASE_DAMAGE= 1;
+    this.HEALTH_DECLINE_RATE = 5; //1 HP drop every 5 ticks
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
     this.ws_client=     ws_client;
+    this.tick_counter = 0;
 
     //Default values for a new player.
     this.props = {
@@ -134,6 +136,23 @@ class User {
 
     // Add To world.
     World.world.add_to_world(this);    
+  }
+
+  do_tick(){
+    this.tick_counter += 1;
+
+    if (this.tick_counter===this.HEALTH_DECLINE_RATE){
+      this.tick_counter = 0;
+      this.props["health"] -= 1;
+      Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
+    }
+
+    if (this.props["health"]===0){
+      //The user died of starvation!
+      Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', 
+        `${this.props["name"]} has starved to death...`);
+      this.do_death();
+    }
   }
 
   reset_health(){
@@ -480,6 +499,73 @@ class User {
     entity.props["is_fighting_with"] = this.id;
   }
 
+  consume_cmd(target=null){
+    //eat/drink food that's in the wear,hold or slots.
+
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to consume?`);        
+      return;
+    }
+
+    //Target is not null
+    let id_arr = [];
+
+    for (const id of Object.values(this.props["wearing"])){
+      if (id!==null) id_arr.push(id);
+    }
+
+    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
+
+    id_arr = id_arr.concat(this.props["slots"]);
+
+    let entity_id = Utils.search_for_target(target, id_arr);
+
+    if (entity_id===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You don't have it on you.`);        
+      return;
+    }
+
+    //Target exists
+    //Check if it's edible
+    let entity = World.world.get_instance(entity_id);
+
+    if (!entity.props["is_consumable"]){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You can't eat THAT!`);        
+      return;
+    }
+
+    //Target is edible.
+    //Find it, remove it from the user and the world, update health.
+
+    for (const [position, id] of Object.entries(this.props["wearing"])){
+      if (id===entity_id){
+        this.props["wearing"][position]= null;
+      };
+    }
+
+    if (this.props["holding"]===entity_id){
+      this.props["holding"] = null;
+    }
+
+    let ix = this.props["slots"].indexOf(entity_id);
+    if (ix!==-1){
+      this.props["slots"].splice(ix,1);
+    }
+
+    this.props["health"] += entity.props["hp_restored"];
+    if (this.props["health"]>this.BASE_HEALTH){
+      this.props["health"] = this.BASE_HEALTH;
+    }    
+
+    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+      `You consume ${entity.props["name"]}`);   
+
+    World.world.remove_from_world(entity_id);
+    Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
+  }
+
   inv_cmd(){
     let msg = `You are wearing:  `;
 
@@ -557,7 +643,7 @@ class User {
     //drop items to the room, reset and respawn
     let room = World.world.get_instance(this.props["container_id"]);
 
-    //Move the items from the NPC to the corpse
+    //Move the items to the room.
     for (const id of Object.values(this.props["wearing"])){
       if (id!==null){
         room.add_entity(id);
@@ -568,7 +654,7 @@ class User {
 
     if (this.props["holding"]!==null){
       room.add_entity(this.props["holding"]);
-      let item = World.world.get_instance(id);
+      let item = World.world.get_instance(this.props["holding"]);
       item.set_container_id(room.id);
     }
 
@@ -615,6 +701,8 @@ class User {
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
     `${this.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
 
+    Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
+
     //Check & Handle death of the opponent.
     if (opponent.props["health"]===0){
       //Opponent has died
@@ -644,6 +732,7 @@ class Item {
           "description": "A philips screwdriver.",        
           "container_id": "0",
           "is_consumable": false,
+          "hp_restored": null,
           "wear_hold_slot": "Hold", //Hold, Head, Torso...
         }
         break;
@@ -656,6 +745,7 @@ class Item {
           "description": "A sweet candy bar.",        
           "container_id": "0",
           "is_consumable": true,
+          "hp_restored": 5,
           "wear_hold_slot": "Hold", //Hold, Head, Torso...
         }
         break;
@@ -668,6 +758,7 @@ class Item {
           "description": "A plain red T-Shirt.",        
           "container_id": "0",
           "is_consumable": false,
+          "hp_restored": null,
           "wear_hold_slot": "Torso", //Hold, Head, Torso...
         }
         break;

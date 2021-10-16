@@ -8,12 +8,14 @@ const Classes=              require('./game/classes');
 const World=                require('./game/world');
 
 const LOAD_WORLD_FROM_SAVE=   true;
-const LOAD_GENERIC_WORLD=     false;
+const LOAD_GENERIC_WORLD=     true;
 const ENABLE_USER_SAVE=       true;
 const ENABLE_WORLD_SAVE=      true;
 const USER_SAVE_INTERVAL=     10;
 const WORLD_SAVE_INTERVAL=    10;
 const GEN_WORLD_NUM_OF_ROOMS= 2;
+
+const VERSION = 0.01;
 
 //-- HTML 
 //Serving the demo client to the browser
@@ -213,6 +215,8 @@ class Game_Controller {
     World.world.users.forEach((user)=> {
       if (user.props["is_fighting_with"]!==null){
         user.do_battle();
+      } else {
+        user.do_tick();
       }
     });
   }
@@ -292,6 +296,12 @@ class Game_Controller {
       case "kill":
       case "k":
         user.kill_cmd(target);
+        break;
+
+      case "eat":
+      case "ea":
+      case "drink":
+        user.consume_cmd(target);      
         break;
 
       default:
@@ -409,9 +419,7 @@ wss.on('connection', (ws_client) => {
           //invalid password
           ws_client.close(4000, 'Wrong Username or Password.');
         }        
-      }
-
-      
+      }     
 
     } else if (incoming_msg.type==="User Input"){      
       game_controller.process_user_input(incoming_msg.content, user_id);
@@ -474,44 +482,4 @@ wss.on('connection', (ws_client) => {
   //   return;
   // }
 
-  // eat_drink_cmd(user_id, target){
-  //   //eat/drink food that's in the wear,hold or slots.
-
-  //   if (target===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to consume?`);    
-  //     return;
-  //   }
-
-  //   //Target is not null.
-  //   let user=       World.world.get_instance(user_id);    
-  //   let entity_id = user.search_target_in_slots(target);
-
-  //   if (entity_id===null){
-  //     entity_id = user.search_target_in_wear_hold(target);
-  //     if (entity_id===null){
-  //       //Target not found on user's body.
-  //       Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //         `You don't have it on you.`);        
-  //       return;
-  //     }
-  //   }
-
-  //   //Target was found
-  //   let entity = World.world.get_instance(entity_id);
-
-  //   if (!entity.is_food){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `You want to put ~THAT~ in you MOUTH??!`
-  //     );      
-  //     return;
-  //   }
-
-  //   //Target can be consumed.
-  //   user.consume(entity_id);
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //     `You consume ${entity.type_string}.`);
-        
-  //   Utils.msg_sender.send_chat_msg_to_room(user_id, 'world', 
-  //     `${user.name} consumes ${entity.type_string}`, true);
-  // }
+  
