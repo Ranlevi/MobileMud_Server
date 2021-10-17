@@ -382,59 +382,71 @@ class Game_Controller {
 }
 
 let game_controller=  new Game_Controller();
+const clients = new Map();
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
 
-  var user_data = null;
-  var state = "Not Logged In";
-  var user_id = null;
-  
-  ws_client.on('close', () => {
-    console.log(`Client User ID ${user_id} disconnected`);
-    user_data = null;
-    state = "Not Logged In";
-  });
+  if (!clients.has(ws_client)){    
+    clients.set(ws_client, null); //ws_client, user_id
+  }
 
   ws_client.onmessage = (event) => {
     let incoming_msg = JSON.parse(event.data);    
 
     if (incoming_msg.type==="Login"){
 
-      if (state==="Logged In"){
-        //Ignore the message.
-      } else {
-        //Login the user
+      let user_id = clients.get(ws_client);
+      if (user_id===null){
+        //User is not logged in.
+        //Check if User is registered.
+        
         user_data = World.users_db["users"][incoming_msg.content.username];
-
-        if (user_data===null){
+        
+        if (user_data===undefined){
           //This is a new player.
-          user_id = game_controller.create_new_user(
+          let user_id = game_controller.create_new_user(
             ws_client, 
             incoming_msg.content.username, 
             incoming_msg.content.password);
-          state = "Logged In";
-  
+          clients.set(ws_client, user_id);
+
         } else {
-          //An existing player.
-          //Check passworld.
+          //This is a registered User.
+          //Check Password
+
           if (user_data["password"]===incoming_msg.content.password){
-                //Valid passworld
-                user_id = game_controller.load_existing_user(
-                  ws_client, 
-                  incoming_msg.content.username);
-                state = "Logged In";
+            //Valid passworld
+            let user_id = game_controller.load_existing_user(
+              ws_client, 
+              incoming_msg.content.username);            
+            clients.set(ws_client, user_id);
+
           } else {
             //invalid password
             ws_client.close(4000, 'Wrong Username or Password.');
+            clients.delete(ws_client);
           }
         }
-      }  
+      } 
+      //If user_id is not null, then the login message is ignored.
 
-    } else if (incoming_msg.type==="User Input"){      
-      game_controller.process_user_input(incoming_msg.content, user_id);
+    } else if (incoming_msg.type==="User Input"){  
+      
+      let user_id = clients.get(ws_client);
+
+      if (user_id===null){
+        console.error('ws_client.onmessage: recived message when client is not logged in.')
+      } else {
+        game_controller.process_user_input(incoming_msg.content, user_id);
+      }      
     }
   }
+
+  ws_client.on('close', () => {
+    clients.delete(ws_client);
+  });
+  
 });
 
 
