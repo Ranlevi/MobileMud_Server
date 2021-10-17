@@ -9,7 +9,7 @@ const World=                require('./game/world');
 
 const LOAD_WORLD_FROM_SAVE=   true;
 const LOAD_GENERIC_WORLD=     true;
-const ENABLE_USER_SAVE=       true;
+const ENABLE_USER_SAVE=       false;
 const ENABLE_WORLD_SAVE=      true;
 const USER_SAVE_INTERVAL=     10;
 const WORLD_SAVE_INTERVAL=    10;
@@ -385,101 +385,128 @@ let game_controller=  new Game_Controller();
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
+
+  var user_data = null;
+  var state = "Not Logged In";
+  var user_id = null;
   
   ws_client.on('close', () => {
     console.log(`Client User ID ${user_id} disconnected`);
+    user_data = null;
+    state = "Not Logged In";
   });
 
-  ws_client.onmessage = (event) => {    
-    
+  ws_client.onmessage = (event) => {
     let incoming_msg = JSON.parse(event.data);    
 
     if (incoming_msg.type==="Login"){
-      
-      let user_data = World.users_db["users"][incoming_msg.content.username];
-      
-      if (user_data===undefined){
-        //This is a new player.
-        user_id = game_controller.create_new_user(
-          ws_client, 
-          incoming_msg.content.username, 
-          incoming_msg.content.password);
-        state = "Logged In";
 
+      if (state==="Logged In"){
+        //Ignore the message.
       } else {
-        //An existing player.
-        //Check passworld.
-        if (user_data["password"]===incoming_msg.content.password){
-              //Valid passworld
-              user_id = game_controller.load_existing_user(
-                ws_client, 
-                incoming_msg.content.username);
-              state = "Logged In";
+        //Login the user
+        user_data = World.users_db["users"][incoming_msg.content.username];
+
+        if (user_data===null){
+          //This is a new player.
+          user_id = game_controller.create_new_user(
+            ws_client, 
+            incoming_msg.content.username, 
+            incoming_msg.content.password);
+          state = "Logged In";
+  
         } else {
-          //invalid password
-          ws_client.close(4000, 'Wrong Username or Password.');
-        }        
-      }     
+          //An existing player.
+          //Check passworld.
+          if (user_data["password"]===incoming_msg.content.password){
+                //Valid passworld
+                user_id = game_controller.load_existing_user(
+                  ws_client, 
+                  incoming_msg.content.username);
+                state = "Logged In";
+          } else {
+            //invalid password
+            ws_client.close(4000, 'Wrong Username or Password.');
+          }
+        }
+      }  
 
     } else if (incoming_msg.type==="User Input"){      
       game_controller.process_user_input(incoming_msg.content, user_id);
     }
-    
-    // if (state==="Not Logged In" && incoming_msg.type==="Login"){
-    //   //Check if User is already registered.
-    //   let user_data = World.users_db.get(incoming_msg.content.username);
-    //   if (user_data!==undefined){                
-    //     if (incoming_msg.content.password===user_data.props.password){
-    //       state= 'Logged In';
-    //       user_id = game_controller.create_existing_user(ws_client, incoming_msg.content.username);                  
-    //     } else {
-    //       ws_client.close(4000, 'Wrong Username or Password.');
-    //     }
-
-    //   } else {
-    //     //A new user
-    //     state = 'Logged In';
-    //     user_id = game_controller.create_new_user(
-    //       ws_client, 
-    //       incoming_msg.content.username, 
-    //       incoming_msg.content.password);          
-    //   }
-
-    // } else if (state==='Logged In' && incoming_msg.type==="User Input"){
-      
-    //   game_controller.process_incoming_message(incoming_msg.content, user_id);
-    // }
   }
 });
 
 
-
-
-  // create_cmd(user_id, type){
-  //   //Creates an entity and places it in the room.
-
-  //   if (type===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `What do you want to create?`);      
-  //     return;
-  //   }
-
-  //   //Type is not null.    
-  //   let user=       World.world.get_instance(user_id);    
-
-  //   let instance_props = {container_id: user.container_id}
-
-  //   let entity_id=  Classes.create_entity(type, instance_props);    
-
-  //   if (entity_id===null){
-  //     Utils.msg_sender.send_chat_msg_to_user(user_id,'world',
-  //       `There is no such thing as ${type}.`);      
-  //     return;
-  //   }
-
-  //   //Item created and placed in the container
-  //   Utils.msg_sender.send_chat_msg_to_user(user_id,'world',`${type} created.`);
-  //   return;
-  // }
-
+// wss.on('connection', (ws_client) => {  
   
+//   ws_client.on('close', () => {
+//     console.log(`Client User ID ${user_id} disconnected`);
+//   });
+
+//   ws_client.onmessage = (event) => {    
+    
+//     let incoming_msg = JSON.parse(event.data);    
+
+//     if (incoming_msg.type==="Login"){
+
+//       if (user_data!==undefined){
+//         let user_data = World.users_db["users"][incoming_msg.content.username];
+    
+//         if (user_data===undefined){
+//           //This is a new player.
+//           user_id = game_controller.create_new_user(
+//             ws_client, 
+//             incoming_msg.content.username, 
+//             incoming_msg.content.password);
+//           state = "Logged In";
+  
+//         } else {
+//           //An existing player.
+//           //Check passworld.
+//           if (user_data["password"]===incoming_msg.content.password){
+//                 //Valid passworld
+//                 user_id = game_controller.load_existing_user(
+//                   ws_client, 
+//                   incoming_msg.content.username);
+//                 state = "Logged In";
+//           } else {
+//             //invalid password
+//             ws_client.close(4000, 'Wrong Username or Password.');
+//           }
+//         }
+//       }
+
+           
+         
+
+//     } else if (incoming_msg.type==="User Input"){      
+//       game_controller.process_user_input(incoming_msg.content, user_id);
+//     }
+    
+//     // if (state==="Not Logged In" && incoming_msg.type==="Login"){
+//     //   //Check if User is already registered.
+//     //   let user_data = World.users_db.get(incoming_msg.content.username);
+//     //   if (user_data!==undefined){                
+//     //     if (incoming_msg.content.password===user_data.props.password){
+//     //       state= 'Logged In';
+//     //       user_id = game_controller.create_existing_user(ws_client, incoming_msg.content.username);                  
+//     //     } else {
+//     //       ws_client.close(4000, 'Wrong Username or Password.');
+//     //     }
+
+//     //   } else {
+//     //     //A new user
+//     //     state = 'Logged In';
+//     //     user_id = game_controller.create_new_user(
+//     //       ws_client, 
+//     //       incoming_msg.content.username, 
+//     //       incoming_msg.content.password);          
+//     //   }
+
+//     // } else if (state==='Logged In' && incoming_msg.type==="User Input"){
+      
+//     //   game_controller.process_incoming_message(incoming_msg.content, user_id);
+//     // }
+//   }
+// });
