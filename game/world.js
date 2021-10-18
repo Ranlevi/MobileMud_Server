@@ -20,7 +20,6 @@ class World {
   }
 
   add_to_world(instance){
-
     if (instance instanceof Classes.User){
       this.users.set(instance.id, instance);
     } else {
@@ -34,6 +33,18 @@ class World {
     } else if (this.users.has(item_id)){
       this.users.delete(item_id);
     }    
+  }
+
+  get_user_id_by_username(username){
+    
+    let user_id = null;
+    for (let inst of this.users.values()){
+      
+      if (inst.props["name"]===username){
+        user_id = inst.id;
+      }
+    }
+    return user_id;
   }
 }
 const FIRST_ROOM_ID        = '0';
