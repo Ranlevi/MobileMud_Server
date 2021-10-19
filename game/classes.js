@@ -919,7 +919,7 @@ class NPC {
         this.props["state_counter"]= 0;
         Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
           // `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}})** Barks.`);        
-          `**[${this.props["name"]}](type:${this.props["type"]},id:${this.id})** Barks.`);        
+          `**[${this.props["name"]}](NPC_${this.id})** Barks.`);        
 
         //Transition
         this.props["state"] = 'Default';

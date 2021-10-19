@@ -222,7 +222,7 @@ class Game_Controller {
   }
               
   process_user_input(text, user_id){
-
+    
     if (text==='') return;
   
     let normalized_text= text.trim().toLowerCase();  
@@ -386,10 +386,10 @@ const clients = new Map(); //holds all connected clients. ws_client: user_id
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {  
-  
+  var user_id;
   ws_client.onmessage = (event) => {
     let incoming_msg = JSON.parse(event.data);
-    let user_id;
+    // let user_id;
 
     switch (incoming_msg.type){
       case ('Login'):
@@ -435,10 +435,12 @@ wss.on('connection', (ws_client) => {
           } else {
             //The user is in the game.
             //We need to replace the existing ws_client with this new one.
+            
             let user = World.world.get_instance(user_id);
             clients.delete(user.ws_client);
             user.ws_client = ws_client;
             clients.set(ws_client, user_id);
+            
           }
           
         } else {
@@ -448,7 +450,8 @@ wss.on('connection', (ws_client) => {
         break;
 
       case ("User Input"):
-        user_id = clients.get(ws_client);
+        // console.log(clients);
+        // user_id = clients.get(ws_client);
         game_controller.process_user_input(incoming_msg.content, user_id);        
         break;
     }
