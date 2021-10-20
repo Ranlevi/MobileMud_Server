@@ -451,7 +451,7 @@ wss.on('connection', (ws_client) => {
 
       case ("User Input"):
         // console.log(clients);
-        // user_id = clients.get(ws_client);
+        // user_id = clients.get(ws_client); //TODO: cancel clients?
         game_controller.process_user_input(incoming_msg.content, user_id);        
         break;
     }

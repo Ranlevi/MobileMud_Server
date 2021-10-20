@@ -67,23 +67,23 @@ class Room {
   
   get_look_string(){
         
-    let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}, `;
-    msg += `lighting: ${this.props["lighting"]})**  ${this.props["description"]}  `;
-    msg += `Exits:  `;
+    let msg = `**[${this.props["name"]}](ROOM_${this.id})**\n`;
+    msg += `${this.props["description"]}\n`;
+    msg += `Exits:\n`;
 
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
-          msg += `[${direction}]({type:"Command"}) `
+          msg += `[${direction}](${direction}),`
       }
     }
 
-    msg += '  '; //new paragraph
+    msg += '\n'; //new paragraph
 
     if (this.props["entities"].length===1){    
       //Only the player is in the room.
-      msg += 'The room is empty.';
+      msg += 'The room is empty.\n';
     } else {
-      msg += 'In the room:  ';
+      msg += 'In the room:\n';
 
       for (const entity_id of this.props["entities"]){
         let entity = World.world.get_instance(entity_id);
@@ -205,16 +205,16 @@ class User {
 
   look_cmd(target=null){
     //target can be an id, a type or a name.
+    let room = World.world.get_instance(this.props["container_id"]);  
 
     if (target===null){
-      //Look at the room the user is in.
-      let room = World.world.get_instance(this.props["container_id"]);  
+      //Look at the room the user is in.      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, room.get_look_string());        
       return;
     }
 
     //Target is not null.
-    //Search order: body_slots, misc_slots, room.
+    //Search order: body_slots, misc_slots, room entitys, room itself
     let id_arr = [];
     for (const id of Object.values(this.props["wearing"])){
       if (id!==null) id_arr.push(id);
@@ -224,8 +224,10 @@ class User {
     
     id_arr = id_arr.concat(this.props["slots"]);
 
-    let room = World.world.get_instance(this.props["container_id"]);
+    room = World.world.get_instance(this.props["container_id"]);
     id_arr = id_arr.concat(room.get_entities_ids());
+
+    id_arr.push(room.id);
 
     let entity_id = Utils.search_for_target(target, id_arr);
 
@@ -466,7 +468,7 @@ class User {
 
     let entity = World.world.get_instance(entity_id);
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-     `You remove ${entity.props["name"]}`);
+     `You remove [${entity.props["name"]}](${entity.props["type"]}_${entity.id}).`);
   }
 
   kill_cmd(target=null){
@@ -567,7 +569,7 @@ class User {
   }
 
   inv_cmd(){
-    let msg = `You are wearing:  `;
+    let msg = `You are wearing:\n`;
 
     let is_wearing_something = false;
     for (const [position, id] of Object.entries(this.props["wearing"])){
@@ -579,7 +581,7 @@ class User {
     }
 
     if (!is_wearing_something){
-      msg += 'Nothing.  ';
+      msg += 'Nothing.\n';
     }
 
     msg += "You are holding: "
@@ -587,10 +589,10 @@ class User {
       let item = World.world.get_instance(this.props["holding"]);
       msg += `${item.get_short_look_string()}`;
     } else {
-      msg += "Nothing.  ";
+      msg += "Nothing.\n";
     }
 
-    msg += 'You are carrying:  '
+    msg += 'You are carrying: '
     let is_carrying_something = false;
     for (const id of this.props["slots"]){
       is_carrying_something = true;
@@ -599,17 +601,17 @@ class User {
     }
 
     if (!is_carrying_something){
-      msg += 'Nothing.  ';
+      msg += 'Nothing.\n';
     }
 
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, msg);
   }
 
   get_look_string(){
-    let msg = `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}**,  `;
-    msg += `${this.props["description"]}  `;
+    let msg = `**[${this.props["name"]}](User_${this.id})**\n`;
+    msg += `${this.props["description"]}\n`;
     
-    msg += `${this.props["name"]} is wearing:  `;
+    msg += `${this.props["name"]} is wearing:\n`;
     let is_wearing_something = false;
     for (const id of Object.values(this.props["wearing"])){
       if (id!==null){
@@ -620,22 +622,22 @@ class User {
     }
 
     if (!is_wearing_something){
-      msg += 'Nothing interesting.';
+      msg += 'Nothing interesting.\n';
     }
 
-    msg += `${this.props["name"]} is holding:  `;
+    msg += `${this.props["name"]} is holding: `;
     if (this.props["holding"]!==null){
       let item = World.world.get_instance(this.props["holding"]);
       msg += `${item.get_short_look_string()}`;
     } else {
-      msg += "Nothing.  ";
+      msg += "Nothing.\n";
     }
 
     return msg;
   }
 
   get_short_look_string(){
-    let msg = `[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}}`;
+    let msg = `[${this.props["name"]}](User_${this.id})`;
     return msg;
   }
 
@@ -699,7 +701,9 @@ class User {
     let damage_recieved = opponent.recieve_damage(damage_dealt);
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
-    `${this.props["name"]} strikes ${opponent.props["name"]}, dealing ${damage_recieved} HP of damage.`);
+    `[${this.props["name"]}](User_${this.id}) strikes `
+    `[${opponent.props["name"]}](${opponent.props["type"]}_${opponent.id}), `
+    `dealing ${damage_recieved} HP of damage.`);
 
     Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
 
@@ -917,8 +921,7 @@ class NPC {
       case('Barking'):
         //Action
         this.props["state_counter"]= 0;
-        Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-          // `**[${this.props["name"]}]({type:${this.props["type"]}, id:${this.id}})** Barks.`);        
+        Utils.msg_sender.send_chat_msg_to_room(this.id,'world',          
           `**[${this.props["name"]}](NPC_${this.id})** Barks.`);        
 
         //Transition
