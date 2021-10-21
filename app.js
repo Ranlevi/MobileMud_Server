@@ -50,15 +50,14 @@ class Game_Controller {
   }
 
   load_users_db(){
-
-    //Load users_db
+    //Load the database of registered users.    
     if (fs.existsSync('./users_db.json')){
       World.users_db = JSON.parse(fs.readFileSync('./users_db.json'));
     }
   }
   
   load_world(){
-
+    //Load all rooms and entities (except users) from the save file.
     let path;
     if (LOAD_GENERIC_WORLD){
       path = `./generic_world.json`
@@ -73,6 +72,7 @@ class Game_Controller {
       for (const [id, data] of Object.entries(parsed_info)){
         current_id=  id;
         
+        //Create the entities, with their saves props.
         switch(data.type){
           case "Room":
             new Classes.Room(data.props, id);
@@ -92,6 +92,9 @@ class Game_Controller {
             console.error(`GC.load_world: Unknown type: ${data.type}`);
         }
                  
+        //Since entities are loaded with their pre-existing IDs,
+        //we update the id_generator on the latest existing id (so it
+        //won't create an identical ID.)
         Utils.id_generator.set_new_current_id(current_id);        
       } 
       
@@ -101,7 +104,7 @@ class Game_Controller {
   }
 
   save_users_to_file(){
-    
+    //Save all the users and the entities they carry on them.
     if (!ENABLE_USER_SAVE) return;
         
     let data = {
@@ -114,6 +117,7 @@ class Game_Controller {
     });
 
     World.world.world.forEach((item)=>{
+      //For each item in the world, check if it is carried by a user.
       let container = World.world.get_instance(item.props["container_id"]);
 
       if (container instanceof Classes.User){        
@@ -176,6 +180,7 @@ class Game_Controller {
     let timer_id = setTimeout(
       function update(){
 
+        //Save Counters
         this.user_save_counter -= 1;
         if (this.user_save_counter===0){
           this.user_save_counter = USER_SAVE_INTERVAL;
@@ -197,11 +202,13 @@ class Game_Controller {
   }
 
   run_simulation_tick(){
+    //Iterate on all entities, and process their tick actions.
     console.log('tick');
 
     World.world.world.forEach(
       (item) => {
-
+        //Currently, only NPCs and Users have tick actions.
+        //Fighting overrides the do_tick().
         if (item instanceof Classes.NPC){
           if (item.props["is_fighting_with"]!==null){
             item.do_battle(); 
@@ -222,13 +229,17 @@ class Game_Controller {
   }
               
   process_user_input(text, user_id){
-    
-    if (text==='') return;
+    //Takes the text recived via the webSockets interface,
+    //and the user_id who sent it. Parses the text.
+
+    if (text==='') return;//Ignore empty messages.
   
     let normalized_text= text.trim().toLowerCase();  
     let re = /\s+/g; //search for all white spaces.
     let input_arr = normalized_text.split(re);
     
+    //Assume the first word is always a Command, and everything that
+    //comes after that is a target.
     let cmd = input_arr[0];
     let target;
     if (input_arr.length===1){
@@ -310,7 +321,8 @@ class Game_Controller {
   }  
 
   create_new_user(ws_client, username, password){
-
+    //Create a new user, and associate the ws_client with it.
+    //Returns the ID of the created user (String)
     let props = {
       "name":         username,
       "password":     password,
@@ -319,11 +331,14 @@ class Game_Controller {
 
     let user = new Classes.User(props, ws_client);
     
+    //Add the user to the Spawn room.
     let room = World.world.get_instance(World.FIRST_ROOM_ID);
     room.add_entity(user.id);
     
+    //Send a welcome message, and a Status message to init the health bar.
+    //Than perform a Look command on the room.
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
-      `Hi ${user.props["name"]}, your ID is ${user.id}`);
+      `Welcome ${user.props["name"]}!`);
 
     Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
     user.look_cmd();
@@ -332,22 +347,26 @@ class Game_Controller {
   }
 
   load_existing_user(ws_client, username){
+    //Load the user from the registered users database, and associate
+    //the ws_client with it.
+    //Return the ID of the retrived user (String)
     
     console.log('Loading existing user');
 
     let user_data = World.users_db["users"][username];
 
     let user = new Classes.User(user_data, ws_client);
-
+  
+    //Spawn the user it the saved room.
     let room = World.world.get_instance(user.props["container_id"]);
     room.add_entity(user.id);
 
     //Get the items the user carries
     for (const [position, id] of Object.entries(user.props["wearing"])){
       if (id!==null){
-        //get the saved item
-        let props = World.users_db["items"][id];
-        let entity = new Classes.Item(props["type"], props);
+        //Create the saved item, add it to the user and set its container ID.
+        let props=  World.users_db["items"][id];
+        let entity= new Classes.Item(props["type"], props);
 
         entity.set_container_id(user.id);
         user.props["wearing"][position] = entity.id;        
@@ -355,8 +374,8 @@ class Game_Controller {
     }
 
     if (user.props["holding"]!==null){
-      let props = World.users_db["items"][user.props["holding"]];
-      let entity = new Classes.Item(props["type"], props);
+      let props=  World.users_db["items"][user.props["holding"]];
+      let entity= new Classes.Item(props["type"], props);
 
       entity.set_container_id(user.id);
       user.props["holding"] = entity.id;        
@@ -365,13 +384,15 @@ class Game_Controller {
     let temp_arr = user.props["slots"];
     user.props["slots"] = [];
     for (const id of temp_arr){
-      let props = World.users_db["items"][id];
-      let entity = new Classes.Item(props["type"], props);
+      let props=  World.users_db["items"][id];
+      let entity= new Classes.Item(props["type"], props);
 
       entity.set_container_id(user.id);
       user.props["slots"].push(entity.id);
     }
 
+    //Send a welcome message, and a status message to init the health bar.
+    //Then do a Look command on the room.
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
     `Hi ${user.props["name"]}, your ID is ${user.id}`);
 
@@ -382,15 +403,15 @@ class Game_Controller {
 }
 
 let game_controller=  new Game_Controller();
-const clients = new Map(); //holds all connected clients. ws_client: user_id
+const clients=        new Map(); //holds all connected clients. ws_client: user_id
 
 //-- WebSockets
-wss.on('connection', (ws_client) => {  
+wss.on('connection', (ws_client) => {    
   var user_id;
+
   ws_client.onmessage = (event) => {
     let incoming_msg = JSON.parse(event.data);
-    // let user_id;
-
+    
     switch (incoming_msg.type){
       case ('Login'):
         user_id = clients.get(ws_client);
@@ -398,8 +419,7 @@ wss.on('connection', (ws_client) => {
         if (user_id===undefined){
           //This client is not bonded to a playing user.
           //Check the username to find if the user is already in the game.
-          user_id = World.world.get_user_id_by_username(incoming_msg.content.username);
-          
+          user_id = World.world.get_user_id_by_username(incoming_msg.content.username);          
 
           if (user_id===null){
             //User is not in the game.
@@ -423,9 +443,6 @@ wss.on('connection', (ws_client) => {
                   ws_client, 
                   incoming_msg.content.username);            
                 clients.set(ws_client, user_id);
-                
-                // let user = World.world.get_instance(user_id);
-                // user.ws_client = ws_client;
     
               } else {
                 //invalid password
@@ -434,13 +451,11 @@ wss.on('connection', (ws_client) => {
             }
           } else {
             //The user is in the game.
-            //We need to replace the existing ws_client with this new one.
-            
+            //We need to replace the existing ws_client with this new one.            
             let user = World.world.get_instance(user_id);
             clients.delete(user.ws_client);
             user.ws_client = ws_client;
-            clients.set(ws_client, user_id);
-            
+            clients.set(ws_client, user_id);            
           }
           
         } else {
@@ -449,9 +464,7 @@ wss.on('connection', (ws_client) => {
         }
         break;
 
-      case ("User Input"):
-        // console.log(clients);
-        // user_id = clients.get(ws_client); //TODO: cancel clients?
+      case ("User Input"):        
         game_controller.process_user_input(incoming_msg.content, user_id);        
         break;
     }
@@ -462,77 +475,3 @@ wss.on('connection', (ws_client) => {
   });
   
 });
-
-
-// wss.on('connection', (ws_client) => {  
-  
-//   ws_client.on('close', () => {
-//     console.log(`Client User ID ${user_id} disconnected`);
-//   });
-
-//   ws_client.onmessage = (event) => {    
-    
-//     let incoming_msg = JSON.parse(event.data);    
-
-//     if (incoming_msg.type==="Login"){
-
-//       if (user_data!==undefined){
-//         let user_data = World.users_db["users"][incoming_msg.content.username];
-    
-//         if (user_data===undefined){
-//           //This is a new player.
-//           user_id = game_controller.create_new_user(
-//             ws_client, 
-//             incoming_msg.content.username, 
-//             incoming_msg.content.password);
-//           state = "Logged In";
-  
-//         } else {
-//           //An existing player.
-//           //Check passworld.
-//           if (user_data["password"]===incoming_msg.content.password){
-//                 //Valid passworld
-//                 user_id = game_controller.load_existing_user(
-//                   ws_client, 
-//                   incoming_msg.content.username);
-//                 state = "Logged In";
-//           } else {
-//             //invalid password
-//             ws_client.close(4000, 'Wrong Username or Password.');
-//           }
-//         }
-//       }
-
-           
-         
-
-//     } else if (incoming_msg.type==="User Input"){      
-//       game_controller.process_user_input(incoming_msg.content, user_id);
-//     }
-    
-//     // if (state==="Not Logged In" && incoming_msg.type==="Login"){
-//     //   //Check if User is already registered.
-//     //   let user_data = World.users_db.get(incoming_msg.content.username);
-//     //   if (user_data!==undefined){                
-//     //     if (incoming_msg.content.password===user_data.props.password){
-//     //       state= 'Logged In';
-//     //       user_id = game_controller.create_existing_user(ws_client, incoming_msg.content.username);                  
-//     //     } else {
-//     //       ws_client.close(4000, 'Wrong Username or Password.');
-//     //     }
-
-//     //   } else {
-//     //     //A new user
-//     //     state = 'Logged In';
-//     //     user_id = game_controller.create_new_user(
-//     //       ws_client, 
-//     //       incoming_msg.content.username, 
-//     //       incoming_msg.content.password);          
-//     //   }
-
-//     // } else if (state==='Logged In' && incoming_msg.type==="User Input"){
-      
-//     //   game_controller.process_incoming_message(incoming_msg.content, user_id);
-//     // }
-//   }
-// });

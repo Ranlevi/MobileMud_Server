@@ -1,7 +1,8 @@
 const Classes=              require('./classes');
 
 class World {
-  //World state.
+  //Holds all entities and user instances, accesible by ID (String)
+  //Only a single instance of it exists.
   constructor(){
     this.world = new Map(); //id: item instance.
     this.users = new Map();
@@ -35,11 +36,9 @@ class World {
     }    
   }
 
-  get_user_id_by_username(username){
-    
+  get_user_id_by_username(username){    
     let user_id = null;
-    for (let inst of this.users.values()){
-      
+    for (let inst of this.users.values()){      
       if (inst.props["name"]===username){
         user_id = inst.id;
       }
@@ -47,10 +46,12 @@ class World {
     return user_id;
   }
 }
-const FIRST_ROOM_ID        = '0';
-const world=      new World();
-let users_db=     null;
+const FIRST_ROOM_ID= '0';
+const world=         new World();
 
-exports.world=    world;
-exports.users_db= users_db;
+//Datebase of registered users. Loaded on game initalization.
+let users_db=        null;
+
+exports.world=          world;
+exports.users_db=       users_db;
 exports.FIRST_ROOM_ID = FIRST_ROOM_ID;
