@@ -5,20 +5,23 @@
     <meta charset="utf-8"> <!-- For Hebrew support on old browsers -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Support IE browsers -->
     <meta name="viewport"              content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <link   rel="stylesheet"  href="./style.css"> 
     <script type="module" src="./client.js" defer></script>
     </head>
   <body>
 
-    <div class="parent">
-      <div class="div1"><div id="chat_display"></div></div>
+    <div class="parent">      
+      <div id="chat_display" class="box" class="div1"></div>
+
       <div class="div2"><div id="dashboard">Dashboard Here</div></div>
+
       <div class="div3">
         <form id="input_form">            
           <input type="text" autocomplete="off" id="input_field" style="width: 100%;">          
         </form>
       </div>
-      </div>
+    </div>
 
 
     

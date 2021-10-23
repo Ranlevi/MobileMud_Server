@@ -20,6 +20,7 @@ ws.onmessage = (event) => {
   
   if (msg.type==="Chat"){
     let div = document.createElement("div");
+    div.classList.add("has-text-primary");
     div.append(`${msg.content.sender}: ${msg.content.text}`);  
     chat_display.append(div);
   } else if (msg.type==="Status"){
