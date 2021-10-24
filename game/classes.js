@@ -965,7 +965,8 @@ class NPC {
         //Action
         this.props["state_counter"]= 0;
         Utils.msg_sender.send_chat_msg_to_room(this.id,'world',          
-          `[${this.props["name"]}](NPC_${this.id}) Barks.`);        
+          // `[${this.props["name"]}](NPC_${this.id}) Barks.`);        
+          `<a>${this.props["name"]}</a> NPC ${this.id}) Barks.`);        
 
         //Transition
         this.props["state"] = 'Default';
