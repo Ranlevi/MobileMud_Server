@@ -21,6 +21,7 @@ ws.onmessage = (event) => {
   if (msg.type==="Chat"){
     let div = document.createElement("div");
     div.classList.add("has-text-primary");
+    div.classList.add("box");
     div.append(`${msg.content.sender}: ${msg.content.text}`);  
     chat_display.append(div);
   } else if (msg.type==="Status"){
@@ -40,6 +41,13 @@ input_form.addEventListener('submit', (evt)=> {
     content: input_field.value
   }
   ws.send(JSON.stringify(msg));
+
+  let div = document.createElement("div");
+  div.classList.add("has-text-danger");
+  div.classList.add("box");
+  div.classList.add("is-align-items-self-end");
+  div.append(`${msg.content}`);  
+  chat_display.append(div);
   
   input_field.value = '';
 })
