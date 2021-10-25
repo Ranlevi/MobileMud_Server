@@ -31,6 +31,14 @@ html, body {
     padding: 1%;    
   }
 
-  .name {
-    color: turquoise;
+  .pn_link {
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .modal {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
   }

@@ -1,6 +1,9 @@
 let ws = new WebSocket('ws://localhost:8080');
 let chat_display = document.getElementById('chat_display');
 let dashboard= document.getElementById('dashboard');
+let actions_modal = document.getElementById('actions_modal');
+let actions_modal_close_btn = document.getElementById('actions_modal_close_btn');
+let actions_modal_body = document.getElementById('actions_modal_body');
 
 let stop_chat_scroll = false;
 
@@ -12,8 +15,32 @@ handle log in and user save
 
 */
 
+chat_display.addEventListener('click', (evt)=>{
+  evt.stopPropagation();
 
-chat_display.addEventListener('mousedown', ()=>{
+  if (evt.target.dataset.element==="pn_link"){
+    actions_modal.classList.add('is-active');
+
+    actions_modal_body.innerHTML = 
+      `<ul><li>one</li><li>two</li></ul>`;
+
+
+    console.log(evt.target.dataset.type);
+    console.log(evt.target.dataset.id);
+    console.log(evt.target.dataset.name);    
+  }  
+})
+
+actions_modal_close_btn.addEventListener('click', ()=>{
+  actions_modal.classList.remove('is-active');
+})
+
+chat_display.addEventListener('mousedown', (evt)=>{
+  
+  if (evt.target.dataset.element==="pn_link"){    
+    return; //prevent action when a link is clicked
+  };
+
   stop_chat_scroll = !stop_chat_scroll;
   if (stop_chat_scroll===true){
     chat_display.style.backgroundColor = "bisque";
@@ -40,16 +67,13 @@ ws.onmessage = (event) => {
   
   if (msg.type==="Chat"){
     let div = document.createElement("div");
-    // div.classList.add("has-text-primary");
-    div.classList.add("box");    
-    // div.append(`${msg.content.sender}: ${msg.content.text}`);  
+    div.classList.add("box");
     div.innerHTML = `${msg.content.text}`;
     chat_display.append(div);
 
     if (!stop_chat_scroll){
       div.scrollIntoView();  
     }
-
     
   } else if (msg.type==="Status"){
     dashboard.innerHTML = `Health: ${msg.content.health}`
