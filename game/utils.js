@@ -68,6 +68,16 @@ class Message_Sender {
     ws_client.send(JSON.stringify(message));
   }
 
+  send_login_msg_to_user(ws_client, is_login_successful){
+    let msg = {
+      type: "Login",
+      content: {
+        is_login_successful: is_login_successful
+      }
+    }
+    ws_client.send(JSON.stringify(msg));
+  }
+
   send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
     //Send a Chat message to all users in the same room as the sender.
     let user= World.world.get_instance(sender_id);
