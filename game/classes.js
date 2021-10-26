@@ -66,15 +66,21 @@ class Room {
     return id_arr;
   }
   
+
+  // `<span class="pn_link" data-element="pn_link" data-type="NPC" data-id="${this.id}"` + 
+  // `data-name="${this.props["name"]}">${this.props["name"]}</span> Barks.`);        
+
   get_look_string(){
     //Returns a Look Command message (String)
-    let msg = `**[${this.props["name"]}](ROOM_${this.id})**\n`;
-    msg +=    `${this.props["description"]}\n`;
-    msg +=    `Exits:\n`;
+    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="Room" ` + 
+              `data-id="${this.id}" ${this.props["name"]}</span></h1>` +
+              `<p>${this.props["description"]}</p>`;
+    msg +=    `<p>Exits: `;
 
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
-        msg += `[${direction}](${direction}),`
+        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd" ` +
+               `>${direction}](${direction})</span>`
       }
     }
 

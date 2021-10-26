@@ -75,6 +75,7 @@ class Message_Sender {
         is_login_successful: is_login_successful
       }
     }
+    
     ws_client.send(JSON.stringify(msg));
   }
 

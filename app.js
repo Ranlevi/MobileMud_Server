@@ -202,8 +202,7 @@ class Game_Controller {
   }
 
   run_simulation_tick(){
-    //Iterate on all entities, and process their tick actions.
-    console.log('tick');
+    //Iterate on all entities, and process their tick actions.    
 
     World.world.world.forEach(
       (item) => {
@@ -413,6 +412,7 @@ wss.on('connection', (ws_client) => {
     let incoming_msg = JSON.parse(event.data);
     
     switch (incoming_msg.type){
+      
       case ('Login'):
         user_id = clients.get(ws_client);
         
@@ -420,12 +420,12 @@ wss.on('connection', (ws_client) => {
           //This client is not bonded to a playing user.
           //Check the username to find if the user is already in the game.
           user_id = World.world.get_user_id_by_username(incoming_msg.content.username);          
-
+          
           if (user_id===null){
             //User is not in the game.
             //Is it a new player, or a registred one?
             let user_data = World.users_db["users"][incoming_msg.content.username];
-
+            
             if (user_data===undefined){
               //This is a new player.
               user_id = game_controller.create_new_user(
@@ -433,7 +433,8 @@ wss.on('connection', (ws_client) => {
                 incoming_msg.content.username, 
                 incoming_msg.content.password);
               clients.set(ws_client, user_id);
-  
+              
+              Utils.msg_sender.send_login_msg_to_user(ws_client,true);
             } else {
               //This is an already registed user
               //Verify password is correcnt.
@@ -443,10 +444,12 @@ wss.on('connection', (ws_client) => {
                   ws_client, 
                   incoming_msg.content.username);            
                 clients.set(ws_client, user_id);
-    
+
+                Utils.msg_sender.send_login_msg_to_user(ws_client,true);
               } else {
                 //invalid password
-                ws_client.close(4000, 'Wrong Username or Password.');
+                // ws_client.close(4000, 'Wrong Username or Password.');
+                Utils.msg_sender.send_login_msg_to_user(ws_client,false);
               }
             }
           } else {

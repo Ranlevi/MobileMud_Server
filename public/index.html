@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
-    <title>Planet Nine Demo Client</title>
+    <title>Planet Nine Web Client</title>
     <meta charset="utf-8"> <!-- For Hebrew support on old browsers -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Support IE browsers -->
     <meta name="viewport"              content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <link   rel="stylesheet"  href="./style.css"> 
-    <script type="module" src="./client.js" defer></script>
+    <link rel="stylesheet" href="./style.css"> 
+    <script type="module"   src="./client.js" defer></script>
     </head>
   <body>
 
-    <div class="modal is-active">
+    <!-- Login Modal -->
+    <div id="login_modal" class="modal">
       <div class="modal-background"></div>
       <div class="modal-content">
-        <div class="box">
+        <div id="login_modal_body" class="box">
           <div class="content">
             <form id="signin">              
-              <input name="username" type="text" autocomplete="name">
-              <input name="password" type="password" autocomplete="new-password">
-              <input type="submit" value="Enter Planet Nine">
+              <input name="username"  type="text"     autocomplete="name">
+              <input name="password"  type="password" autocomplete="new-password">
+              <input type="submit"    value="Enter Planet Nine">
              </form>
           </div>
         </div>
@@ -27,11 +28,11 @@
       <button class="modal-close is-large" aria-label="close"></button>
     </div>
 
+    <!-- Game Area -->
     <div class="parent">      
       <div id="chat_display" class="div1 is-flex is-flex-direction-column"></div>
 
-      <div id="actions_modal" class="modal">
-        
+      <div id="actions_modal" class="modal">        
         <div class="modal-card">
           <header class="modal-card-head">            
             <button id="actions_modal_close_btn" class="delete" aria-label="close"></button>
@@ -47,10 +48,7 @@
           <input type="text" autocomplete="off" id="input_field" style="width: 100%;">          
         </form>
       </div>
-    </div>
-
-
-    
+    </div>    
     
   </body>
 </html>
