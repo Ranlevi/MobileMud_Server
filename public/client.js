@@ -12,6 +12,8 @@ let input_field=              document.getElementById('input_field');
 
 let stop_chat_scroll = false;
 
+const DEBUG = true;
+
 /*
 todo:
 save user creditials in the browser
@@ -23,17 +25,53 @@ https://web.dev/sign-in-form-best-practices/
 chat_display.addEventListener('click', (evt)=>{
   evt.stopPropagation();
 
+  let actions;
   //Handle clicks on links.
+  
   if (evt.target.dataset.element==="pn_link"){
-    //Show the Actions Modal.
-    actions_modal.classList.add('is-active');
+    //Show the Actions Modal.    
+    switch(evt.target.dataset.type){
+      case ("Room"):
+        actions = ["Look"];
+        break;
 
-    actions_modal_body.innerHTML = 
-      `<ul><li>one</li><li>two</li></ul>`;
+      case ("Item"):
+        actions = ["Look", "Get", "Wear/Hold", "Consume"];
+        break;
 
-    console.log(evt.target.dataset.type);
-    console.log(evt.target.dataset.id);
-    console.log(evt.target.dataset.name);    
+      case ("User"):
+        actions = ["Look"];
+        break;
+
+      default:
+        console.error('chat_display click handler: unknown type.');
+    }
+
+    let text = ``;
+    for (const action of actions){
+      let normalized_cmd = "";
+      switch(action){
+        case("Wear/Hold"):
+          normalized_cmd = "Wear";
+          break;
+
+        case("Consume"):
+          normalized_cmd = "Eat";
+          break;
+
+        default:
+          normalized_cmd = action;
+      }
+
+      text += `<li><span class="pn_action" data-element="pn_action" data-action="${normalized_cmd}"` + 
+              `data-id="${evt.target.dataset.id}" ` + 
+              `data-name="${evt.target.dataset.name}">${action} ${evt.target.dataset.name}</span></li>`
+    }
+
+    let html = `<ul>${text}</ul>`;
+    actions_modal_body.innerHTML = html;
+    actions_modal.classList.add('is-active');   
+  
   } else {
     //This is a click on no particular element, which means 
     //that the user wishes to freeze the chat. 
@@ -51,9 +89,49 @@ actions_modal_close_btn.addEventListener('click', ()=>{
   actions_modal.classList.remove('is-active');
 })
 
+//Handle clicks on the actions in the actions modal
+actions_modal.addEventListener('click', (evt)=> {
+  
+  if (evt.target.dataset.element==="pn_action"){
+
+    let msg = {
+      type: 'User Input',
+      content: `${evt.target.dataset.action} ${evt.target.dataset.id}`
+    }
+    ws.send(JSON.stringify(msg));
+
+    //Create a Chat box and add it to the Chat, as feedback.
+    let div = document.createElement("div");
+    div.classList.add("has-text-danger");
+    div.classList.add("box");
+    div.classList.add("chat_box");
+    div.classList.add("is-align-self-flex-end");
+    div.append(`${evt.target.dataset.action} ${evt.target.dataset.name}`);  
+    chat_display.append(div);
+
+    if (!stop_chat_scroll){
+      div.scrollIntoView();  
+    }
+
+    actions_modal.classList.remove(`is-active`);
+    input_field.focus();
+  }
+})
+
 //Once the Websockets i/f is open, show the login modal.
 ws.onopen = (event) => {
-  login_modal.classList.add('is-active');
+  if (DEBUG){
+    let login_msg = {
+      type: 'Login',
+      content: {
+        username: "HaichiPapa",
+        password: "12345678"
+      }    
+    }
+    ws.send(JSON.stringify(login_msg));
+  } else {
+    login_modal.classList.add('is-active');
+  }  
 }
 
 //Handle Form submission of Login Modal
@@ -84,12 +162,12 @@ signin_form.addEventListener('submit', (evt)=>{
 ws.onmessage = (event) => {
   let msg = JSON.parse(event.data);  
   
-  if (msg.type==="Chat"){
+  if (msg.type==="Chat"){    
     //Create a 'msg box' and add it to the Chat dispaly.
     let div = document.createElement("div");
     div.classList.add("box");
     div.classList.add("chat_box");
-    div.innerHTML = `${msg.content.text}`;
+    div.innerHTML = msg.content.text;
     chat_display.append(div);
 
     //If the chat is not frezzed, scroll it to view the latest msg.
@@ -104,6 +182,7 @@ ws.onmessage = (event) => {
     //If a successful login msg is recived, remove the Login Modal and play the game.
     if (msg.content.is_login_successful){
       login_modal.classList.remove('is-active');
+      input_field.focus();
     } else {
       //Login unsuccessful.
       let div = document.createElement('div');

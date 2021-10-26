@@ -65,17 +65,14 @@ class Room {
     }
     return id_arr;
   }
-  
-
-  // `<span class="pn_link" data-element="pn_link" data-type="NPC" data-id="${this.id}"` + 
-  // `data-name="${this.props["name"]}">${this.props["name"]}</span> Barks.`);        
 
   get_look_string(){
     //Returns a Look Command message (String)
     let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="Room" ` + 
-              `data-id="${this.id}" ${this.props["name"]}</span></h1>` +
+              `data-id="${this.id}" data-name="${this.props["name"]}">`+
+              `${this.props["name"]}</span></h1>` +
               `<p>${this.props["description"]}</p>`;
-    msg +=    `<p>Exits: `;
+    msg +=    `<p><span class="style1">Exits:</span> `;
 
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
@@ -84,19 +81,16 @@ class Room {
       }
     }
 
-    msg += '\n'; //new paragraph
+    msg += '</p>'; //new paragraph
 
-    if (this.props["entities"].length===1){    
-      //Only the player is in the room.
-      msg += 'The room is empty.\n';
-    } else {
-      msg += 'In the room:\n';
+    msg += '<p>In the room:<br>';
 
-      for (const entity_id of this.props["entities"]){
-        let entity = World.world.get_instance(entity_id);
-        msg += `${entity.get_short_look_string()}  `;
-      }
-    }
+    for (const entity_id of this.props["entities"]){
+      let entity = World.world.get_instance(entity_id);
+      msg += `<p>${entity.get_short_look_string()}<p>`;
+    }  
+
+    msg += `</p>`
 
     return msg;
   }
@@ -682,7 +676,9 @@ class User {
   }
 
   get_short_look_string(){
-    let msg = `[${this.props["name"]}](User_${this.id})`;
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span>`;     
     return msg;
   }
 
@@ -789,7 +785,7 @@ class Item {
           "description":    "A sweet candy bar.",        
           "container_id":   "0",
           "is_consumable":  true,
-          "hp_restored":    5,
+          "hp_restored":    50,
           "wear_hold_slot": "Hold", //Hold, Head, Torso...
         }
         break;
@@ -828,14 +824,19 @@ class Item {
 
   get_look_string(){
     //Returns a message with what a user sees when looking at the Item.
-        
-    let msg = `**[${this.props["name"]}](${this.props["type"]}_${this.id})**,\n`;
-    msg +=    `${this.props["description"]}`;
+
+    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span></h1>` +
+              `<p>${this.props["description"]}</p>`;
+    
     return msg;
   }
-
+  
   get_short_look_string(){
-    let msg = `[${this.props["name"]}](${this.props["type"]}_${this.id})`;
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span>`; 
     return msg;
   }
   

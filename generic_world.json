@@ -6,7 +6,7 @@
       "type": "Room",
       "description": 
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
-      "entities": [],
+      "entities": ["1"],
       "exits": {
         "north": null,
         "south": null,
@@ -16,6 +16,19 @@
         "down": null
       },
       "lighting": "white"
+    }
+  },
+  "1": {
+    "type": "Candy",
+    "props": {
+      "name": "A Candy",
+      "type": "Candy",
+      "type_string": "A Candy",
+      "description": "A sweet candy bar.",
+      "container_id": "0",
+      "is_consumable": true,
+      "hp_restored": 50,
+      "wear_hold_slot": "Hold"
     }
   }
 }

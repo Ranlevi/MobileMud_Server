@@ -28,10 +28,17 @@ html, body {
   .chat_box {
     /* max-width: 75%; */
     width: fit-content;
-    padding: 1%;    
+    padding: 1%;
+    font-size: small;
   }
 
   .pn_link {
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .pn_action {
     color: blue;
     text-decoration: underline;
     cursor: pointer;
@@ -41,4 +48,8 @@ html, body {
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .style1 {
+    font-weight: 600;
   }
