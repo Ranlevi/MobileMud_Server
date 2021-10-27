@@ -8,7 +8,7 @@
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
       "entities": ["1"],
       "exits": {
-        "north": null,
+        "north": "2",
         "south": null,
         "east": null,
         "west": null,
@@ -30,6 +30,24 @@
       "hp_restored": 50,
       "wear_hold_slot": "Hold"
     }
+  },
+  "2": {
+    "type": "Room",
+    "props": {
+      "name": "A Narrow Corridor",
+      "type": "Room",
+      "description": 
+        "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
+      "entities": ["1"],
+      "exits": {
+        "north": null,
+        "south": "2",
+        "east": null,
+        "west": null,
+        "up": null,
+        "down": null
+      },
+      "lighting": "yellow"
+    }
   }
-
 }

@@ -76,8 +76,8 @@ class Room {
 
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
-        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd" ` +
-               `>${direction}](${direction})</span>`
+        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd" data-cmd="${direction}" ` +
+               `>${direction}</span>`
       }
     }
 
@@ -162,7 +162,7 @@ class User {
       health: this.props["health"],
       room_lighting: World.world.get_instance(this.props["container_id"]).props["lighting"]
     }
-    send_status_msg_to_user(user_id, status_obj);
+    Utils.msg_sender.send_status_msg_to_user(this.id, status_obj);
   }
 
   reset_health(){

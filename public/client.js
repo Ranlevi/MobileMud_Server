@@ -9,6 +9,7 @@ let input_field=              document.getElementById('input_field');
 let freeze_btn=               document.getElementById('freeze_btn');
 
 let stop_chat_scroll = false;
+let current_chat_bg_color = "bisque";
 
 const DEBUG = true;
 
@@ -56,9 +57,16 @@ chat_display.addEventListener('click', (evt)=>{
         actions = ["Look"];
         break;
 
+      case ("Cmd"):      
+        actions = ["North"];
+        break;
+
       default:
         console.error('chat_display click handler: unknown type.');
     }
+
+    //continue from here north
+
 
     let text = ``;
     for (const action of actions){
@@ -118,16 +126,6 @@ chat_display.addEventListener('click', (evt)=>{
       div.scrollIntoView();  
     }
     input_field.focus();
-
-  } else {
-    //This is a click on no particular element, which means 
-    //that the user wishes to freeze the chat. 
-    stop_chat_scroll = !stop_chat_scroll;
-    if (stop_chat_scroll===true){
-      chat_display.style.backgroundColor = "bisque";
-    } else {
-      chat_display.style.backgroundColor = "white";
-    }
   }   
 })
 
@@ -188,8 +186,13 @@ ws.onmessage = (event) => {
       div.scrollIntoView();  
     }
     
-  } else if (msg.type==="Status"){ //TODO: continue from here -
+  } else if (msg.type==="Status"){ 
+
     dashboard.innerHTML = `Health: ${msg.content.health}`;
+
+    if (msg.content.room_lighting!==current_chat_bg_color){
+      chat_display.style.backgroundColor = msg.content.room_lighting;
+    }
 
   } else if (msg.type==="Login"){
     //If a successful login msg is recived, remove the Login Modal and play the game.
