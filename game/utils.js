@@ -127,18 +127,85 @@ function move_to_room(id, current_room_id, new_room_id){
   World.world.get_instance(id).set_container_id(new_room_id);
 }
 
-function search_for_target(target, array_of_ids){
-  //scans an array for a given target.
-  //Target can be an id, or a name or a type.
+// function search_for_target(target, array_of_ids){
+//   //scans an array for a given target.
+//   //Target can be an id, or a name or a type.
 
-  for (const id of array_of_ids){
-    let entity = World.world.get_instance(id);
+//   for (const id of array_of_ids){
+//     let entity = World.world.get_instance(id);
+//     if ((entity.props["name"].toLowerCase()===target) ||
+//     (entity.props["type"].toLowerCase()==target) ||
+//     (target===entity.id)){
+//       return id;
+//     }
+//   }
+// }
+
+function search_for_target(user_id, target){
+  //Search for a target in the room, or in the user's vicinity, from close to far.  
+  //returns an object {entity_id, location} or null.
+
+  //Auxilary helper function
+  const test_if_target = (entity, target) => {
+    //Return ID (string) or null.
     if ((entity.props["name"].toLowerCase()===target) ||
-    (entity.props["type"].toLowerCase()==target) ||
-    (target===entity.id)){
+        (entity.props["type"].toLowerCase()==target) ||
+        (target===entity.id)){
       return id;
     }
+    return null;
   }
+
+  let user = World.world.get_instance(user_id);
+
+  if (user.props["holding"]!==null){
+    let entity = World.world.get_instance(user.props["holding"]);
+    let entity_id = test_if_target(entity,target);
+    if (entity_id!==null){
+      return {entity_id: entity_id, location: "Holding"}
+    }
+  }
+
+  //Target not in Holding. Check Wearing.
+
+  for (const [position, id] of Object.entries(user.props["wearing"])){
+    if (id!==null){
+      let entity = World.world.get_instance(id);
+      let entity_id = test_if_target(entity,target);
+      if (entity_id!==null){
+        return {entity_id: entity_id, location: `${position}`}
+      }
+    }
+  }
+  
+  //Target not in Wearing. Check Slots.
+
+  for (const id of user.props["slots"]){
+    let entity = World.world.get_instance(id);
+    let entity_id = test_if_target(entity,target);
+    if (entity_id!==null){
+      return {entity_id: entity_id, location: "Slots"}
+    }
+  }
+    
+  //Target Not found in Slots. Check Room.
+  
+  let room = World.world.get_instance(user.props["container_id"]);
+  let id_arr=   room.get_entities_ids();
+  for (const id of id_arr){
+    let entity = World.world.get_instance(id);
+    let entity_id = test_if_target(entity,target);
+    if (entity_id!==null){
+      return {entity_id: entity_id, location: "Room"}
+    }
+  }
+
+  //Target is not found.
+  return null;
+}
+
+
+
 
   //No target found
   return null;

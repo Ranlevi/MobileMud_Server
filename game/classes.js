@@ -229,32 +229,21 @@ class User {
       return;
     }
 
-    //Target is not null.
-    //Search order: body_slots, misc_slots, room entitys, room itself
-    let id_arr = [];
-    for (const id of Object.values(this.props["wearing"])){
-      if (id!==null) id_arr.push(id);
-    }
+    //Target is not null. Search for it.
+    let result = Utils.search_for_target(this.id, target);
 
-    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
-    
-    id_arr = id_arr.concat(this.props["slots"]);
-
-    room = World.world.get_instance(this.props["container_id"]);
-    id_arr = id_arr.concat(room.get_entities_ids());
-
-    id_arr.push(room.id);
-
-    let entity_id = Utils.search_for_target(target, id_arr);
-    
-    if (entity_id===null){
-      //No target found.
+    if (result===null){
       Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
         `There is no ${target} around.`);
-    } else {
-      let entity = World.world.get_instance(entity_id);
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, entity.get_look_string());
-    }       
+        return;
+    }
+
+    //Target was found.
+    let entity = World.world.get_instance(result.entity_id);
+    Utils.msg_sender.send_chat_msg_to_user(
+      this.id, 
+      `world`, 
+      entity.get_look_string());    
   }
 
   get_cmd(target=null){
@@ -265,16 +254,13 @@ class User {
       return;
     }
 
-    //Target is not null
-    let room=   World.world.get_instance(this.props["container_id"]);
-    let id_arr= room.get_entities_ids();
+    //Target is not null. Search in the room.
+    let result = Utils.search_for_target(this.id, target);
 
-    let entity_id = Utils.search_for_target(target, id_arr);
-
-    if (entity_id===null){
+    if (result===null || result.location!=="Room"){
       //Target not found.
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `There's no ${target} around.`);        
+        `There's no ${target} in the room with you.`);        
       return;
     }
 
@@ -288,6 +274,7 @@ class User {
 
     //The user can carry the item.
     //Remove it from the room, place it in the player's slots.
+    let room = World.world.get_instance(this.props["container_id"]);
     room.remove_entity(entity_id);
     this.props["slots"].push(entity_id);
 
@@ -312,6 +299,11 @@ class User {
         `What do you want to drop?`);        
       return;
     }
+
+    let result = Utils.search_for_target(this.id, target);
+    //Continue from here!!!!
+    
+
 
     //Target is not null
     //Search for the target on the player.
@@ -366,18 +358,22 @@ class User {
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
   }
 
-  wear_or_hold_cmd(target=null){
-    //get an item from the slots or room, and wear or hold it.
+  hold_cmd(target=null){
+
+  }
+
+  wear_cmd(target=null){
+    //get an item from the slots or room, and wear it.
 
     if (target===null){      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `What do you want to wear or hold?`);        
+        `What do you want to wear?`);        
       return;
     }
 
     //Target is not null
     //Search for it in the room and slots.
-    let id_arr=     this.props["slots"];    
+    let id_arr=     this.props["slots"];
     let room=       World.world.get_instance(this.props["container_id"]);
     id_arr=         id_arr.concat(room.get_entities_ids()); 
 
@@ -874,7 +870,12 @@ class Item {
   }
   
   get_short_look_string(){
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+    // let msg = `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+    //           `data-id="${this.id}" data-name="${this.props["name"]}">` +
+    //           `${this.props["name"]}</span>`; 
+
+    let msg = `<span class="pn_link" data-element="pn_link" ` + 
+              `data-cmds="Look Get Drop Wear/Hold Eat/Drink"` + 
               `data-id="${this.id}" data-name="${this.props["name"]}">` +
               `${this.props["name"]}</span>`; 
     return msg;

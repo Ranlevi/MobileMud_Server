@@ -19,6 +19,8 @@ const VERSION = 0.01;
 
 /*
 TODO:
+Change Look Deep sleep -> Look room
+central html decoration Util
 focus on input form always
 center actions
 create cmd i/f
@@ -299,9 +301,12 @@ class Game_Controller {
 
       case 'hold':
       case 'h':
+        user.hold_cmd(target);
+        break;
+
       case 'wear':
       case 'we':
-        user.wear_or_hold_cmd(target);
+        user.wear_cmd(target);
         break;
 
       case "remove":
@@ -320,9 +325,8 @@ class Game_Controller {
         user.kill_cmd(target);
         break;
 
-      case "eat":
-      case "ea":
-      case "drink":
+      case "consume":
+      case "c":      
         user.consume_cmd(target);      
         break;
 

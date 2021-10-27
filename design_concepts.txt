@@ -18,6 +18,8 @@ return id as metadata, and client should enable copying it for long numbers.)
 Architecture:
 ==================
 
+- Search order is always from close to far: hold, wear, slots, room.
+
 - Client for sending inputs and displaying content only. All game
   logic is handled on the backend.
   - demo client assumes text input only

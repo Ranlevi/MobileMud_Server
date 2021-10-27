@@ -39,13 +39,23 @@ freeze_btn.addEventListener('click', ()=>{
 chat_display.addEventListener('click', (evt)=>{
   evt.stopPropagation();
 
+  
+
+
+
+
+
+
+
+
   let actions;
   //Handle clicks on links.
   
   if (evt.target.dataset.element==="pn_link"){
     //Show the Actions Modal.    
+    
     switch(evt.target.dataset.type){
-      case ("Room"):
+      case ("Room"):        
         actions = ["Look"];
         break;
 
