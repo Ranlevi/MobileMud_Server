@@ -45,11 +45,11 @@ class Message_Sender {
     }
   }
 
-  send_status_msg_to_user(user_id, health){
+  send_status_msg_to_user(user_id, status_obj){
     //Send a Status message to the user via WebSocket.
     let msg = {
       type:     "Status",
-      content:  {health: health}
+      content:  status_obj
     }
     let ws_client = World.world.get_instance(user_id).ws_client;
     ws_client.send(JSON.stringify(msg));

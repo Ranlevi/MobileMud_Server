@@ -83,11 +83,11 @@ class Room {
 
     msg += '</p>'; //new paragraph
 
-    msg += '<p>In the room:<br>';
+    msg += '<p>In the room: ';
 
     for (const entity_id of this.props["entities"]){
       let entity = World.world.get_instance(entity_id);
-      msg += `<p>${entity.get_short_look_string()}<p>`;
+      msg += `${entity.get_short_look_string()} `;
     }  
 
     msg += `</p>`
@@ -100,9 +100,9 @@ class User {
   constructor(props, ws_client, id=null){
 
     //Default Constants
-    this.BASE_HEALTH=           50;
+    this.BASE_HEALTH=           100;
     this.BASE_DAMAGE=           1;
-    this.HEALTH_DECLINE_RATE =  5; //1 HP drop every 5 ticks
+    this.HEALTH_DECLINE_RATE =  10; //1 HP drop every 5 ticks
 
     this.id=            (id===null)? Utils.id_generator.get_new_id() : id;
     this.ws_client=     ws_client; //The WebSocket for server-client comm.
@@ -148,7 +148,6 @@ class User {
     if (this.tick_counter===this.HEALTH_DECLINE_RATE){
       this.tick_counter = 0;
       this.props["health"] -= 1;
-      Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
     }
 
     if (this.props["health"]===0){
@@ -157,6 +156,13 @@ class User {
         `${this.props["name"]} has starved to death...`);
       this.do_death();
     }
+
+    //Send a status message
+    let status_obj = {
+      health: this.props["health"],
+      room_lighting: World.world.get_instance(this.props["container_id"]).props["lighting"]
+    }
+    send_status_msg_to_user(user_id, status_obj);
   }
 
   reset_health(){
@@ -288,7 +294,14 @@ class User {
     let entity = World.world.get_instance(entity_id);
     entity.set_container_id(this.id);
 
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You pick it up.`);
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span> gets ` +
+              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
+              `${entity.props["name"]}</span>.`;
+    
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
 
   drop_cmd(target=null){
@@ -342,8 +355,15 @@ class User {
       console.error(`User.drop_cmd: id not found on user, can't happen!`);
     }    
 
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', 
-      `[${this.props["name"]}](User_${this.id}) drops ${entity.get_short_look_string()}`);
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span> drops ` +
+              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
+              `${entity.props["name"]}</span>.`;
+    
+
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
   }
 
   wear_or_hold_cmd(target=null){
@@ -440,7 +460,14 @@ class User {
 
     entity.set_container_id(this.id);
 
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Done.`);
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span> wears ` +
+              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
+              `${entity.props["name"]}</span>.`;
+    
+    Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
   }
 
   remove_cmd(target=null){
@@ -596,50 +623,58 @@ class User {
       this.props["health"] = this.BASE_HEALTH;
     }    
 
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-      `You consume ${entity.props["name"]}`);   
-
-    World.world.remove_from_world(entity_id);
-    Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span> consumes ${entity.props["name"]}.`;
+    
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
+    
+    World.world.remove_from_world(entity_id);    
   }
 
   inv_cmd(){
     //Return a String message with all things carried by the user.
 
-    let msg = `You are wearing:\n`;
+    let msg = `<p>Wearing: `;
 
     let is_wearing_something = false;
     for (const [position, id] of Object.entries(this.props["wearing"])){
       if (id!==null){
         is_wearing_something= true;
         let item=             World.world.get_instance(id);
-        msg += `${position}: ${item.get_short_look_string()}`;
+        msg += `${position}: ${item.get_short_look_string()} `;
       }
     }
 
     if (!is_wearing_something){
-      msg += 'Nothing.\n';
+      msg += 'Nothing.';
     }
 
-    msg += "You are holding: "
+    msg += '</p>';
+
+    msg += "Holding: "
     if (this.props["holding"]!==null){
       let item = World.world.get_instance(this.props["holding"]);
-      msg += `${item.get_short_look_string()}`;
+      msg += `${item.get_short_look_string()} `;
     } else {
-      msg += "Nothing.\n";
+      msg += "Nothing.";
     }
 
-    msg += 'You are carrying: '
+    msg += '</p>';
+
+    msg += 'Carrying: '
     let is_carrying_something = false;
     for (const id of this.props["slots"]){
       is_carrying_something = true;
       let item = World.world.get_instance(id);
-      msg += `${item.get_short_look_string()}`;
+      msg += `${item.get_short_look_string()} `;
     }
 
     if (!is_carrying_something){
-      msg += 'Nothing.\n';
+      msg += 'Nothing.';
     }
+
+    msg += '</p>';
 
     Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, msg);
   }
@@ -647,30 +682,36 @@ class User {
   get_look_string(){
     //Return a String message with what other see when they look at the user.
 
-    let msg = `**[${this.props["name"]}](User_${this.id})**\n`;
-    msg += `${this.props["description"]}\n`;
-    
-    msg += `${this.props["name"]} is wearing:\n`;
+    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span></h1>` +
+              `<p>${this.props["description"]}</p>` +
+              `<p>Wearing: `;
+
     let is_wearing_something = false;
     for (const id of Object.values(this.props["wearing"])){
       if (id!==null){
         is_wearing_something = true;
         let item = World.world.get_instance(id);
-        msg += `${item.get_short_look_string()}`;
+        msg += `${item.get_short_look_string()} `;
       }
     }
 
     if (!is_wearing_something){
-      msg += 'Nothing interesting.\n';
+      msg += 'Nothing interesting.';
     }
 
-    msg += `${this.props["name"]} is holding: `;
+    msg += `</p>`;
+
+    msg += `<p>Holding: `;
     if (this.props["holding"]!==null){
       let item = World.world.get_instance(this.props["holding"]);
-      msg += `${item.get_short_look_string()}`;
+      msg += `${item.get_short_look_string()} `;
     } else {
-      msg += "Nothing.\n";
+      msg += "Nothing.";
     }
+
+    msg += `</p>`;
 
     return msg;
   }
@@ -740,8 +781,7 @@ class User {
     `[${this.props["name"]}](User_${this.id}) strikes ` + 
     `[${opponent.props["name"]}](${opponent.props["type"]}_${opponent.id}), ` +
     `dealing ${damage_recieved} HP of damage.`);
-
-    Utils.msg_sender.send_status_msg_to_user(this.id, this.props["health"]);
+    
 
     //Check & Handle death of the opponent.
     if (opponent.props["health"]===0){

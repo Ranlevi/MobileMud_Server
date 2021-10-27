@@ -17,6 +17,18 @@ const GEN_WORLD_NUM_OF_ROOMS= 2;
 
 const VERSION = 0.01;
 
+/*
+TODO:
+focus on input form always
+center actions
+create cmd i/f
+set user description somehow
+better handle wear/hold, eat/drink
+improve client UI
+consume should get from the room as well, not only slots. (uniformity?)
+*/
+
+
 //-- HTML 
 //Serving the demo client to the browser
 app.use(express.static('public'));
@@ -338,8 +350,7 @@ class Game_Controller {
     //Than perform a Look command on the room.
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
       `Welcome ${user.props["name"]}!`);
-
-    Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
+    
     user.look_cmd();
 
     return user.id;
@@ -394,8 +405,7 @@ class Game_Controller {
     //Then do a Look command on the room.
     Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
     `Hi ${user.props["name"]}, your ID is ${user.id}`);
-
-    Utils.msg_sender.send_status_msg_to_user(user.id, user.props["health"]);
+    
     user.look_cmd();
     return user.id;
   }

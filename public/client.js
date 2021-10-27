@@ -1,14 +1,12 @@
 let ws=                       new WebSocket('ws://localhost:8080');
 let chat_display=             document.getElementById('chat_display');
 let dashboard=                document.getElementById('dashboard');
-let actions_modal=            document.getElementById('actions_modal');
-let actions_modal_close_btn=  document.getElementById('actions_modal_close_btn');
-let actions_modal_body=       document.getElementById('actions_modal_body');
 let signin_form=              document.getElementById("signin");
 let login_modal_body=         document.getElementById('login_modal_body');
 let login_modal=              document.getElementById('login_modal');
 let input_form=               document.getElementById('input_form');
 let input_field=              document.getElementById('input_field');
+let freeze_btn=               document.getElementById('freeze_btn');
 
 let stop_chat_scroll = false;
 
@@ -20,6 +18,21 @@ save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/
 */
+
+freeze_btn.addEventListener('click', ()=>{
+  stop_chat_scroll = !stop_chat_scroll;
+  if (stop_chat_scroll===true){
+    freeze_btn.classList.remove(`is-primary`);
+    freeze_btn.classList.add('is-danger');
+    freeze_btn.innerHTML= "Unfreeze";
+  } else {
+    freeze_btn.classList.add(`is-primary`);
+    freeze_btn.classList.remove('is-danger');
+    freeze_btn.innerHTML= "Freeze";
+    
+    chat_display.lastElementChild.scrollIntoView();
+  }
+})
 
 //Handle clicks inside the Chat display.
 chat_display.addEventListener('click', (evt)=>{
@@ -36,7 +49,7 @@ chat_display.addEventListener('click', (evt)=>{
         break;
 
       case ("Item"):
-        actions = ["Look", "Get", "Wear/Hold", "Consume"];
+        actions = ["Look", "Get", "Wear/Hold", "Consume", "Drop"];
         break;
 
       case ("User"):
@@ -69,31 +82,23 @@ chat_display.addEventListener('click', (evt)=>{
     }
 
     let html = `<ul>${text}</ul>`;
-    actions_modal_body.innerHTML = html;
-    actions_modal.classList.add('is-active');   
-  
-  } else {
-    //This is a click on no particular element, which means 
-    //that the user wishes to freeze the chat. 
-    stop_chat_scroll = !stop_chat_scroll;
-    if (stop_chat_scroll===true){
-      chat_display.style.backgroundColor = "bisque";
-    } else {
-      chat_display.style.backgroundColor = "white";
+    
+    let div = document.createElement("div");
+    div.classList.add("box");
+    div.classList.add("chat_box");
+    div.classList.add("is-align-self-flex-end");//TODO change to center
+    div.innerHTML = html;    
+    chat_display.append(div);
+
+    if (!stop_chat_scroll){
+      div.scrollIntoView();  
     }
-  }   
-})
 
-//Handle click on the 'close' btn of the Actions Modal.
-actions_modal_close_btn.addEventListener('click', ()=>{
-  actions_modal.classList.remove('is-active');
-})
-
-//Handle clicks on the actions in the actions modal
-actions_modal.addEventListener('click', (evt)=> {
+    input_field.focus();
+    // actions_modal_body.innerHTML = html;
+    // actions_modal.classList.add('is-active');   
   
-  if (evt.target.dataset.element==="pn_action"){
-
+  } else if (evt.target.dataset.element==="pn_action"){
     let msg = {
       type: 'User Input',
       content: `${evt.target.dataset.action} ${evt.target.dataset.id}`
@@ -112,10 +117,18 @@ actions_modal.addEventListener('click', (evt)=> {
     if (!stop_chat_scroll){
       div.scrollIntoView();  
     }
-
-    actions_modal.classList.remove(`is-active`);
     input_field.focus();
-  }
+
+  } else {
+    //This is a click on no particular element, which means 
+    //that the user wishes to freeze the chat. 
+    stop_chat_scroll = !stop_chat_scroll;
+    if (stop_chat_scroll===true){
+      chat_display.style.backgroundColor = "bisque";
+    } else {
+      chat_display.style.backgroundColor = "white";
+    }
+  }   
 })
 
 //Once the Websockets i/f is open, show the login modal.
@@ -175,7 +188,7 @@ ws.onmessage = (event) => {
       div.scrollIntoView();  
     }
     
-  } else if (msg.type==="Status"){
+  } else if (msg.type==="Status"){ //TODO: continue from here -
     dashboard.innerHTML = `Health: ${msg.content.health}`;
 
   } else if (msg.type==="Login"){
