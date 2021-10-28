@@ -1,4 +1,5 @@
 const World=    require('./world');
+const Classes=  require('./classes');
 
 //Keeps tracks of current ID, and generates a new one.
 //IDs are Strings, generated in sequencal order.
@@ -127,20 +128,6 @@ function move_to_room(id, current_room_id, new_room_id){
   World.world.get_instance(id).set_container_id(new_room_id);
 }
 
-// function search_for_target(target, array_of_ids){
-//   //scans an array for a given target.
-//   //Target can be an id, or a name or a type.
-
-//   for (const id of array_of_ids){
-//     let entity = World.world.get_instance(id);
-//     if ((entity.props["name"].toLowerCase()===target) ||
-//     (entity.props["type"].toLowerCase()==target) ||
-//     (target===entity.id)){
-//       return id;
-//     }
-//   }
-// }
-
 function search_for_target(user_id, target){
   //Search for a target in the room, or in the user's vicinity, from close to far.  
   //returns an object {entity_id, location} or null.
@@ -204,15 +191,30 @@ function search_for_target(user_id, target){
   return null;
 }
 
+function generate_html_string(type, options_obj){
+  
+  if (type==="Cmd"){
+    return `<h1><span class="pn_link" data-type="Cmd">${options_obj.cmd}</span></h1>`;
+  }
+
+  //Some other type.
+  let entity=     World.world.get_instance(options_obj.entity_id);
+  let container=  World.world.get_instance(entity.props["container_id"]);
+
+  //Conitnue here.
+  
 
 
 
-  //No target found
-  return null;
+  
+
+
 }
+
     
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
 exports.move_to_room=           move_to_room;
 exports.search_for_target=      search_for_target;
+exports.generate_html_string=   generate_html_string;

@@ -8,17 +8,10 @@ let input_form=               document.getElementById('input_form');
 let input_field=              document.getElementById('input_field');
 let freeze_btn=               document.getElementById('freeze_btn');
 
-let stop_chat_scroll = false;
-let current_chat_bg_color = "bisque";
+let stop_chat_scroll=       false;
+let current_chat_bg_color=  "bisque";
 
 const DEBUG = true;
-
-/*
-todo:
-save user creditials in the browser
-https://developers.google.com/web/fundamentals/security/credential-management/save-forms
-https://web.dev/sign-in-form-best-practices/
-*/
 
 freeze_btn.addEventListener('click', ()=>{
   stop_chat_scroll = !stop_chat_scroll;

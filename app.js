@@ -28,6 +28,13 @@ set user description somehow
 better handle wear/hold, eat/drink
 improve client UI
 consume should get from the room as well, not only slots. (uniformity?)
+emote
+inv in the dashboard
+save user creditials in the browser
+https://developers.google.com/web/fundamentals/security/credential-management/save-forms
+https://web.dev/sign-in-form-best-practices/
+Say, Tell
+Directions with capital letter
 */
 
 

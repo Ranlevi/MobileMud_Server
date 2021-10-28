@@ -38,7 +38,7 @@
       "type": "Room",
       "description": 
         "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
-      "entities": ["1"],
+      "entities": [],
       "exits": {
         "north": null,
         "south": "2",

@@ -265,6 +265,15 @@ class User {
     }
 
     //Target found.
+    //Check if gettable
+    let entity = World.world.get_instance(result.entity_id);
+
+    if (!entity.props["is_gettable"]){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You can't pick it up.`);        
+      return;
+    }    
+    
     //Check is misc_slots are full.
     if (this.props["slots_size_limit"]===this.props["slots"].length){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
@@ -275,10 +284,10 @@ class User {
     //The user can carry the item.
     //Remove it from the room, place it in the player's slots.
     let room = World.world.get_instance(this.props["container_id"]);
-    room.remove_entity(entity_id);
-    this.props["slots"].push(entity_id);
+    room.remove_entity(result.entity_id);
+    this.props["slots"].push(result.entity_id);
 
-    let entity = World.world.get_instance(entity_id);
+    
     entity.set_container_id(this.id);
 
     let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
@@ -292,7 +301,7 @@ class User {
   }
 
   drop_cmd(target=null){
-    //search slots, holding and wearing (in that order) and drop the target to the floor.
+    //search for target on body and drop the target to the floor.
 
     if (target===null){      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
@@ -301,65 +310,114 @@ class User {
     }
 
     let result = Utils.search_for_target(this.id, target);
-    //Continue from here!!!!
     
-
-
-    //Target is not null
-    //Search for the target on the player.
-    let id_arr = this.props["slots"];
-
-    for (const id of Object.values(this.props["wearing"])){
-      if (id!==null) id_arr.push(id);
-    }
-
-    if (this.props["holding"]!==null) id_arr.push(id);
-
-    let entity_id = Utils.search_for_target(target, id_arr);
-
-    if (entity_id===null){
-      //Target not found.
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `You don't have it.`);        
+    if (result===null || result.location==="Room"){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You don't have it on your body.`);        
       return;
     }
 
-    //target found.
-    //Remove it from the player, place it in the room.
+    //Target found. Remove it from the player.
+    switch(result.location){
+      case("Holding"):
+        this.props["holding"] = null;
+        break;
+
+      case('Head'):
+      case('Torso'):
+      case('Legs'):
+      case('Feet'):
+        this.props["wearing"][result.location] = null;
+        break;
+
+      case("Slots"):
+        let ix = this.props["slots"].indexOf(result.entity_id);          
+        this.props["slots"].splice(ix,1);
+        break;      
+    }
+
+    //Place it in the room.
     let room = World.world.get_instance(this.props["container_id"]);
     room.add_entity(entity_id);
-    let entity = World.world.get_instance(entity_id);
+    let entity = World.world.get_instance(result.entity_id);
     entity.set_container_id(room.id);
-    
-    for (const [position, id] of Object.entries(this.props["wearing"])){
-      if (id===entity_id){        
-        this.props["wearing"][position] = null;
-      }
-    }
-    
-    if (this.props["holding"]===entity_id){  
-      this.props["holding"] = null;
-    }
-  
-    let ix = this.props["slots"].indexOf(entity_id);
-    if (ix!==-1){
-      this.props["slots"].splice(ix,1);
-    } else {
-      console.error(`User.drop_cmd: id not found on user, can't happen!`);
-    }    
 
     let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
               `data-id="${this.id}" data-name="${this.props["name"]}">` +
               `${this.props["name"]}</span> drops ` +
               `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
               `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-              `${entity.props["name"]}</span>.`;
-    
+              `${entity.props["name"]}</span>.`;    
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
   }
 
   hold_cmd(target=null){
+    //Search for target on body and room, and hold it.
+    
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `What do you want to hold?`);        
+      return;
+    }
 
+    let result = Utils.search_for_target(this.id, target);
+
+    if (result===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `There's no ${target} around to hold.`);        
+      return;
+    }
+
+    if (result.location==="Holding"){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You're already holding it!`);        
+      return;
+    }
+
+    //Target found. 
+    //Check if target is holdable
+    let entity = World.world.get_instance(entity_id);
+
+    if (!entity.props["is_holdable"]){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You can't hold it.`);        
+      return;
+    }
+
+    //Remove it from it's current location.
+    switch(result.location){
+      case("Room"):
+        let room = World.world.get_instance(this.props["container_id"]);
+        room.remove_entity(result.entity_id);
+        break;
+
+      case('Head'):
+      case('Torso'):
+      case('Legs'):
+      case('Feet'):
+        this.props["wearing"][result.location] = null;
+        break;
+
+      case("Slots"):
+        let ix = this.props["slots"].indexOf(result.entity_id);          
+        this.props["slots"].splice(ix,1);
+        break;      
+    }
+
+    this.props["holding"] = result.entity_id;
+
+    //Set new location of entity.    
+    entity.set_container_id(this.id);
+
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+              `data-id="${this.id}" data-name="${this.props["name"]}">` +
+              `${this.props["name"]}</span> holds ` +
+              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
+              `${entity.props["name"]}</span>.`;
+    
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
 
   wear_cmd(target=null){
@@ -371,88 +429,57 @@ class User {
       return;
     }
 
-    //Target is not null
-    //Search for it in the room and slots.
-    let id_arr=     this.props["slots"];
-    let room=       World.world.get_instance(this.props["container_id"]);
-    id_arr=         id_arr.concat(room.get_entities_ids()); 
+    let result = Utils.search_for_target(this.id, target);
 
-    let entity_id=  Utils.search_for_target(target, id_arr);
-   
-    if (entity_id===null){
-      //Target not found
+    if (result===null){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `There's no ${target} around.`);        
+        `There's no ${target} around to wear.`);        
       return;
     }
 
-    //Target found.
-    //Try to get it from the slots.
-    let entity=           null;
-    let target_location=  null;
-
-    for (const id of this.props["slots"]){
-      if (id===entity_id){
-        entity=           World.world.get_instance(id);
-        target_location= "slots";
-      }
+    //Target found
+    if (result.location==="Holding"){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You're holding it, you can't wear it.`);        
+      return;
     }
 
-    if (entity===null){
-      //Target is not in the slots, must be in the room.
-      let id_arr = room.get_entities_ids();
-      for (const id of id_arr){
-        if (id===entity_id){
-          entity=           World.world.get_instance(id);
-          target_location=  "room";
-        }
-      } 
+    if (["Head", "Torso", "Legs", "Feet"].includes(result.location)){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You're already wearing it!`);        
+      return;
     }
 
-    //Entity found.
-    //Check if the required slot is taken
-    let required_slot = entity.props["wear_hold_slot"];
+    //Check if target can be worn
+    let entity = World.world.get_instance(result.entity_id);
+    if (entity.props["wear_slot"]===null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You can't wear that!`);        
+      return;
+    }
 
-    switch(required_slot){
-      case("Head"):
-      case("Torso"):
-      case("Legs"):
-      case("Feet"):
-        if (this.props["wearing"][required_slot]!==null){
-          Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-            `You're already wearing something on your ${required_slot}.`);
-            return;
-        } else {
-          this.props["wearing"][required_slot] = entity_id;
-        }
-        break;
-      
-      case("Hold"):
-        if (this.props["holding"]!==null){
-          Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-            `You're already holding something.`);
-            return;
-        } else {
-          this.props["holding"] = entity_id;
-        }
-        break;
-
-      default:
-        console.error(`User.wear_of_hold_cmd: item with unknown wear_hold_slot: ${entity.props["type"]}`);
+    //Check if required slot is taken
+    if (this.props["wearing"][entity.props["wear_hold_slot"]]!==null){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `You're already wearing something on your ${required_slot}.`);
         return;
     }
 
-    //Remove the target from it's current position,
-    //Set it's new container_id.
-    if (target_location==="slots"){
-      let ix = this.props["slots"].indexOf(entity_id);
-      if (ix!==-1){
+    //Remove the target from its current location
+    switch(result.location){
+      case("Room"):
+        let room = World.world.get_instance(this.props["container_id"]);
+        room.remove_entity(result.entity_id);
+        break;    
+
+      case("Slots"):
+        let ix = this.props["slots"].indexOf(result.entity_id);          
         this.props["slots"].splice(ix,1);
-      }
-    } else {
-      //Must be in the room
-      room.remove_entity(entity_id);
+        break;      
     }
+
+    //Wear the target
+    this.props["wearing"][entity.props["wear_slot"]]= result.entity_id;
 
     entity.set_container_id(this.id);
 
@@ -475,17 +502,9 @@ class User {
       return;
     }
 
-    //Target is not null
-    //Search for it in the wearing/holding slots.
-    let id_arr = [];
-    for (const id of Object.values(this.props["wearing"])){
-      if (id!==null) id_arr.push(id);
-    }
+    let result = Utils.search_for_target(this.id, target);
 
-    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
-    let entity_id = Utils.search_for_target(target, id_arr);
-
-    if (entity_id===null){
+    if (result===null || result.location==="Room" || result.location==="Slots"){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You're not wearing or holding ${target}`);        
       return;
@@ -499,23 +518,34 @@ class User {
       return;
     }
 
-    //Slots are avaiable
-    //Remove it from it's current slot.
-    for (const [position, id] of Object.entries(this.props["wearing"])){
-      if (id===entity_id){
-        this.props["wearing"][position]= null;
-      };
+    switch(result.location){
+      case ("Holding"):
+        this.props["holding"] = null;
+        break;
+
+      case('Head'):
+      case('Torso'):
+      case('Legs'):
+      case('Feet'):
+        this.props["wearing"][result.location] = null;
+        break;
     }
 
-    if (this.props["holding"]===entity_id){
-      this.props["holding"] = null;
-    }
-
+    //Add it to slots.
     this.props["slots"].push(entity_id);
 
     let entity = World.world.get_instance(entity_id);
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-     `You remove [${entity.props["name"]}](${entity.props["type"]}_${entity.id}).`);
+
+    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
+    `data-id="${this.id}" data-name="${this.props["name"]}">` +
+    `${this.props["name"]}</span> removes ` +
+    `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
+    `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
+    `${entity.props["name"]}</span>.`;    
+
+
+    Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
+     
   }
 
   kill_cmd(target=null){
@@ -527,22 +557,16 @@ class User {
       return;
     }
 
-    //Target not null
-    //Search for the target in the room.
-    let room=   World.world.get_instance(this.props["container_id"]);
-    let id_arr= room.get_entities_ids();
+    let result = Utils.search_for_target(this.id, target);
 
-    let entity_id = Utils.search_for_target(target, id_arr);
-
-    if (entity_id===null){
-      //No target found.
+    if (result===null || (result.location!=="Room")){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `There's no ${target} around.`);        
       return;
     }
 
     //Target found
-    let entity = World.world.get_instance(entity_id);
+    let entity = World.world.get_instance(result.entity_id);
 
     if (!(entity instanceof NPC)){
       //Can only fight an NPC.
@@ -556,38 +580,28 @@ class User {
   }
 
   consume_cmd(target=null){
-    //eat/drink food that's in the wear,hold or slots.
+    //eat/drink food that's in the wear,hold or slots or room.
     //Restore health.
 
     if (target===null){      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to consume?`);        
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `What do you want to consume?`);        
       return;
     }
 
     //Target is not null
-    //Search for it on the user's body.
-    let id_arr = [];
+    let result = Utils.search_for_target(this.id, target);
 
-    for (const id of Object.values(this.props["wearing"])){
-      if (id!==null) id_arr.push(id);
-    }
-
-    if (this.props["holding"]!==null) id_arr.push(this.props["holding"]);
-
-    id_arr = id_arr.concat(this.props["slots"]);
-
-    let entity_id = Utils.search_for_target(target, id_arr);
-
-    if (entity_id===null){
+    if (result===null){
       //Target not found.
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You don't have it on you.`);        
+        `There's no ${target} around.`);        
       return;
     }
 
     //Target exists
     //Check if it's edible
-    let entity = World.world.get_instance(entity_id);
+    let entity = World.world.get_instance(result.entity_id);
 
     if (!entity.props["is_consumable"]){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
@@ -595,24 +609,31 @@ class User {
       return;
     }
 
-    //Target is edible.
-    //Find it, remove it from the user and the world, update health.
+    //Target found. Remove it from its container.
+    switch(result.location){
+      case("Holding"):
+        this.props["holding"] = null;
+        break;
 
-    for (const [position, id] of Object.entries(this.props["wearing"])){
-      if (id===entity_id){
-        this.props["wearing"][position]= null;
-      };
+      case('Head'):
+      case('Torso'):
+      case('Legs'):
+      case('Feet'):
+        this.props["wearing"][result.location] = null;
+        break;
+
+      case("Slots"):
+        let ix = this.props["slots"].indexOf(result.entity_id);          
+        this.props["slots"].splice(ix,1);
+        break;
+
+      case("Room"):
+        let room = World.world.get_instance(this.props["container_id"]);
+        room.remove_entity(result.entity_id);
+        break;
     }
 
-    if (this.props["holding"]===entity_id){
-      this.props["holding"] = null;
-    }
-
-    let ix = this.props["slots"].indexOf(entity_id);
-    if (ix!==-1){
-      this.props["slots"].splice(ix,1);
-    }
-
+    //Restore Health
     this.props["health"] += entity.props["hp_restored"];
     if (this.props["health"]>this.BASE_HEALTH){
       //Do not restore more than 100% of points.
@@ -623,9 +644,8 @@ class User {
               `data-id="${this.id}" data-name="${this.props["name"]}">` +
               `${this.props["name"]}</span> consumes ${entity.props["name"]}.`;
     
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);     
     
-    World.world.remove_from_world(entity_id);    
   }
 
   inv_cmd(){
@@ -808,8 +828,10 @@ class Item {
           "description":    "A philips screwdriver.",        
           "container_id":   "0",
           "is_consumable":  false,
-          "hp_restored":    null, //Num
-          "wear_hold_slot": "Hold", //Hold, Head, Torso...
+          "hp_restored":    null, //Num,
+          "is_holdable":    true,
+          "wear_slot":      null,
+          "is_gettable":    true,
         }
         break;
 
@@ -822,7 +844,9 @@ class Item {
           "container_id":   "0",
           "is_consumable":  true,
           "hp_restored":    50,
-          "wear_hold_slot": "Hold", //Hold, Head, Torso...
+          "is_holdable":    true,
+          "wear_slot":      null,
+          "is_gettable":    true,
         }
         break;
 
@@ -835,7 +859,9 @@ class Item {
           "container_id":   "0",
           "is_consumable":  false,
           "hp_restored":    null,
-          "wear_hold_slot": "Torso", //Hold, Head, Torso...
+          "is_holdable":    false,
+          "wear_slot":      "Torso",
+          "is_gettable":    true,
         }
         break;
       
