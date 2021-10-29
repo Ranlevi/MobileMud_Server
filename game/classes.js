@@ -67,17 +67,15 @@ class Room {
   }
 
   get_look_string(){
-    //Returns a Look Command message (String)
-    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="Room" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">`+
-              `${this.props["name"]}</span></h1>` +
-              `<p>${this.props["description"]}</p>`;
-    msg +=    `<p><span class="style1">Exits:</span> `;
-
+    //Returns a Look Command message (String)   
+    let msg = `<h1>${Utils.generate_html(this.id, 'Room')}</h1>` +
+              `<p>${this.props["description"]}</p>` + 
+              `<p><span class="style1">Exits:</span> `;
+    
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
-        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd" data-cmd="${direction}" ` +
-               `>${direction}</span>`
+        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd"` + 
+                `data-actions="${direction}" >${direction}</span>`
       }
     }
 
@@ -152,8 +150,9 @@ class User {
 
     if (this.props["health"]===0){
       //The user died of starvation!
-      Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', 
-        `${this.props["name"]} has starved to death...`);
+      let msg = `${Utils.generate_html(this.id, 'User')} has starved to death...`;
+
+      Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);        
       this.do_death();
     }
 
@@ -212,8 +211,8 @@ class User {
     next_room.add_entity(this.id);
     this.props["container_id"]= next_room_id;
 
-    Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
-      `You travel ${direction}.`);
+    let msg = `${Utils.generate_html(this.id, 'User')} travels ${direction}.`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);      
 
     this.look_cmd();    
   }
@@ -250,7 +249,8 @@ class User {
     //Pick an item from the room, and place it in a slot.
 
     if (target===null){      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `What do you want to get?`);        
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `What do you want to get?`);        
       return;
     }
 
@@ -290,12 +290,8 @@ class User {
     
     entity.set_container_id(this.id);
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span> gets ` +
-              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-              `${entity.props["name"]}</span>.`;
+    let msg = 
+      `${Utils.generate_html(this.id)} gets ${Utils.generate_html(entity.id, 'Item')}.`;
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }

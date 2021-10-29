@@ -191,30 +191,25 @@ function search_for_target(user_id, target){
   return null;
 }
 
-function generate_html_string(type, options_obj){
-  
-  if (type==="Cmd"){
-    return `<h1><span class="pn_link" data-type="Cmd">${options_obj.cmd}</span></h1>`;
+function generate_html(entity_id){
+
+  let entity = World.world.get_instance(entity_id, type);
+
+  if (type==="User" || type==="Room"){
+    return  `<span class="pn_link" data-element="pn_link" data-type="${type}" ` + 
+            `data-id="${entity.id}" data-name="${entity.props["name"]}" >`+
+            `data-actions="Look" ${entity.props["name"]}</span>`
+  } else if (type==="Item"){
+    return  `<span class="pn_link" data-element="pn_link" data-type="${type}" ` + 
+            `data-id="${entity.id}" data-name="${entity.props["name"]}" >`+
+            `data-actions="Look_Get_Drop_Wear_Hold_Consume_Remove" `+ 
+            `${entity.props["name"]}</span>`
   }
-
-  //Some other type.
-  let entity=     World.world.get_instance(options_obj.entity_id);
-  let container=  World.world.get_instance(entity.props["container_id"]);
-
-  //Conitnue here.
-  
-
-
-
-  
-
-
 }
-
     
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
 exports.get_opposite_direction= get_opposite_direction;
 exports.move_to_room=           move_to_room;
 exports.search_for_target=      search_for_target;
-exports.generate_html_string=   generate_html_string;
+exports.generate_html=          generate_html;
