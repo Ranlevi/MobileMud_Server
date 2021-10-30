@@ -17,7 +17,8 @@ html, body {
     padding: 5px;
   }
   .div2 { 
-    background-color: cadetblue;
+    font-size: small;
+    background-color: cyan;
     padding: 10px;
   }
   .div3 { 

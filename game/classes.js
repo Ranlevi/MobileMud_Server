@@ -74,7 +74,7 @@ class Room {
     
     for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
       if (next_room_id!==null){
-        msg += `<span class="pn_link" data-element="pn_link" data-type="Cmd"` + 
+        msg += `<span class="pn_link" data-element="pn_cmd" ` + 
                 `data-actions="${direction}" >${direction}</span>`
       }
     }
@@ -156,12 +156,8 @@ class User {
       this.do_death();
     }
 
-    //Send a status message
-    let status_obj = {
-      health: this.props["health"],
-      room_lighting: World.world.get_instance(this.props["container_id"]).props["lighting"]
-    }
-    Utils.msg_sender.send_status_msg_to_user(this.id, status_obj);
+    //Send a status message    
+    Utils.msg_sender.send_status_msg_to_user(this.id);
   }
 
   reset_health(){
@@ -222,7 +218,7 @@ class User {
     //If it exists, returns a string message.
     let room = World.world.get_instance(this.props["container_id"]);  
 
-    if (target===null){
+    if (target===null || target==="room"){
       //Look at the room the user is in.      
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, room.get_look_string());        
       return;
@@ -291,7 +287,7 @@ class User {
     entity.set_container_id(this.id);
 
     let msg = 
-      `${Utils.generate_html(this.id)} gets ${Utils.generate_html(entity.id, 'Item')}.`;
+      `${Utils.generate_html(this.id, 'User')} gets ${Utils.generate_html(entity.id, 'Item')}.`;
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
@@ -334,16 +330,12 @@ class User {
 
     //Place it in the room.
     let room = World.world.get_instance(this.props["container_id"]);
-    room.add_entity(entity_id);
+    room.add_entity(result.entity_id);
     let entity = World.world.get_instance(result.entity_id);
     entity.set_container_id(room.id);
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span> drops ` +
-              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-              `${entity.props["name"]}</span>.`;    
+    let msg = `${Utils.generate_html(this.id, 'User')} `+
+              `drops ${Utils.generate_html(entity.id, 'Item')}`;
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
   }
@@ -373,7 +365,7 @@ class User {
 
     //Target found. 
     //Check if target is holdable
-    let entity = World.world.get_instance(entity_id);
+    let entity = World.world.get_instance(result.entity_id);
 
     if (!entity.props["is_holdable"]){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
@@ -406,12 +398,8 @@ class User {
     //Set new location of entity.    
     entity.set_container_id(this.id);
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span> holds ` +
-              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-              `${entity.props["name"]}</span>.`;
+    let msg = `${Utils.generate_html(this.id, 'User')} `+
+              `holds ${Utils.generate_html(entity.id, 'Item')}`;   
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
@@ -479,12 +467,8 @@ class User {
 
     entity.set_container_id(this.id);
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span> wears ` +
-              `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-              `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-              `${entity.props["name"]}</span>.`;
+    let msg = `${Utils.generate_html(this.id, 'User')} `+
+              `wears ${Utils.generate_html(entity.id, 'Item')}`;     
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
   }
@@ -528,17 +512,12 @@ class User {
     }
 
     //Add it to slots.
-    this.props["slots"].push(entity_id);
+    this.props["slots"].push(result.entity_id);
 
-    let entity = World.world.get_instance(entity_id);
+    let entity = World.world.get_instance(result.entity_id);
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-    `data-id="${this.id}" data-name="${this.props["name"]}">` +
-    `${this.props["name"]}</span> removes ` +
-    `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-    `data-id="${entity.id}" data-name="${entity.props["name"]}">` +
-    `${entity.props["name"]}</span>.`;    
-
+    let msg = `${Utils.generate_html(this.id, 'User')} `+
+              `removes ${Utils.generate_html(entity.id, 'Item')}`;     
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
      
@@ -566,7 +545,8 @@ class User {
 
     if (!(entity instanceof NPC)){
       //Can only fight an NPC.
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, `Come on, you can't kill that.`);        
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `Come on, you can't kill that.`);        
       return;
     }
 
@@ -636,9 +616,8 @@ class User {
       this.props["health"] = this.BASE_HEALTH;
     }    
 
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span> consumes ${entity.props["name"]}.`;
+    let msg = `${Utils.generate_html(this.id, 'User')} `+
+              `consumes ${entity.props["name"]}.`;         
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);     
     
@@ -694,9 +673,7 @@ class User {
   get_look_string(){
     //Return a String message with what other see when they look at the user.
 
-    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span></h1>` +
+    let msg = `<h1>${Utils.generate_html(this.id, 'User')}</h1>` +
               `<p>${this.props["description"]}</p>` +
               `<p>Wearing: `;
 
@@ -729,9 +706,7 @@ class User {
   }
 
   get_short_look_string(){
-    let msg = `<span class="pn_link" data-element="pn_link" data-type="User" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span>`;     
+    let msg = `${Utils.generate_html(this.id, 'User')}`;     
     return msg;
   }
 
@@ -790,10 +765,9 @@ class User {
     let damage_recieved=  opponent.recieve_damage(damage_dealt);
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
-    `[${this.props["name"]}](User_${this.id}) strikes ` + 
-    `[${opponent.props["name"]}](${opponent.props["type"]}_${opponent.id}), ` +
-    `dealing ${damage_recieved} HP of damage.`);
-    
+      `${Utils.generate_html(this.id, 'User')} strikes ` + 
+      `${Utils.generate_html(this.id, 'NPC')} ` +
+      `dealing ${damage_recieved} HP of damage.`);    
 
     //Check & Handle death of the opponent.
     if (opponent.props["health"]===0){
@@ -883,23 +857,14 @@ class Item {
   get_look_string(){
     //Returns a message with what a user sees when looking at the Item.
 
-    let msg = `<h1><span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span></h1>` +
+    let msg = `<h1>${Utils.generate_html(this.id, 'Item')}</h1>` +
               `<p>${this.props["description"]}</p>`;
     
     return msg;
   }
   
-  get_short_look_string(){
-    // let msg = `<span class="pn_link" data-element="pn_link" data-type="Item" ` + 
-    //           `data-id="${this.id}" data-name="${this.props["name"]}">` +
-    //           `${this.props["name"]}</span>`; 
-
-    let msg = `<span class="pn_link" data-element="pn_link" ` + 
-              `data-cmds="Look Get Drop Wear/Hold Eat/Drink"` + 
-              `data-id="${this.id}" data-name="${this.props["name"]}">` +
-              `${this.props["name"]}</span>`; 
+  get_short_look_string(){    
+    let msg = `${Utils.generate_html(this.id, 'Item')}`; 
     return msg;
   }
   
@@ -983,12 +948,12 @@ class NPC {
 
   get_look_string(){
     //Returns a string with what a user sees when looking at the NPC.
-    let msg = `**[${this.props["name"]}](${this.props["type"]}_${this.id})**\n`;
+    let msg = `<h1>${Utils.generate_html(this.id, 'NPC')}</h1>`;
     msg += `${this.props["description"]}\n`;
 
     if (this.props["wearing"]!==null){
 
-      msg += `${this.props["name"]} is wearing:  `;
+      msg += `Wearing:  `;
       let is_wearing_something = false;
       for (const id of Object.values(this.props["wearing"])){
         if (id!==null){
@@ -1005,14 +970,14 @@ class NPC {
     
     if (this.props["holding"]!==null){
       let item = World.world.get_instance(this.props["holding"]);
-      msg += `${this.props["name"]} is holding:  ${item.get_short_look_string()}`;
+      msg += `Holding: ${item.get_short_look_string()}`;
     }
     
     return msg;
   }
 
   get_short_look_string(){
-    let msg = `[${this.props["name"]}](${this.props["type"]}_${this.id})`;
+    let msg = `${Utils.generate_html(this.id, 'NPC')}`;
     return msg;
   }
 
@@ -1034,10 +999,8 @@ class NPC {
       case('Barking'):
         //Action
         this.props["state_counter"]= 0;
-        Utils.msg_sender.send_chat_msg_to_room(this.id,'world',          
-          // `[${this.props["name"]}](NPC_${this.id}) Barks.`);        
-          `<span class="pn_link" data-element="pn_link" data-type="NPC" data-id="${this.id}"` + 
-          `data-name="${this.props["name"]}">${this.props["name"]}</span> Barks.`);        
+        Utils.msg_sender.send_chat_msg_to_room(this.id,'world', 
+          `${Utils.generate_html(this.id, 'NPC')} barks.`);        
 
         //Transition
         this.props["state"] = 'Default';
@@ -1107,8 +1070,8 @@ class NPC {
     let damage_recieved=  opponent.recieve_damage(damage_dealt);
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
-      `[${this.props["name"]}](${this.props["type"]}_${this.id}) strikes` + 
-      `[${opponent.props["name"]}](${this.props["type"]}_${this.id}), ` + 
+      `${Utils.generate_html(this.id, 'NPC')} strikes` + 
+      `${Utils.generate_html(this.id, 'User')} ` + 
       `dealing ${damage_recieved} HP of damage.`);
 
     //Check & Handle death of the opponent.

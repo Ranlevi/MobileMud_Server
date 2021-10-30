@@ -41,7 +41,7 @@
       "entities": [],
       "exits": {
         "north": null,
-        "south": "2",
+        "south": "0",
         "east": null,
         "west": null,
         "up": null,

@@ -32,68 +32,20 @@ freeze_btn.addEventListener('click', ()=>{
 chat_display.addEventListener('click', (evt)=>{
   evt.stopPropagation();
 
-  
+  if (evt.target.dataset.element==="pn_link"){    
 
+    let actions = evt.target.dataset.actions.split('_');
 
-
-
-
-
-
-
-  let actions;
-  //Handle clicks on links.
-  
-  if (evt.target.dataset.element==="pn_link"){
-    //Show the Actions Modal.    
-    
-    switch(evt.target.dataset.type){
-      case ("Room"):        
-        actions = ["Look"];
-        break;
-
-      case ("Item"):
-        actions = ["Look", "Get", "Wear/Hold", "Consume", "Drop"];
-        break;
-
-      case ("User"):
-        actions = ["Look"];
-        break;
-
-      case ("Cmd"):      
-        actions = ["North"];
-        break;
-
-      default:
-        console.error('chat_display click handler: unknown type.');
-    }
-
-    //continue from here north
-
-
-    let text = ``;
+    let list = '';
     for (const action of actions){
-      let normalized_cmd = "";
-      switch(action){
-        case("Wear/Hold"):
-          normalized_cmd = "Wear";
-          break;
-
-        case("Consume"):
-          normalized_cmd = "Eat";
-          break;
-
-        default:
-          normalized_cmd = action;
-      }
-
-      text += `<li><span class="pn_action" data-element="pn_action" data-action="${normalized_cmd}"` + 
-              `data-id="${evt.target.dataset.id}" ` + 
-              `data-name="${evt.target.dataset.name}">${action} ${evt.target.dataset.name}</span></li>`
+      list += `<li><span class="pn_action" data-element="pn_action" ` + 
+              `data-action="${action}" data-id="${evt.target.dataset.id}" ` + 
+              `data-name="${evt.target.dataset.name}"> `+ 
+              `${action} ${evt.target.dataset.name}</span></li>`
     }
-
-    let html = `<ul>${text}</ul>`;
     
+    let html = `<ul>${list}</ul>`;
+      
     let div = document.createElement("div");
     div.classList.add("box");
     div.classList.add("chat_box");
@@ -106,10 +58,9 @@ chat_display.addEventListener('click', (evt)=>{
     }
 
     input_field.focus();
-    // actions_modal_body.innerHTML = html;
-    // actions_modal.classList.add('is-active');   
   
   } else if (evt.target.dataset.element==="pn_action"){
+
     let msg = {
       type: 'User Input',
       content: `${evt.target.dataset.action} ${evt.target.dataset.id}`
@@ -129,7 +80,28 @@ chat_display.addEventListener('click', (evt)=>{
       div.scrollIntoView();  
     }
     input_field.focus();
-  }   
+  } else if (evt.target.dataset.element==="pn_cmd"){
+
+    let msg = {
+      type: 'User Input',
+      content: `${evt.target.dataset.actions}`
+    }
+    ws.send(JSON.stringify(msg));
+
+    //Create a Chat box and add it to the Chat, as feedback.
+    let div = document.createElement("div");
+    div.classList.add("has-text-danger");
+    div.classList.add("box");
+    div.classList.add("chat_box");
+    div.classList.add("is-align-self-flex-end");
+    div.append(`${evt.target.dataset.actions}`);  
+    chat_display.append(div);
+
+    if (!stop_chat_scroll){
+      div.scrollIntoView();  
+    }
+    input_field.focus();
+  }
 })
 
 //Once the Websockets i/f is open, show the login modal.
@@ -190,8 +162,15 @@ ws.onmessage = (event) => {
     }
     
   } else if (msg.type==="Status"){ 
+    let html =  `♥️ ${msg.content.health} `+ 
+                `<p>&#9995;  ${msg.content.holding}</p>`+
+                `<p>&#x1F3A9 ${msg.content.wearing.head} `+ 
+                `&#x1F455 ${msg.content.wearing.torso} `+ 
+                `&#x1F456 ${msg.content.wearing.legs} `+ 
+                `&#x1F45E ${msg.content.wearing.feet}</p>`+
+                `<p>&#x1F9F3 ${msg.content.slots}</p>`;
 
-    dashboard.innerHTML = `Health: ${msg.content.health}`;
+    dashboard.innerHTML = html;
 
     if (msg.content.room_lighting!==current_chat_bg_color){
       chat_display.style.backgroundColor = msg.content.room_lighting;

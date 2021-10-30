@@ -46,11 +46,64 @@ class Message_Sender {
     }
   }
 
-  send_status_msg_to_user(user_id, status_obj){
+  send_status_msg_to_user(user_id){
     //Send a Status message to the user via WebSocket.
+    let user = World.world.get_instance(user_id);    
+
+    let holding_html = 'Nothing.';
+    if (user.props["holding"]!==null){
+      let entity = World.world.get_instance(user.props["holding"]);
+      holding_html = entity.get_short_look_string();
+    }
+
+    let wearing_head = 'Nothing.';
+    if (user.props["wearing"]["Head"]!==null){
+      let entity = World.world.get_instance(user.props["wearing"]["Head"]);
+      wearing_head = entity.get_short_look_string();
+    }
+
+    let wearing_torso = 'Nothing.'
+    if (user.props["wearing"]["Torso"]!==null){
+      let entity = World.world.get_instance(user.props["wearing"]["Torso"]);
+      wearing_torso = entity.get_short_look_string();
+    }
+
+    let wearing_legs = 'Nothing.';
+    if (user.props["wearing"]["Legs"]!==null){
+      let entity = World.world.get_instance(user.props["wearing"]["Legs"]);
+      wearing_legs = entity.get_short_look_string();
+    }
+
+    let wearing_feet = 'Nothing.';
+    if (user.props["wearing"]["Feet"]!==null){
+      let entity = World.world.get_instance(user.props["wearing"]["Feet"]);
+      wearing_feet = entity.get_short_look_string();
+    }
+
+    let slots_html = '';
+    for (const entity_id of user.props['slots']){
+      let entity = World.world.get_instance(entity_id);
+      slots_html += entity.get_short_look_string();
+    }
+
+    if (slots_html===''){
+      slots_html = 'Nothing.'
+    }
+    
     let msg = {
       type:     "Status",
-      content:  status_obj
+      content:  {
+        health: user.props["health"],
+        holding: holding_html,
+        wearing: {
+          head: wearing_head,
+          torso: wearing_torso,
+          legs: wearing_legs,
+          feet: wearing_feet,
+        },
+        slots: slots_html,
+        room_lighting: World.world.get_instance(user.props["container_id"]).props["lighting"],
+      }
     }
     let ws_client = World.world.get_instance(user_id).ws_client;
     ws_client.send(JSON.stringify(msg));
@@ -131,14 +184,14 @@ function move_to_room(id, current_room_id, new_room_id){
 function search_for_target(user_id, target){
   //Search for a target in the room, or in the user's vicinity, from close to far.  
   //returns an object {entity_id, location} or null.
-
+  
   //Auxilary helper function
   const test_if_target = (entity, target) => {
     //Return ID (string) or null.
     if ((entity.props["name"].toLowerCase()===target) ||
         (entity.props["type"].toLowerCase()==target) ||
         (target===entity.id)){
-      return id;
+      return entity.id;
     }
     return null;
   }
@@ -187,23 +240,33 @@ function search_for_target(user_id, target){
     }
   }
 
+  //Check the room itself
+  let entity_id = test_if_target(room, target);
+  if (entity_id!==null){
+    return {entity_id: entity_id, location: "World"}
+  }
+
   //Target is not found.
   return null;
 }
 
-function generate_html(entity_id){
+function generate_html(entity_id, type){
 
-  let entity = World.world.get_instance(entity_id, type);
+  let entity = World.world.get_instance(entity_id);
 
   if (type==="User" || type==="Room"){
     return  `<span class="pn_link" data-element="pn_link" data-type="${type}" ` + 
-            `data-id="${entity.id}" data-name="${entity.props["name"]}" >`+
-            `data-actions="Look" ${entity.props["name"]}</span>`
+            `data-id="${entity.id}" data-name="${entity.props["name"]}" `+
+            `data-actions="Look">${entity.props["name"]}</span>`
   } else if (type==="Item"){
     return  `<span class="pn_link" data-element="pn_link" data-type="${type}" ` + 
-            `data-id="${entity.id}" data-name="${entity.props["name"]}" >`+
-            `data-actions="Look_Get_Drop_Wear_Hold_Consume_Remove" `+ 
+            `data-id="${entity.id}" data-name="${entity.props["name"]}" `+
+            `data-actions="Look_Get_Drop_Wear_Hold_Consume_Remove">`+ 
             `${entity.props["name"]}</span>`
+  } else if (type==="NPC"){
+    return  `<span class="pn_link" data-element="pn_link" data-type="${type}" ` + 
+            `data-id="${entity.id}" data-name="${entity.props["name"]}"`+
+            `data-actions="Look_Kill">${entity.props["name"]}</span>`
   }
 }
     
