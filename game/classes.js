@@ -13,7 +13,7 @@ class Room {
       "description":  "A simple, 3m by 3m room.",
       "entities":     [],
       "exits": {
-        "north":      null, //direction: id
+        "north":      null, //direction: {id: string, code: string}
         "south":      null,
         "west":       null,
         "east":       null,
@@ -72,10 +72,10 @@ class Room {
               `<p>${this.props["description"]}</p>` + 
               `<p><span class="style1">Exits:</span> `;
     
-    for (const [direction, next_room_id] of Object.entries(this.props["exits"])){
-      if (next_room_id!==null){
+    for (const [direction, obj] of Object.entries(this.props["exits"])){      
+      if (obj!==null){
         msg += `<span class="pn_link" data-element="pn_cmd" ` + 
-                `data-actions="${direction}" >${direction}</span>`
+                `data-actions="${direction.toUpperCase()}" >${direction.toUpperCase()}</span> `
       }
     }
 
@@ -100,7 +100,7 @@ class User {
     //Default Constants
     this.BASE_HEALTH=           100;
     this.BASE_DAMAGE=           1;
-    this.HEALTH_DECLINE_RATE =  10; //1 HP drop every 5 ticks
+    this.HEALTH_DECLINE_RATE =  100; //1 HP drop every 5 ticks
 
     this.id=            (id===null)? Utils.id_generator.get_new_id() : id;
     this.ws_client=     ws_client; //The WebSocket for server-client comm.
@@ -189,23 +189,58 @@ class User {
 
   move_cmd(direction){
     let current_room= World.world.get_instance(this.props["container_id"]);
-    let next_room_id= current_room.props["exits"][direction];
+    let next_room_obj= current_room.props["exits"][direction];
   
-    if (next_room_id===null){
+    if (next_room_obj===null){
       //There's no exit in that direction.
       Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
         `There's no exit to ${direction}.`);      
       return;
     }
   
-    //Exit exists.    
+    //Exit exists.   
+    //Check if locked, and if true - check for key on the user's body.
+    if (next_room_obj.code!==null){
+      //This door requires a key.
+
+      let ids_arr = [];
+      if (this.props["holding"]!==null) ids_arr.push(this.props["holding"]);
+      if (this.props["wearing"]["Head"]!==null) ids_arr.push(this.props["holding"]["Head"]);
+      if (this.props["wearing"]["Torso"]!==null) ids_arr.push(this.props["holding"]["Torso"]);
+      if (this.props["wearing"]["Legs"]!==null) ids_arr.push(this.props["holding"]["Legs"]);
+      if (this.props["wearing"]["Feet"]!==null) ids_arr.push(this.props["holding"]["Feet"]);
+
+      for (const id of this.props["slots"]){
+        ids_arr.push(id);
+      }
+
+      //Check for a key
+      let key_exists = false;
+      for (const entity_id of ids_arr){
+        let entity = World.world.get_instance(entity_id);
+        if (entity.props["key_code"]===next_room_obj.code){
+          key_exists = true;
+          break;
+        }
+      }
+
+      if (!key_exists){
+        //The user does not have a key on their body.
+        Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
+          `It's locked, and you don't have the key.`);      
+        return;
+      }
+    }
+
+    //Key found (or exit is not locked)
+
     //Remove the player from the current room, add it to the next one.
     //Send a message and perform a look command.
     current_room.remove_entity(this.id);
-    let next_room= World.world.get_instance(next_room_id);
+    let next_room= World.world.get_instance(next_room_obj.id);
 
     next_room.add_entity(this.id);
-    this.props["container_id"]= next_room_id;
+    this.props["container_id"]= next_room_obj.id;
 
     let msg = `${Utils.generate_html(this.id, 'User')} travels ${direction}.`;
     Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);      
@@ -486,7 +521,7 @@ class User {
 
     if (result===null || result.location==="Room" || result.location==="Slots"){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You're not wearing or holding ${target}`);        
+        `You're not wearing or holding it.`);        
       return;
     }
 
@@ -621,54 +656,7 @@ class User {
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);     
     
-  }
-
-  inv_cmd(){
-    //Return a String message with all things carried by the user.
-
-    let msg = `<p>Wearing: `;
-
-    let is_wearing_something = false;
-    for (const [position, id] of Object.entries(this.props["wearing"])){
-      if (id!==null){
-        is_wearing_something= true;
-        let item=             World.world.get_instance(id);
-        msg += `${position}: ${item.get_short_look_string()} `;
-      }
-    }
-
-    if (!is_wearing_something){
-      msg += 'Nothing.';
-    }
-
-    msg += '</p>';
-
-    msg += "Holding: "
-    if (this.props["holding"]!==null){
-      let item = World.world.get_instance(this.props["holding"]);
-      msg += `${item.get_short_look_string()} `;
-    } else {
-      msg += "Nothing.";
-    }
-
-    msg += '</p>';
-
-    msg += 'Carrying: '
-    let is_carrying_something = false;
-    for (const id of this.props["slots"]){
-      is_carrying_something = true;
-      let item = World.world.get_instance(id);
-      msg += `${item.get_short_look_string()} `;
-    }
-
-    if (!is_carrying_something){
-      msg += 'Nothing.';
-    }
-
-    msg += '</p>';
-
-    Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, msg);
-  }
+  }  
 
   get_look_string(){
     //Return a String message with what other see when they look at the user.
@@ -802,6 +790,7 @@ class Item {
           "is_holdable":    true,
           "wear_slot":      null,
           "is_gettable":    true,
+          "key_code":       null,
         }
         break;
 
@@ -817,6 +806,7 @@ class Item {
           "is_holdable":    true,
           "wear_slot":      null,
           "is_gettable":    true,
+          "key_code":       null,
         }
         break;
 
@@ -832,6 +822,23 @@ class Item {
           "is_holdable":    false,
           "wear_slot":      "Torso",
           "is_gettable":    true,
+          "key_code":       null,
+        }
+        break;
+
+      case ("Keycard"):
+        this.props = {
+          "name":           "A Keycard",
+          "type":           type,
+          "type_string":    "A Keycard",
+          "description":    "A small rectangular plastic card.",        
+          "container_id":   "0",
+          "is_consumable":  false,
+          "hp_restored":    null,
+          "is_holdable":    true,
+          "wear_slot":      null,
+          "is_gettable":    true,
+          "key_code":       "000000",
         }
         break;
       

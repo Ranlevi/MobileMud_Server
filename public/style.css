@@ -11,46 +11,46 @@ html, body {
   max-width: 600px;
   }
   
-  .div1 { 
-    background-color: bisque; 
-    overflow-y: auto;
-    padding: 5px;
-  }
-  .div2 { 
-    font-size: small;
-    background-color: cyan;
-    padding: 10px;
-  }
-  .div3 { 
-    background-color: white;
-    height: fit-content;
-  }
+.div1 {   
+  background-color: bisque; 
+  overflow-y: auto;
+  padding: 5px;
+}
+.div2 {   
+  font-size: small;
+  background-color: cyan;
+  padding: 10px;
+}
+.div3 { 
+  background-color: white;
+  height: fit-content;
+}
 
-  .chat_box {
-    /* max-width: 75%; */
-    width: fit-content;
-    padding: 1%;
-    font-size: small;
-  }
+.chat_box {
+  /* max-width: 75%; */
+  width: fit-content;
+  padding: 1%;
+  font-size: small;
+}
 
-  .pn_link {
-    color: blue;
-    text-decoration: underline;
-    cursor: pointer;
-  }
+.pn_link {
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
 
-  .pn_action {
-    color: blue;
-    text-decoration: underline;
-    cursor: pointer;
-  }
+.pn_action {
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
 
-  /* .modal {
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-  } */
+/* .modal {
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+} */
 
-  .style1 {
-    font-weight: 600;
-  }
+.style1 {
+  font-weight: 600;
+}

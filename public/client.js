@@ -1,4 +1,5 @@
-let ws=                       new WebSocket('ws://localhost:8080');
+// let ws=                       new WebSocket('ws://localhost:8080');
+let ws=                       new WebSocket('ws://10.0.0.6:8080');
 let chat_display=             document.getElementById('chat_display');
 let dashboard=                document.getElementById('dashboard');
 let signin_form=              document.getElementById("signin");
@@ -7,6 +8,7 @@ let login_modal=              document.getElementById('login_modal');
 let input_form=               document.getElementById('input_form');
 let input_field=              document.getElementById('input_field');
 let freeze_btn=               document.getElementById('freeze_btn');
+let parent=                   document.getElementById('parent');
 
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "bisque";
@@ -29,7 +31,7 @@ freeze_btn.addEventListener('click', ()=>{
 })
 
 //Handle clicks inside the Chat display.
-chat_display.addEventListener('click', (evt)=>{
+parent.addEventListener('click', (evt)=>{
   evt.stopPropagation();
 
   if (evt.target.dataset.element==="pn_link"){    
@@ -55,9 +57,7 @@ chat_display.addEventListener('click', (evt)=>{
 
     if (!stop_chat_scroll){
       div.scrollIntoView();  
-    }
-
-    input_field.focus();
+    }    
   
   } else if (evt.target.dataset.element==="pn_action"){
 
@@ -79,7 +79,7 @@ chat_display.addEventListener('click', (evt)=>{
     if (!stop_chat_scroll){
       div.scrollIntoView();  
     }
-    input_field.focus();
+    
   } else if (evt.target.dataset.element==="pn_cmd"){
 
     let msg = {
@@ -100,6 +100,8 @@ chat_display.addEventListener('click', (evt)=>{
     if (!stop_chat_scroll){
       div.scrollIntoView();  
     }
+    
+  } else {
     input_field.focus();
   }
 })
@@ -180,7 +182,7 @@ ws.onmessage = (event) => {
     //If a successful login msg is recived, remove the Login Modal and play the game.
     if (msg.content.is_login_successful){
       login_modal.classList.remove('is-active');
-      input_field.focus();
+      
     } else {
       //Login unsuccessful.
       let div = document.createElement('div');
@@ -214,6 +216,7 @@ input_form.addEventListener('submit', (evt)=> {
   }
   
   input_field.value = '';
+  input_field.blur(); //close soft keyboard.
 })
 
 ws.onclose = function(event){

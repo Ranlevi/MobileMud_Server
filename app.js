@@ -102,6 +102,7 @@ class Game_Controller {
           case "Screwdriver":
           case "Candy":
           case "T-Shirt":
+          case "Keycard":
             new Classes.Item(data.type, data.props, id);
             break;
 
@@ -293,7 +294,7 @@ class Game_Controller {
       
       case 'west':
       case 'w':
-        user.move_cmd('east');
+        user.move_cmd('west');
         break;
 
       case 'get':
@@ -319,13 +320,7 @@ class Game_Controller {
       case "remove":
       case "r":
         user.remove_cmd(target);
-        break;
-
-      case "inventory":
-      case "inv":
-      case "i":
-        user.inv_cmd();
-        break;
+        break;      
 
       case "kill":
       case "k":
