@@ -23,7 +23,7 @@ class World {
   add_to_world(instance){
     if (instance instanceof Classes.User){
       this.users.set(instance.id, instance);
-    } else {
+    } else {      
       this.world.set(instance.id, instance);    
     }    
   }  

@@ -84,7 +84,7 @@ class Room {
     msg += '<p>In the room: ';
 
     for (const entity_id of this.props["entities"]){
-      let entity = World.world.get_instance(entity_id);
+      let entity = World.world.get_instance(entity_id);      
       msg += `${entity.get_short_look_string()} `;
     }  
 
@@ -150,7 +150,7 @@ class User {
 
     if (this.props["health"]===0){
       //The user died of starvation!
-      let msg = `${Utils.generate_html(this.id, 'User')} has starved to death...`;
+      let msg = `has starved to death...`;
 
       Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);        
       this.do_death();
@@ -234,6 +234,9 @@ class User {
 
     //Key found (or exit is not locked)
 
+    let msg = `travels ${direction}.`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);
+
     //Remove the player from the current room, add it to the next one.
     //Send a message and perform a look command.
     current_room.remove_entity(this.id);
@@ -242,8 +245,8 @@ class User {
     next_room.add_entity(this.id);
     this.props["container_id"]= next_room_obj.id;
 
-    let msg = `${Utils.generate_html(this.id, 'User')} travels ${direction}.`;
-    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);      
+    msg = `enters from ${Utils.get_opposite_direction(direction)}.`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);
 
     this.look_cmd();    
   }
@@ -321,9 +324,7 @@ class User {
     
     entity.set_container_id(this.id);
 
-    let msg = 
-      `${Utils.generate_html(this.id, 'User')} gets ${Utils.generate_html(entity.id, 'Item')}.`;
-    
+    let msg = `gets ${Utils.generate_html(entity.id, 'Item')}.`;    
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
 
@@ -369,8 +370,7 @@ class User {
     let entity = World.world.get_instance(result.entity_id);
     entity.set_container_id(room.id);
 
-    let msg = `${Utils.generate_html(this.id, 'User')} `+
-              `drops ${Utils.generate_html(entity.id, 'Item')}`;
+    let msg = `drops ${Utils.generate_html(entity.id, 'Item')}`;
 
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
   }
@@ -433,8 +433,7 @@ class User {
     //Set new location of entity.    
     entity.set_container_id(this.id);
 
-    let msg = `${Utils.generate_html(this.id, 'User')} `+
-              `holds ${Utils.generate_html(entity.id, 'Item')}`;   
+    let msg = `holds ${Utils.generate_html(entity.id, 'Item')}`;   
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
   }
@@ -502,8 +501,7 @@ class User {
 
     entity.set_container_id(this.id);
 
-    let msg = `${Utils.generate_html(this.id, 'User')} `+
-              `wears ${Utils.generate_html(entity.id, 'Item')}`;     
+    let msg = `wears ${Utils.generate_html(entity.id, 'Item')}`;     
     
     Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
   }
@@ -551,9 +549,7 @@ class User {
 
     let entity = World.world.get_instance(result.entity_id);
 
-    let msg = `${Utils.generate_html(this.id, 'User')} `+
-              `removes ${Utils.generate_html(entity.id, 'Item')}`;     
-
+    let msg = `removes ${Utils.generate_html(entity.id, 'Item')}`;     
     Utils.msg_sender.send_chat_msg_to_room(this.id, `world`, msg);
      
   }
@@ -651,12 +647,21 @@ class User {
       this.props["health"] = this.BASE_HEALTH;
     }    
 
-    let msg = `${Utils.generate_html(this.id, 'User')} `+
-              `consumes ${entity.props["name"]}.`;         
-    
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);     
-    
-  }  
+    let msg = `consumes ${entity.props["name"]}.`;             
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);         
+  }
+
+  say_cmd(target=null){
+
+    if (target===null){      
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `What do you want to say?`);        
+      return;
+    }
+
+    let msg= `says: ${target}`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
+  }
 
   get_look_string(){
     //Return a String message with what other see when they look at the user.
@@ -763,7 +768,7 @@ class User {
       this.stop_battle();
 
       Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-        `${opponent.props["name"]} is DEAD!`);
+        `kills ${opponent.props["name"]}.`);
       
       opponent.do_death();
     }    
@@ -878,7 +883,7 @@ class Item {
 }
 
 class NPC {
-  constructor(type, props=null, id=null){
+  constructor(id=null){
 
     //Default Constants
     this.BASE_HEALTH= 10;
@@ -886,38 +891,19 @@ class NPC {
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
-    //Default values for a new NPC
-    this.props = {};
-
-    //Default props for each type.
-    switch(type){
-      case ("Dog"):
-        this.props = {
-          "name":             "Archie",
-          "type":             "Dog",
-          "description":      "It's a cute but silly dog.",      
-          "container_id":     "0",
-          "health":           this.BASE_HEALTH,
-          "state":            "Default",
-          "state_counter":    0,
-          "wearing":          null, //Object with slots(strings):id(string)
-          "holding":          null, //ID (string)
-          "slots":            null, //Array (IDs, strings)
-          "slots_size_limit": 10,
-          "is_fighting_with": null,
-        }
-        break;
-
-      default:
-        console.error(`NPC constructor: unknown type - ${type}`);
+    this.props = {//Mandatory props for every NPC
+      "name":             "An NPC",
+      "type":             "An NPC",
+      "description":      "It's an NPC.",      
+      "container_id":     "0", //
+      "health":           this.BASE_HEALTH, //Num
+      "is_fighting_with": null,//ID, String.
     }
-    
-    //Overwrite the default props with saved ones.
-    if (props!==null){
-      for (const [key, value] of Object.entries(props)){
-        this.props[key]= value;
-      }
-    }
+
+    //Note: if the 'wearing' prop is present, it must be an object (like in User)
+    //      if the 'holding' prop is present, it must be an object.
+    //      if the 'slots' prop is present, it must be an Array of IDs, and have
+    //        a limit prop like in User.
 
     // Add To world.
     World.world.add_to_world(this);
@@ -956,28 +942,43 @@ class NPC {
   get_look_string(){
     //Returns a string with what a user sees when looking at the NPC.
     let msg = `<h1>${Utils.generate_html(this.id, 'NPC')}</h1>`;
-    msg += `${this.props["description"]}\n`;
+    msg += `<p>${this.props["description"]}</p>`;
 
-    if (this.props["wearing"]!==null){
+    if (this.props["wearing"]!==undefined){
 
-      msg += `Wearing:  `;
-      let is_wearing_something = false;
-      for (const id of Object.values(this.props["wearing"])){
+      msg += `<p>Wearing:  `;
+
+      let text = '';
+      for (const [position, id] of Object.entries(this.props["wearing"])){
         if (id!==null){
-          is_wearing_something = true;
-          let item = World.world.get_instance(id);
-          msg += `${item.get_short_look_string()}`;
+          let entity = World.world.get_instance(id);
+          text += `<p>${position}: ${entity.get_look_string()}</p>`;
         }
       }
-  
-      if (!is_wearing_something){
-        msg += 'Nothing interesting.';
+
+      if (text===''){
+        msg += `Nothing.</p>`;
+      } else {
+        msg += text + `</p>`;
       }
     }
-    
-    if (this.props["holding"]!==null){
-      let item = World.world.get_instance(this.props["holding"]);
-      msg += `Holding: ${item.get_short_look_string()}`;
+
+    if (this.props["holding"]!==undefined){
+      msg += `<p>Holding:  `;
+
+      let text = '';
+      for (const [position, id] of Object.entries(this.props["holding"])){
+        if (id!==null){
+          let entity = World.world.get_instance(id);
+          text += `<p>${position}: ${entity.get_look_string()}</p>`;
+        }
+      }
+
+      if (text===''){
+        msg += `Nothing.</p>`;
+      } else {
+        msg += text + `</p>`;
+      }
     }
     
     return msg;
@@ -988,40 +989,27 @@ class NPC {
     return msg;
   }
 
-  do_tick(){
-    //State machine for normal behavior. Currently implemented for a dog only.
-    
-    switch(this.props["state"]){
+  do_state_machine(input){}
 
-      case("Default"):
-        //Action
-        this.props["state_counter"] += 1;
-
-        //Transition
-        if (this.props["state_counter"]===5){
-          this.props["state"] = 'Barking';          
-        } 
-        break;
-
-      case('Barking'):
-        //Action
-        this.props["state_counter"]= 0;
-        Utils.msg_sender.send_chat_msg_to_room(this.id,'world', 
-          `${Utils.generate_html(this.id, 'NPC')} barks.`);        
-
-        //Transition
-        this.props["state"] = 'Default';
-        break;
-    }
-  }
+  do_tick(){}
 
   do_death(){
     //When an NPC dies, it drops it's items.
     let room = World.world.get_instance(this.props["container_id"]);
 
     //Move the items from the NPC to the room
-    if (this.props["wearing"]!==null){
+    if (this.props["wearing"]!==undefined){
       for (const id of Object.values[this.props["wearing"]]){
+        if (id!==null){
+          room.add_entity(id);
+          let item = World.world.get_instance(id);
+          item.set_container_id(room.id);
+        }        
+      }
+    }   
+
+    if (this.props["holding"]!==undefined){
+      for (const id of Object.values[this.props["holding"]]){
         if (id!==null){
           room.add_entity(id);
           let item = World.world.get_instance(id);
@@ -1030,13 +1018,7 @@ class NPC {
       }
     }
 
-    if (this.props["holding"]!==null){
-      room.add_entity(this.props["holding"]);
-      let item = World.world.get_instance(id);
-      item.set_container_id(room.id);
-    }
-
-    if (this.props["slots"]!==null){
+    if (this.props["slots"]!==undefined){
       for (const id of this.props["slots"]){
         room.add_entity(id);
         let item = World.world.get_instance(id);
@@ -1087,10 +1069,53 @@ class NPC {
       this.stop_battle();
 
       Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-        `${opponent.props["name"]} is DEAD!`);
+        `kills ${Utils.generate_html(opponent.id, opponent.props["type"])}.`);
       
       opponent.do_death();
     }    
+  }
+
+  get_chat_msg(sender_id, msg){
+    console.log(sender_id, msg);
+    //Continue here: make larry respond to user entering the room.
+  }
+}
+
+class Human extends NPC {
+  constructor(props=null, id=null){
+    super(id);
+
+    //Default Constants
+    this.BASE_HEALTH= 10;
+    this.BASE_DAMAGE= 1;
+
+    this.props = {
+      "name":             "A Human",
+      "type":             "Human",
+      "description":      "It's a human being, like yourself.",      
+      "container_id":     "0",
+      "health":           this.BASE_HEALTH, //Num
+      "wearing": {
+        'Head':           null,//ID, String.
+        'Torso':          null,
+        'Legs':           null,
+        'Feet':           null
+      },
+      "holding":          {
+        'Hands':          null
+      },
+      "slots":            [],//IDs, String.
+      "slots_size_limit": 10,
+      "is_fighting_with": null,//ID, String.
+    }
+
+    //Overwrite the default props with saved ones.
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
+    }
+
   }
 }
 
@@ -1098,3 +1123,4 @@ exports.Item=             Item;
 exports.User=             User;
 exports.Room=             Room;
 exports.NPC=              NPC;
+exports.Human=            Human;

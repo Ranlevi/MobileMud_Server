@@ -134,14 +134,21 @@ class Message_Sender {
   }
 
   send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
-    //Send a Chat message to all users in the same room as the sender.
+    //Send a Chat message to all entities in the same room as the sender.
     let user= World.world.get_instance(sender_id);
     let room= World.world.get_instance(user.props["container_id"]);
 
-    let arr = room.get_users();
+    let arr = room.get_entities_ids();
     for (const id of arr){
-      if (id===sender_id && dont_send_to_user) continue;            
-      this.send_chat_msg_to_user(id, sender, text);
+      if (id===sender_id && dont_send_to_user) continue;
+
+      let entity = World.world.get_instance(id);
+      
+      if (entity instanceof Classes.User){
+        this.send_chat_msg_to_user(id, sender, `${generate_html(sender_id, 'User')} ${text}`);
+      } else if (entity instanceof Classes.NPC){
+        entity.get_chat_msg(sender_id, text);
+      }      
     }
   }
   

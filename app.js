@@ -106,8 +106,8 @@ class Game_Controller {
             new Classes.Item(data.type, data.props, id);
             break;
 
-          case "Dog":
-            new Classes.NPC(data.type, data.props, id)
+          case "Human":
+            new Classes.Human(data.props, id);
             break;
 
           default:
@@ -122,7 +122,8 @@ class Game_Controller {
       
     } else {
       console.error(`app.load_world -> ${path} does not exist.`);
-    }    
+    }
+    
   }
 
   save_users_to_file(){
@@ -330,6 +331,11 @@ class Game_Controller {
       case "consume":
       case "c":      
         user.consume_cmd(target);      
+        break;
+
+      case "say":
+      case "sa":
+        user.say_cmd(target);
         break;
 
       default:
