@@ -898,6 +898,8 @@ class NPC {
       "container_id":     "0", //
       "health":           this.BASE_HEALTH, //Num
       "is_fighting_with": null,//ID, String.
+      "state_machine":      null, //Array of objects
+      "state_variables":    null, //Object
     }
 
     //Note: if the 'wearing' prop is present, it must be an object (like in User)
@@ -989,9 +991,34 @@ class NPC {
     return msg;
   }
 
-  do_state_machine(input){}
+  do_state_machine(){
 
-  do_tick(){}
+    for (const [user_id, current_state_label] of Object.entries(this.props["state_variables"])){
+      //
+    }
+
+    // "default": {
+    //   "type":       "event", 
+    //   "condition":  "user_entered_room", 
+    //   "next_label": "greeting"
+    // },    
+//Dialog tree. JSON based. 
+//Questing.
+//NPC has storage for per-user variables.
+//User enters -> larry greeting -> larry question -> user answers -> larry: quest ->
+//Basic element is a node. A node has a type.
+//Each tick the stm evaluates the current node.
+//If type==text, display the text and set the next_node.
+//if type==event, we're waiting for some event, setting the user state accordingly (async). In the 
+//  next tick we evaluate according to the vars.
+
+
+
+  }
+
+  do_tick(){
+    this.do_state_machine();
+  }
 
   do_death(){
     //When an NPC dies, it drops it's items.
@@ -1077,7 +1104,11 @@ class NPC {
 
   get_chat_msg(sender_id, msg){
     console.log(sender_id, msg);
-    //Continue here: make larry respond to user entering the room.
+    if (msg.includes("enters from")){
+      if (this.props["state_variables"][sender_id]===undefined){
+        this.props["state_variables"][sender_id]= {"entered_the_room": true}
+      }
+    }
   }
 }
 
@@ -1107,6 +1138,19 @@ class Human extends NPC {
       "slots":            [],//IDs, String.
       "slots_size_limit": 10,
       "is_fighting_with": null,//ID, String.
+      "state_machine":     {
+        "default": {
+          "type":       "event", 
+          "condition":  "user_entered_room", 
+          "next_label": "greeting"
+        }, 
+        "greeting": {
+          "type":       "text",
+          "condition":  null,
+          "next_label": "default"
+        }
+      },
+      "state_variables": {}, //user_id: current_state_label
     }
 
     //Overwrite the default props with saved ones.
