@@ -899,7 +899,7 @@ class NPC {
       "health":           this.BASE_HEALTH, //Num
       "is_fighting_with": null,//ID, String.
       "state_machine":      null, //Array of objects
-      "state_variables":    null, //Object
+      "state_variables":    null, //Object user_id: {cs: , vars: entered_room: bool}
     }
 
     //Note: if the 'wearing' prop is present, it must be an object (like in User)
@@ -991,11 +991,10 @@ class NPC {
     return msg;
   }
 
-  do_state_machine(){
+  stm_transition(state, event){
 
-    for (const [user_id, current_state_label] of Object.entries(this.props["state_variables"])){
-      //
-    }
+
+  }
 
     // "default": {
     //   "type":       "event", 
@@ -1012,13 +1011,7 @@ class NPC {
 //if type==event, we're waiting for some event, setting the user state accordingly (async). In the 
 //  next tick we evaluate according to the vars.
 
-
-
-  }
-
-  do_tick(){
-    this.do_state_machine();
-  }
+  do_tick(){}
 
   do_death(){
     //When an NPC dies, it drops it's items.
@@ -1102,13 +1095,33 @@ class NPC {
     }    
   }
 
-  get_chat_msg(sender_id, msg){
-    console.log(sender_id, msg);
-    if (msg.includes("enters from")){
-      if (this.props["state_variables"][sender_id]===undefined){
-        this.props["state_variables"][sender_id]= {"entered_the_room": true}
+  transition(state, event) {
+
+    const nextStateNode = this.props["state_machine"]
+      .states[state.status]
+      .on?.[event.type]
+      ?? { target: state.status };
+  
+    const nextState = {
+      ...state,
+      status: nextStateNode.target
+    };
+  
+    // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
+    // go through the actions to determine
+    // what should be done
+    nextStateNode.actions?.forEach(action => {
+      if (action.type === 'say') {
+        Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', action.content);        
       }
-    }
+    });
+  
+    return nextState;
+  }
+
+  get_chat_msg(sender_id, msg){
+    
+
   }
 }
 
@@ -1139,15 +1152,25 @@ class Human extends NPC {
       "slots_size_limit": 10,
       "is_fighting_with": null,//ID, String.
       "state_machine":     {
-        "default": {
-          "type":       "event", 
-          "condition":  "user_entered_room", 
-          "next_label": "greeting"
-        }, 
-        "greeting": {
-          "type":       "text",
-          "condition":  null,
-          "next_label": "default"
+        "initial": "default",
+        "states": {
+          "default": {
+            "on": {
+              //event types
+              "USER_ENTERED_THE_ROOM": {
+                "target": "greeting",
+                "actions": [{"type": "say", "content": "Hi. I see you woke up. Lucky."}]
+              }
+            }
+          },
+          "greeting": {
+            "on": {
+              "NEXT_STATE": {
+                "target": "default",
+                "actions": []
+              }
+            }
+          }
         }
       },
       "state_variables": {}, //user_id: current_state_label
