@@ -280,7 +280,10 @@ function generate_html(entity_id, type){
 class StateMachine {
   //A machine as a value (=current state), and a function that transition it 
   //from the current state to the next state according to given event.
-  constructor(owner_id){
+  constructor(owner_id, raw_stm_definition){
+
+    let stm_definition = this.process_raw_stm_definition(raw_stm_definition);
+
     this.machine = this.createMachine({ //note that this is only the param passed to the funtion!
       initialState: "Default",
       Default: {
@@ -351,6 +354,20 @@ class StateMachine {
       }
     }
     return machine;
+  }
+
+  process_raw_stm_definition(raw_stm_definition){    
+    let stm_definition = {};
+    for (const [key, state_obj] of Object.entries(raw_stm_definition)){
+      if (key==="initialState"){
+        //continue here
+      }  
+    }
+    console.log();
+
+
+    return stm_definition;
+
   }
 }
     

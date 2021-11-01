@@ -883,7 +883,7 @@ class Item {
 }
 
 class NPC {
-  constructor(id=null){
+  constructor(type, props, id=null){
 
     //Default Constants
     this.BASE_HEALTH= 10;
@@ -891,14 +891,22 @@ class NPC {
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
+    //The base class has methods and constants. (methods expect some props.)
+    //We can load the default props for a given npc from a json.
+    //Then (if) we load from save - we override them. 
+    //A state machine definition should not be overriden.
+    //so it can be it's own param.
+    
+    let stm_definiton = World.world.types_db[type].stm_definition;
+    this.state_machine = new Utils.StateMachine(this.id, stm_definiton);
+
     this.props = {//Mandatory props for every NPC
       "name":             "An NPC",
       "type":             "An NPC",
       "description":      "It's an NPC.",      
       "container_id":     "0", //
       "health":           this.BASE_HEALTH, //Num
-      "is_fighting_with": null,//ID, String.
-      "state_machine":      null, //Array of objects
+      "is_fighting_with": null,//ID, String.      
       "state_variables":    null, //Object user_id: {cs: , vars: entered_room: bool}
     }
 

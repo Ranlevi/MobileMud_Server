@@ -1,0 +1,52 @@
+{
+  "type":             "Human",
+  "props": {
+    "name":             "Larry Clarke",      
+    "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
+    "container_id":     null,      
+    "wearing": {
+      "Head":           null,
+      "Torso":          null,
+      "Legs":           null,
+      "Feet":           null
+    },
+    "holding":          {
+      "Hands":          null
+    },
+    "slots":            [],
+    "slots_size_limit": 10,
+    "is_fighting_with": null
+  },
+  "stm_definition": {
+    "initialState": "Default",
+    "Default": {
+      "actions": {
+        "onEnter":  {},
+        "onExit":   {}
+      },
+      "transitions": {
+        "user_enters_room": {
+          "target": "Greeting",
+          "action":{}
+        }
+      }
+    },
+    "Greeting": {
+      "actions": {
+        "onEnter": {
+          "action": "send_chat_msg_to_room",
+          "options": {
+            "msg": "Hello."
+          }            
+        },
+        "onExit": {}
+      },
+      "transitions": {
+        "tick": {
+          "target": "Default",
+          "action": {}
+        }
+      }
+    }    
+  }
+}

@@ -99,8 +99,8 @@ class Game_Controller {
             new Classes.Item(data.type, data.props, id);
             break;
 
-          case "Larry":
-            new Classes.NPC(data.props, id);//make it load the json file
+          case "Human":
+            new Classes.NPC(data.type, data.props, id);            
             break;
 
           default:

@@ -1,4 +1,5 @@
 const Classes=              require('./classes');
+const fs=                   require('fs');
 
 class World {
   //Holds all entities and user instances, accesible by ID (String)
@@ -6,6 +7,7 @@ class World {
   constructor(){
     this.world = new Map(); //id: item instance.
     this.users = new Map();
+    this.types_db = this.load_types_from_jsons();
   }
 
   get_instance(instance_id){
@@ -44,6 +46,16 @@ class World {
       }
     }
     return user_id;
+  }
+
+  load_types_from_jsons(){    
+    if (fs.existsSync(__dirname + '/Types/npc_human.json')){
+      let data = JSON.parse(fs.readFileSync(__dirname + '/Types/npc_human.json'));
+      let type = data.type;
+      let obj = {};
+      obj[type] = data;   
+      return obj;
+    }
   }
 }
 const FIRST_ROOM_ID= '0';
