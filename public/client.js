@@ -1,5 +1,5 @@
-// let ws=                       new WebSocket('ws://localhost:8080');
-let ws=                       new WebSocket('ws://10.0.0.6:8080');
+let ws=                       new WebSocket('ws://localhost:8080');
+// let ws=                       new WebSocket('ws://10.0.0.6:8080');
 let chat_display=             document.getElementById('chat_display');
 let dashboard=                document.getElementById('dashboard');
 let signin_form=              document.getElementById("signin");

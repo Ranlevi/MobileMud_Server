@@ -991,16 +991,7 @@ class NPC {
     return msg;
   }
 
-  stm_transition(state, event){
-
-
-  }
-
-    // "default": {
-    //   "type":       "event", 
-    //   "condition":  "user_entered_room", 
-    //   "next_label": "greeting"
-    // },    
+  
 //Dialog tree. JSON based. 
 //Questing.
 //NPC has storage for per-user variables.
@@ -1011,7 +1002,10 @@ class NPC {
 //if type==event, we're waiting for some event, setting the user state accordingly (async). In the 
 //  next tick we evaluate according to the vars.
 
-  do_tick(){}
+  do_tick(){
+    let current_state = this.props["state_machine"].machine.value;
+    this.props["state_machine"].machine.transition(current_state,"tick");
+  }
 
   do_death(){
     //When an NPC dies, it drops it's items.
@@ -1095,99 +1089,59 @@ class NPC {
     }    
   }
 
-  transition(state, event) {
-
-    const nextStateNode = this.props["state_machine"]
-      .states[state.status]
-      .on?.[event.type]
-      ?? { target: state.status };
-  
-    const nextState = {
-      ...state,
-      status: nextStateNode.target
-    };
-  
     // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
-    // go through the actions to determine
-    // what should be done
-    nextStateNode.actions?.forEach(action => {
-      if (action.type === 'say') {
-        Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', action.content);        
-      }
-    });
   
-    return nextState;
-  }
-
   get_chat_msg(sender_id, msg){
-    
-
-  }
-}
-
-class Human extends NPC {
-  constructor(props=null, id=null){
-    super(id);
-
-    //Default Constants
-    this.BASE_HEALTH= 10;
-    this.BASE_DAMAGE= 1;
-
-    this.props = {
-      "name":             "A Human",
-      "type":             "Human",
-      "description":      "It's a human being, like yourself.",      
-      "container_id":     "0",
-      "health":           this.BASE_HEALTH, //Num
-      "wearing": {
-        'Head':           null,//ID, String.
-        'Torso':          null,
-        'Legs':           null,
-        'Feet':           null
-      },
-      "holding":          {
-        'Hands':          null
-      },
-      "slots":            [],//IDs, String.
-      "slots_size_limit": 10,
-      "is_fighting_with": null,//ID, String.
-      "state_machine":     {
-        "initial": "default",
-        "states": {
-          "default": {
-            "on": {
-              //event types
-              "USER_ENTERED_THE_ROOM": {
-                "target": "greeting",
-                "actions": [{"type": "say", "content": "Hi. I see you woke up. Lucky."}]
-              }
-            }
-          },
-          "greeting": {
-            "on": {
-              "NEXT_STATE": {
-                "target": "default",
-                "actions": []
-              }
-            }
-          }
-        }
-      },
-      "state_variables": {}, //user_id: current_state_label
-    }
-
-    //Overwrite the default props with saved ones.
-    if (props!==null){
-      for (const [key, value] of Object.entries(props)){
-        this.props[key]= value;
-      }
+    if (msg.includes('enters from')){
+      let current_state = this.props["state_machine"].machine.value;
+      this.props["state_machine"].machine.transition(current_state,"user_enters_room");
     }
 
   }
 }
+
+// class Human extends NPC {
+//   constructor(props=null, id=null){
+//     super(id);
+
+//     //Default Constants
+//     this.BASE_HEALTH= 10;
+//     this.BASE_DAMAGE= 1;
+
+//     this.props = {
+//       "name":             "A Human",
+//       "type":             "Human",
+//       "description":      "It's a human being, like yourself.",      
+//       "container_id":     "0",
+//       "health":           this.BASE_HEALTH, //Num
+//       "wearing": {
+//         'Head':           null,//ID, String.
+//         'Torso':          null,
+//         'Legs':           null,
+//         'Feet':           null
+//       },
+//       "holding":          {
+//         'Hands':          null
+//       },
+//       "slots":            [],//IDs, String.
+//       "slots_size_limit": 10,
+//       "is_fighting_with": null,//ID, String.
+//       "state_machine": new Utils.StateMachine(this.id),
+//       "state_variables": null, //user_id: current_state_label
+//     }
+
+//     //Overwrite the default props with saved ones.
+//     if (props!==null){
+//       for (const [key, value] of Object.entries(props)){
+//         this.props[key]= value;
+//       }
+//     }
+
+//   }
+// }
 
 exports.Item=             Item;
 exports.User=             User;
 exports.Room=             Room;
 exports.NPC=              NPC;
-exports.Human=            Human;
+// exports.Human=            Human;

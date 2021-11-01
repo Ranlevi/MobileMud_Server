@@ -276,6 +276,83 @@ function generate_html(entity_id, type){
             `data-actions="Look_Kill">${entity.props["name"]}</span>`
   }
 }
+
+class StateMachine {
+  //A machine as a value (=current state), and a function that transition it 
+  //from the current state to the next state according to given event.
+  constructor(owner_id){
+    this.machine = this.createMachine({ //note that this is only the param passed to the funtion!
+      initialState: "Default",
+      Default: {
+        actions: {
+          onEnter() {
+            console.log("Default: onEnter");
+          },
+          onExit(){
+            console.log("Default: onExit");
+          }
+        },
+        transitions: {
+          user_enters_room: {
+            target: "Greeting",
+            action(){
+              console.log("transition action from default to greeting");
+            }
+          }
+        }
+      },
+      Greeting: {
+        actions: {
+          onEnter() {
+            console.log("Greeting: onEnter");            
+            msg_sender_instance.send_chat_msg_to_room(owner_id,'world','Hello.')
+          },
+          onExit(){
+            console.log("Greeting: onExit");
+          }
+        },
+        transitions: {
+          tick: {
+            target: "Default",
+            action(){
+              console.log("transition action from greeting to default");
+            }
+          }
+        }
+      }
+    }); 
+  }
+
+  createMachine(stm_definition){//stm_definition is the object with initstate and states.
+    const machine = {
+      value: stm_definition.initialState, //value===current state
+      transition(current_state, event){
+        const currentStateDefinition = stm_definition[current_state];
+        const destinationTransition = currentStateDefinition.transitions[event];
+        //Holds the target state, and the action to perform on transition.
+
+        if (!destinationTransition){
+          //If the given event does not trigger a transition, return early.
+          return;
+        }
+
+        const destinationState = destinationTransition.target;
+        const destinationStateDefinition = stm_definition[destinationState];
+        
+        //Perform the actions.
+        destinationTransition.action();
+        currentStateDefinition.actions.onExit();
+        destinationStateDefinition.actions.onEnter();
+
+        //return the next state.
+        machine.value = destinationState;
+
+        return machine.value
+      }
+    }
+    return machine;
+  }
+}
     
 exports.id_generator=           id_generator_instance;
 exports.msg_sender=             msg_sender_instance;
@@ -283,3 +360,4 @@ exports.get_opposite_direction= get_opposite_direction;
 exports.move_to_room=           move_to_room;
 exports.search_for_target=      search_for_target;
 exports.generate_html=          generate_html;
+exports.StateMachine=           StateMachine;
