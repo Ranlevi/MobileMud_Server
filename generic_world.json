@@ -108,7 +108,7 @@
     }
   },
   "6": {
-    "type":             "Human",
+    "type":             "Larry_Clarke",
     "props": {
       "name":             "Larry Clarke",      
       "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
@@ -124,7 +124,8 @@
       },
       "slots":            [],
       "slots_size_limit": 10,
-      "is_fighting_with": null
+      "is_fighting_with": null,
+      "state_variables": {}
     }
   }
 }

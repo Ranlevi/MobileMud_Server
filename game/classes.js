@@ -1,5 +1,6 @@
 const Utils=      require('./utils');
 const World=      require('./world');
+const Types=      require('./types');
 
 class Room {
   constructor(props=null, id=null){
@@ -896,19 +897,21 @@ class NPC {
     //Then (if) we load from save - we override them. 
     //A state machine definition should not be overriden.
     //so it can be it's own param.
-    
-    let stm_definiton = World.world.types_db[type].stm_definition;
-    this.state_machine = new Utils.StateMachine(this.id, stm_definiton);
 
-    this.props = {//Mandatory props for every NPC
-      "name":             "An NPC",
-      "type":             "An NPC",
-      "description":      "It's an NPC.",      
-      "container_id":     "0", //
-      "health":           this.BASE_HEALTH, //Num
-      "is_fighting_with": null,//ID, String.      
-      "state_variables":    null, //Object user_id: {cs: , vars: entered_room: bool}
-    }
+    //Load the type
+    let type_data = Types.Types[type];
+    this.props = type_data.props;    
+    this.state_machine = new Utils.StateMachine(type_data.stm_definition);
+        
+    // {//Mandatory props for every NPC
+    //   "name":             "An NPC",
+    //   "type":             "An NPC",
+    //   "description":      "It's an NPC.",      
+    //   "container_id":     "0", //
+    //   "health":           this.BASE_HEALTH, //Num
+    //   "is_fighting_with": null,//ID, String.      
+    //   "state_variables":    null, //Object user_id: {cs: , vars: entered_room: bool}
+    // }
 
     //Note: if the 'wearing' prop is present, it must be an object (like in User)
     //      if the 'holding' prop is present, it must be an object.
@@ -916,6 +919,13 @@ class NPC {
     //        a limit prop like in User.
 
     // Add To world.
+    //Overwrite the default props with the saved ones.
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
+    }
+
     World.world.add_to_world(this);
   }
 
@@ -999,20 +1009,12 @@ class NPC {
     return msg;
   }
 
-  
-//Dialog tree. JSON based. 
-//Questing.
-//NPC has storage for per-user variables.
-//User enters -> larry greeting -> larry question -> user answers -> larry: quest ->
-//Basic element is a node. A node has a type.
-//Each tick the stm evaluates the current node.
-//If type==text, display the text and set the next_node.
-//if type==event, we're waiting for some event, setting the user state accordingly (async). In the 
-//  next tick we evaluate according to the vars.
-
   do_tick(){
-    let current_state = this.props["state_machine"].machine.value;
-    this.props["state_machine"].machine.transition(current_state,"tick");
+    let current_state = this.state_machine.machine.value;
+    let params_obj = {
+      owner_id: this.id
+    }
+    this.state_machine.machine.transition(current_state,"tick", params_obj);
   }
 
   do_death(){
@@ -1101,11 +1103,20 @@ class NPC {
   
   get_chat_msg(sender_id, msg){
     if (msg.includes('enters from')){
-      let current_state = this.props["state_machine"].machine.value;
-      this.props["state_machine"].machine.transition(current_state,"user_enters_room");
+      let current_state = this.state_machine.machine.value;
+      let params_obj = {
+        owner_id: this.id,
+        sender_id: sender_id
+      }
+      this.state_machine.machine.transition(current_state,"user_enters_room", params_obj);
     }
 
   }
+
+  say_cmd(msg){
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
+  }
+
 }
 
 // class Human extends NPC {

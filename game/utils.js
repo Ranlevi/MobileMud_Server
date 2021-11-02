@@ -134,6 +134,7 @@ class Message_Sender {
   }
 
   send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
+    
     //Send a Chat message to all entities in the same room as the sender.
     let user= World.world.get_instance(sender_id);
     let room= World.world.get_instance(user.props["container_id"]);
@@ -280,56 +281,14 @@ function generate_html(entity_id, type){
 class StateMachine {
   //A machine as a value (=current state), and a function that transition it 
   //from the current state to the next state according to given event.
-  constructor(owner_id, raw_stm_definition){
-
-    let stm_definition = this.process_raw_stm_definition(raw_stm_definition);
-
-    this.machine = this.createMachine({ //note that this is only the param passed to the funtion!
-      initialState: "Default",
-      Default: {
-        actions: {
-          onEnter() {
-            console.log("Default: onEnter");
-          },
-          onExit(){
-            console.log("Default: onExit");
-          }
-        },
-        transitions: {
-          user_enters_room: {
-            target: "Greeting",
-            action(){
-              console.log("transition action from default to greeting");
-            }
-          }
-        }
-      },
-      Greeting: {
-        actions: {
-          onEnter() {
-            console.log("Greeting: onEnter");            
-            msg_sender_instance.send_chat_msg_to_room(owner_id,'world','Hello.')
-          },
-          onExit(){
-            console.log("Greeting: onExit");
-          }
-        },
-        transitions: {
-          tick: {
-            target: "Default",
-            action(){
-              console.log("transition action from greeting to default");
-            }
-          }
-        }
-      }
-    }); 
+  constructor(stm_definition){
+    this.machine = this.createMachine(stm_definition);    
   }
 
   createMachine(stm_definition){//stm_definition is the object with initstate and states.
     const machine = {
       value: stm_definition.initialState, //value===current state
-      transition(current_state, event){
+      transition(current_state, event, params_obj){
         const currentStateDefinition = stm_definition[current_state];
         const destinationTransition = currentStateDefinition.transitions[event];
         //Holds the target state, and the action to perform on transition.
@@ -343,9 +302,10 @@ class StateMachine {
         const destinationStateDefinition = stm_definition[destinationState];
         
         //Perform the actions.
-        destinationTransition.action();
-        currentStateDefinition.actions.onExit();
-        destinationStateDefinition.actions.onEnter();
+        
+        destinationTransition.action(params_obj);
+        currentStateDefinition.actions.onExit(params_obj);
+        destinationStateDefinition.actions.onEnter(params_obj);
 
         //return the next state.
         machine.value = destinationState;
@@ -355,20 +315,7 @@ class StateMachine {
     }
     return machine;
   }
-
-  process_raw_stm_definition(raw_stm_definition){    
-    let stm_definition = {};
-    for (const [key, state_obj] of Object.entries(raw_stm_definition)){
-      if (key==="initialState"){
-        //continue here
-      }  
-    }
-    console.log();
-
-
-    return stm_definition;
-
-  }
+  
 }
     
 exports.id_generator=           id_generator_instance;

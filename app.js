@@ -19,6 +19,8 @@ const VERSION = 0.01;
 
 /*
 TODO:
+get rid of props strings
+modify Item to work with types
 center actions
 create cmd i/f
 set user description somehow
@@ -99,7 +101,7 @@ class Game_Controller {
             new Classes.Item(data.type, data.props, id);
             break;
 
-          case "Human":
+          case "Larry_Clarke":
             new Classes.NPC(data.type, data.props, id);            
             break;
 
