@@ -27,7 +27,7 @@
         "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
       "entities": [],
       "exits": {
-        "north":  null,
+        "north":  {"id": "3", "code": null},
         "south":  {"id": "0", "code": null},
         "east":   null,
         "west":   {"id": "2", "code": null},
@@ -181,8 +181,8 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "7", "code": null},
-        "west":   {"id": "9", "code": null},
+        "east":   {"id": "9", "code": null},
+        "west":   {"id": "7", "code": null},
         "up":     null,
         "down":   null
       },

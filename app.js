@@ -22,7 +22,7 @@ TODO:
 get rid of props strings
 modify Item to work with types
 center actions
-create cmd i/f
+create_cmd i/f
 set user description somehow
 improve client UI
 emote

@@ -9,19 +9,19 @@ class Room {
     
     //Default props
     this.props = {
-      "name":         "Room",
-      "type":         "Room",
-      "description":  "A simple, 3m by 3m room.",
-      "entities":     [],
-      "exits": {
-        "north":      null, //direction: {id: string, code: string}
-        "south":      null,
-        "west":       null,
-        "east":       null,
-        "up":         null,
-        "down":       null
+      name:         "Room",
+      type:         "Room",
+      description:  "A simple, 3m by 3m room.",
+      entities:     [],
+      exits: {
+        north:      null, //direction: {id: string, code: string}
+        south:      null,
+        west:       null,
+        east:       null,
+        up:         null,
+        down:       null
       },
-      "lighting":     "white", //CSS colors
+      lighting:     "white", //CSS colors
     }
 
     //Overwrite the default props with the custome ones from the save file.
@@ -36,29 +36,29 @@ class Room {
   }  
     
   add_entity(entity_id){
-    this.props["entities"].push(entity_id);
+    this.props.entities.push(entity_id);
   }
   
   remove_entity(entity_id){
     //try to remove the given entity from the room.
     //Return True is successful, else False.
     let success = false;
-    let ix = this.props["entities"].indexOf(entity_id);
+    let ix = this.props.entities.indexOf(entity_id);
     if (ix!==-1){
-      this.props["entities"].splice(ix,1);
+      this.props.entities.splice(ix,1);
       success = true;
     }
     return success;
   }
   
   get_entities_ids(){
-    return this.props["entities"];
+    return this.props.entities;
   }  
 
   get_users(){
     //Returns an array with IDs of all the users in the room.
     let id_arr = [];
-    for (const id of this.props["entities"]){
+    for (const id of this.props.entities){
       let entity = World.world.get_instance(id);
       if (entity instanceof User){
         id_arr.push(id);
@@ -73,7 +73,7 @@ class Room {
               `<p>${this.props["description"]}</p>` + 
               `<p><span class="style1">Exits:</span> `;
     
-    for (const [direction, obj] of Object.entries(this.props["exits"])){      
+    for (const [direction, obj] of Object.entries(this.props.exits)){      
       if (obj!==null){
         msg += `<span class="pn_link" data-element="pn_cmd" ` + 
                 `data-actions="${direction.toUpperCase()}" >${direction.toUpperCase()}</span> `
@@ -84,7 +84,7 @@ class Room {
 
     msg += '<p>In the room: ';
 
-    for (const entity_id of this.props["entities"]){
+    for (const entity_id of this.props.entities){
       let entity = World.world.get_instance(entity_id);      
       msg += `${entity.get_short_look_string()} `;
     }  
@@ -109,22 +109,22 @@ class User {
 
     //Default values for a new player.
     this.props = {
-      "name":             "A User",
-      "type":             "User",
-      "description":      "It's you, bozo!",
-      "password":         null, //String
-      "container_id":     "0",
-      "health":           this.BASE_HEALTH, //Num
-      "wearing": {
-        'Head':           null,//ID, String.
-        'Torso':          null,
-        'Legs':           null,
-        'Feet':           null
+      name:             "A User",
+      type:             "User",
+      description:      "It's you, bozo!",
+      password:         null, //String
+      container_id:     "0",
+      health:           this.BASE_HEALTH, //Num
+      wearing: {
+        Head:           null,//ID, String.
+        Torso:          null,
+        Legs:           null,
+        Feet:           null
       },
-      "holding":          null,
-      "slots":            [],//IDs, String.
-      "slots_size_limit": 10,
-      "is_fighting_with": null,//ID, String.
+      holding:          null,
+      slots:            [],//IDs, String.
+      slots_size_limit: 10,
+      is_fighting_with: null,//ID, String.
     }
 
     //Overwrite props with saved props. 
@@ -146,10 +146,10 @@ class User {
     //If counter is zero, the user is dead.
     if (this.tick_counter===this.HEALTH_DECLINE_RATE){
       this.tick_counter = 0;
-      this.props["health"] -= 1;
+      this.props.health -= 1;
     }
 
-    if (this.props["health"]===0){
+    if (this.props.health===0){
       //The user died of starvation!
       let msg = `has starved to death...`;
 
@@ -162,11 +162,11 @@ class User {
   }
 
   reset_health(){
-    this.props["health"] = this.BASE_HEALTH;
+    this.props.health = this.BASE_HEALTH;
   }
 
   stop_battle(){
-    this.props["is_fighting_with"] = null;
+    this.props.is_fighting_with = null;
   }
 
   calc_damage(){
@@ -177,20 +177,20 @@ class User {
   recieve_damage(damage_from_opponent){
     //Returns how much damage the user recives, after taking into account
     //shields, etc. (Num)
-    this.props["health"] -= damage_from_opponent;
-    if (this.props["health"]<0){
-      this.props["health"] = 0;
+    this.props.health -= damage_from_opponent;
+    if (this.props.health<0){
+      this.props.health = 0;
     }
     return damage_from_opponent;
   }
 
   set_container_id(new_container_id){
-    this.props["container_id"] = new_container_id;
+    this.props.container_id = new_container_id;
   }
 
   move_cmd(direction){
-    let current_room= World.world.get_instance(this.props["container_id"]);
-    let next_room_obj= current_room.props["exits"][direction];
+    let current_room= World.world.get_instance(this.props.container_id);
+    let next_room_obj= current_room.props.exits[direction];
   
     if (next_room_obj===null){
       //There's no exit in that direction.
@@ -205,13 +205,13 @@ class User {
       //This door requires a key.
 
       let ids_arr = [];
-      if (this.props["holding"]!==null) ids_arr.push(this.props["holding"]);
-      if (this.props["wearing"]["Head"]!==null) ids_arr.push(this.props["holding"]["Head"]);
-      if (this.props["wearing"]["Torso"]!==null) ids_arr.push(this.props["holding"]["Torso"]);
-      if (this.props["wearing"]["Legs"]!==null) ids_arr.push(this.props["holding"]["Legs"]);
-      if (this.props["wearing"]["Feet"]!==null) ids_arr.push(this.props["holding"]["Feet"]);
+      if (this.props.holding!==null) ids_arr.push(this.props.holding);
+      if (this.props.wearing.Head!==null) ids_arr.push(this.props.holding.Head);
+      if (this.props.wearing.Torso!==null) ids_arr.push(this.props.holding.Torso);
+      if (this.props.wearing.Legs!==null) ids_arr.push(this.props.holding.Legs);
+      if (this.props.wearing.Feet!==null) ids_arr.push(this.props.holding.Feet);
 
-      for (const id of this.props["slots"]){
+      for (const id of this.props.slots){
         ids_arr.push(id);
       }
 
@@ -219,7 +219,7 @@ class User {
       let key_exists = false;
       for (const entity_id of ids_arr){
         let entity = World.world.get_instance(entity_id);
-        if (entity.props["key_code"]===next_room_obj.code){
+        if (entity.props.key_code===next_room_obj.code){
           key_exists = true;
           break;
         }
@@ -244,7 +244,7 @@ class User {
     let next_room= World.world.get_instance(next_room_obj.id);
 
     next_room.add_entity(this.id);
-    this.props["container_id"]= next_room_obj.id;
+    this.props.container_id= next_room_obj.id;
 
     msg = `enters from ${Utils.get_opposite_direction(direction)}.`;
     Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);
@@ -255,7 +255,7 @@ class User {
   look_cmd(target=null){
     //target can be an id, a type or a name.
     //If it exists, returns a string message.
-    let room = World.world.get_instance(this.props["container_id"]);  
+    let room = World.world.get_instance(this.props.container_id);  
 
     if (target===null || target==="room"){
       //Look at the room the user is in.      
@@ -303,14 +303,14 @@ class User {
     //Check if gettable
     let entity = World.world.get_instance(result.entity_id);
 
-    if (!entity.props["is_gettable"]){
+    if (!entity.props.is_gettable){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You can't pick it up.`);        
       return;
     }    
     
     //Check is misc_slots are full.
-    if (this.props["slots_size_limit"]===this.props["slots"].length){
+    if (this.props.slots_size_limit===this.props.slots.length){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You are carrying too many things already.`);
       return;
@@ -318,9 +318,9 @@ class User {
 
     //The user can carry the item.
     //Remove it from the room, place it in the player's slots.
-    let room = World.world.get_instance(this.props["container_id"]);
+    let room = World.world.get_instance(this.props.container_id);
     room.remove_entity(result.entity_id);
-    this.props["slots"].push(result.entity_id);
+    this.props.slots.push(result.entity_id);
 
     
     entity.set_container_id(this.id);
@@ -349,24 +349,24 @@ class User {
     //Target found. Remove it from the player.
     switch(result.location){
       case("Holding"):
-        this.props["holding"] = null;
+        this.props.holding = null;
         break;
 
       case('Head'):
       case('Torso'):
       case('Legs'):
       case('Feet'):
-        this.props["wearing"][result.location] = null;
+        this.props.wearing[result.location] = null;
         break;
 
       case("Slots"):
-        let ix = this.props["slots"].indexOf(result.entity_id);          
-        this.props["slots"].splice(ix,1);
+        let ix = this.props.slots.indexOf(result.entity_id);          
+        this.props.slots.splice(ix,1);
         break;      
     }
 
     //Place it in the room.
-    let room = World.world.get_instance(this.props["container_id"]);
+    let room = World.world.get_instance(this.props.container_id);
     room.add_entity(result.entity_id);
     let entity = World.world.get_instance(result.entity_id);
     entity.set_container_id(room.id);
@@ -403,7 +403,7 @@ class User {
     //Check if target is holdable
     let entity = World.world.get_instance(result.entity_id);
 
-    if (!entity.props["is_holdable"]){
+    if (!entity.props.is_holdable){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You can't hold it.`);        
       return;
@@ -412,7 +412,7 @@ class User {
     //Remove it from it's current location.
     switch(result.location){
       case("Room"):
-        let room = World.world.get_instance(this.props["container_id"]);
+        let room = World.world.get_instance(this.props.container_id);
         room.remove_entity(result.entity_id);
         break;
 
@@ -420,16 +420,16 @@ class User {
       case('Torso'):
       case('Legs'):
       case('Feet'):
-        this.props["wearing"][result.location] = null;
+        this.props.wearing[result.location] = null;
         break;
 
       case("Slots"):
-        let ix = this.props["slots"].indexOf(result.entity_id);          
-        this.props["slots"].splice(ix,1);
+        let ix = this.props.slots.indexOf(result.entity_id);          
+        this.props.slots.splice(ix,1);
         break;      
     }
 
-    this.props["holding"] = result.entity_id;
+    this.props.holding = result.entity_id;
 
     //Set new location of entity.    
     entity.set_container_id(this.id);
@@ -471,14 +471,14 @@ class User {
 
     //Check if target can be worn
     let entity = World.world.get_instance(result.entity_id);
-    if (entity.props["wear_slot"]===null){
+    if (entity.props.wear_slot===null){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You can't wear that!`);        
       return;
     }
 
     //Check if required slot is taken
-    if (this.props["wearing"][entity.props["wear_hold_slot"]]!==null){
+    if (this.props.wearing[entity.props.wear_hold_slot]!==null){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You're already wearing something on your ${required_slot}.`);
         return;
@@ -487,18 +487,18 @@ class User {
     //Remove the target from its current location
     switch(result.location){
       case("Room"):
-        let room = World.world.get_instance(this.props["container_id"]);
+        let room = World.world.get_instance(this.props.container_id);
         room.remove_entity(result.entity_id);
         break;    
 
       case("Slots"):
-        let ix = this.props["slots"].indexOf(result.entity_id);          
-        this.props["slots"].splice(ix,1);
+        let ix = this.props.slots.indexOf(result.entity_id);          
+        this.props.slots.splice(ix,1);
         break;      
     }
 
     //Wear the target
-    this.props["wearing"][entity.props["wear_slot"]]= result.entity_id;
+    this.props.wearing[entity.props.wear_slot]= result.entity_id;
 
     entity.set_container_id(this.id);
 
@@ -526,7 +526,7 @@ class User {
 
     //Target exists
     //Check if the slots are not full
-    if (this.props["slots"].length===this.props["slots_size_limit"]){
+    if (this.props.slots.length===this.props.slots_size_limit){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You are carrying too many things already.`);
       return;
@@ -534,19 +534,19 @@ class User {
 
     switch(result.location){
       case ("Holding"):
-        this.props["holding"] = null;
+        this.props.holding = null;
         break;
 
       case('Head'):
       case('Torso'):
       case('Legs'):
       case('Feet'):
-        this.props["wearing"][result.location] = null;
+        this.props.wearing[result.location] = null;
         break;
     }
 
     //Add it to slots.
-    this.props["slots"].push(result.entity_id);
+    this.props.slots.push(result.entity_id);
 
     let entity = World.world.get_instance(result.entity_id);
 
@@ -583,8 +583,8 @@ class User {
     }
 
     //Target is killable...
-    this.props["is_fighting_with"]=   entity_id;
-    entity.props["is_fighting_with"]= this.id;
+    this.props.is_fighting_with=   entity_id;
+    entity.props.is_fighting_with= this.id;
   }
 
   consume_cmd(target=null){
@@ -611,7 +611,7 @@ class User {
     //Check if it's edible
     let entity = World.world.get_instance(result.entity_id);
 
-    if (!entity.props["is_consumable"]){
+    if (!entity.props.is_consumable){
       Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
         `You can't eat THAT!`);        
       return;
@@ -620,35 +620,35 @@ class User {
     //Target found. Remove it from its container.
     switch(result.location){
       case("Holding"):
-        this.props["holding"] = null;
+        this.props.holding = null;
         break;
 
       case('Head'):
       case('Torso'):
       case('Legs'):
       case('Feet'):
-        this.props["wearing"][result.location] = null;
+        this.props.wearing[result.location] = null;
         break;
 
       case("Slots"):
-        let ix = this.props["slots"].indexOf(result.entity_id);          
-        this.props["slots"].splice(ix,1);
+        let ix = this.props.slots.indexOf(result.entity_id);          
+        this.props.slots.splice(ix,1);
         break;
 
       case("Room"):
-        let room = World.world.get_instance(this.props["container_id"]);
+        let room = World.world.get_instance(this.props.container_id);
         room.remove_entity(result.entity_id);
         break;
     }
 
     //Restore Health
-    this.props["health"] += entity.props["hp_restored"];
-    if (this.props["health"]>this.BASE_HEALTH){
+    this.props.health += entity.props.hp_restored;
+    if (this.props.health>this.BASE_HEALTH){
       //Do not restore more than 100% of points.
-      this.props["health"] = this.BASE_HEALTH;
+      this.props.health = this.BASE_HEALTH;
     }    
 
-    let msg = `consumes ${entity.props["name"]}.`;             
+    let msg = `consumes ${entity.props.name}.`;             
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);         
   }
 
@@ -668,11 +668,11 @@ class User {
     //Return a String message with what other see when they look at the user.
 
     let msg = `<h1>${Utils.generate_html(this.id, 'User')}</h1>` +
-              `<p>${this.props["description"]}</p>` +
+              `<p>${this.props.description}</p>` +
               `<p>Wearing: `;
 
     let is_wearing_something = false;
-    for (const id of Object.values(this.props["wearing"])){
+    for (const id of Object.values(this.props.wearing)){
       if (id!==null){
         is_wearing_something = true;
         let item = World.world.get_instance(id);
@@ -687,8 +687,8 @@ class User {
     msg += `</p>`;
 
     msg += `<p>Holding: `;
-    if (this.props["holding"]!==null){
-      let item = World.world.get_instance(this.props["holding"]);
+    if (this.props.holding!==null){
+      let item = World.world.get_instance(this.props.holding);
       msg += `${item.get_short_look_string()} `;
     } else {
       msg += "Nothing.";
@@ -706,10 +706,10 @@ class User {
 
   do_death(){
     //The user is dead. Drop items to the room, reset and respawn
-    let room = World.world.get_instance(this.props["container_id"]);
+    let room = World.world.get_instance(this.props.container_id);
 
     //Move the items to the room.
-    for (const id of Object.values(this.props["wearing"])){
+    for (const id of Object.values(this.props.wearing)){
       if (id!==null){
         room.add_entity(id);
         let item = World.world.get_instance(id);
@@ -717,14 +717,14 @@ class User {
       }      
     }
 
-    if (this.props["holding"]!==null){
-      room.add_entity(this.props["holding"]);
-      let item = World.world.get_instance(this.props["holding"]);
+    if (this.props.holding!==null){
+      room.add_entity(this.props.holding);
+      let item = World.world.get_instance(this.props.holding);
       item.set_container_id(room.id);
     }
 
-    if (this.props["slots"]!==null){
-      for (const id of this.props["slots"]){
+    if (this.props.slots!==null){
+      for (const id of this.props.slots){
         room.add_entity(id);
         let item = World.world.get_instance(id);
         item.set_container_id(room.id);
@@ -735,24 +735,24 @@ class User {
     room.remove_entity(this.id);
     let spawn_room = World.world.get_instance(World.FIRST_ROOM_ID);
     spawn_room.add_entity(this.id);
-    this.props["container_id"]=     World.FIRST_ROOM_ID;
-    this.props["is_fighting_with"]= null;
+    this.props.container_id=     World.FIRST_ROOM_ID;
+    this.props.is_fighting_with= null;
     this.reset_health();
 
-    this.props["wearing"] = {
-      'Head':       null,
-      'Torso':      null,
-      'Legs':       null,
-      'Feet':       null
+    this.props.wearing = {
+      Head:       null,
+      Torso:      null,
+      Legs:       null,
+      Feet:       null
     };
-    this.props["holding"]=  null;
-    this.props["slots"]=    [];
+    this.props.holding=  null;
+    this.props.slots=    [];
   }
 
   do_battle(){
     //Perform a round of fighting with the NPC.
 
-    let opponent = World.world.get_instance(this.props["is_fighting_with"]);
+    let opponent = World.world.get_instance(this.props.is_fighting_with);
     
     //Do damage.
     let damage_dealt=     this.calc_damage(); 
@@ -764,7 +764,7 @@ class User {
       `dealing ${damage_recieved} HP of damage.`);    
 
     //Check & Handle death of the opponent.
-    if (opponent.props["health"]===0){
+    if (opponent.props.health===0){
       //Opponent has died
       this.stop_battle();
 
