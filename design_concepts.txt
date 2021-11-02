@@ -147,4 +147,10 @@ a natural leveling/zoning system.
     - Typography for the text.
   This will not be random, but will have some intenral logic.
 
-  
+  Game story
+  -----------
+  User wakes up from deep sleep. Has almost no memory.
+  Meets Larry Clarke, the akward genius who runs the ship.
+  He tells him about planet nine (vaugely), tells him to take stuff and sends the user to the town, to the mayor. Tells him
+  they need every pair of hands. Tells if the user sees a mechanical spider, don't be afraid.
+  The spider will be in a room with basic equipement.
