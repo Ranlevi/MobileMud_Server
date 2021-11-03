@@ -44,7 +44,7 @@
       "type":   "Room",
       "description": 
         "You enter a compact office-like room. A tall, thin man sits behind a table. When you walk in, he raises his eyes from the computer screen in front of him.",
-      "entities": [],
+      "entities": ["22", "23"],
       "exits": {
         "north":  null,
         "south":  null,
@@ -124,7 +124,7 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "6", "code": null},
+        "east":   {"id": "6", "code": "00000000"},
         "west":   {"id": "3", "code": null},
         "up":     null,
         "down":   null
@@ -415,6 +415,43 @@
         "down":   null
       },
       "lighting": "yellow"
+    }
+  },
+  "22": {
+    "type":     "Larry_Clarke",
+    "props": {
+      "name":             "Larry Clarke",      
+      "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
+      "container_id":     "2",      
+      "wearing": {
+        "Head":           null,
+        "Torso":          null,
+        "Legs":           null,
+        "Feet":           null
+      },
+      "holding":          {
+        "Hands":          null
+      },
+      "slots":            [],
+      "slots_size_limit": 10,
+      "is_fighting_with": null,
+      "state_variables": {}
+    }
+  },
+  "23": {
+    "type": "Keycard",
+    "props": {      
+        "name":           "A Yellow Keycard",
+        "type":           "Keycard",
+        "type_string":    "A Keycard",
+        "description":    "A small rectangular plastic card. This one opens the AirLock.",        
+        "container_id":   "2",
+        "is_consumable":  false,
+        "hp_restored":    null,
+        "is_holdable":    true,
+        "wear_slot":      null,
+        "is_gettable":    true,
+        "key_code":       "00000000"      
     }
   }
 }

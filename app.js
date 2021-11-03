@@ -26,6 +26,7 @@ create_cmd i/f
 set user description somehow
 improve client UI
 emote
+remove 'world' from send_msg
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/

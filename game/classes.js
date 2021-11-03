@@ -189,8 +189,8 @@ class User {
   }
 
   move_cmd(direction){
-    let current_room= World.world.get_instance(this.props.container_id);
-    let next_room_obj= current_room.props.exits[direction];
+    let current_room=   World.world.get_instance(this.props.container_id);
+    let next_room_obj=  current_room.props.exits[direction];
   
     if (next_room_obj===null){
       //There's no exit in that direction.
@@ -204,12 +204,13 @@ class User {
     if (next_room_obj.code!==null){
       //This door requires a key.
 
-      let ids_arr = [];
-      if (this.props.holding!==null) ids_arr.push(this.props.holding);
-      if (this.props.wearing.Head!==null) ids_arr.push(this.props.holding.Head);
-      if (this.props.wearing.Torso!==null) ids_arr.push(this.props.holding.Torso);
-      if (this.props.wearing.Legs!==null) ids_arr.push(this.props.holding.Legs);
-      if (this.props.wearing.Feet!==null) ids_arr.push(this.props.holding.Feet);
+      let ids_arr = [
+        this.props.holding,
+        this.props.wearing.Head,
+        this.props.wearing.Torso,
+        this.props.wearing.Legs,
+        this.props.wearing.Feet
+      ];      
 
       for (const id of this.props.slots){
         ids_arr.push(id);
@@ -218,11 +219,13 @@ class User {
       //Check for a key
       let key_exists = false;
       for (const entity_id of ids_arr){
-        let entity = World.world.get_instance(entity_id);
-        if (entity.props.key_code===next_room_obj.code){
-          key_exists = true;
-          break;
-        }
+        if (entity_id!==null){
+          let entity = World.world.get_instance(entity_id);
+          if (entity.props.key_code===next_room_obj.code){
+            key_exists = true;
+            break;
+          }
+        }        
       }
 
       if (!key_exists){
@@ -234,22 +237,24 @@ class User {
     }
 
     //Key found (or exit is not locked)
+    let msg = `You travel ${direction}.`;
+    Utils.msg_sender.send_chat_msg_to_user(this.id, 'world', msg);
 
-    let msg = `travels ${direction}.`;
-    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);
+    //Send messages to the room.
+    msg = `travels ${direction}.`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg, true);
 
     //Remove the player from the current room, add it to the next one.
     //Send a message and perform a look command.
     current_room.remove_entity(this.id);
     let next_room= World.world.get_instance(next_room_obj.id);
-
     next_room.add_entity(this.id);
     this.props.container_id= next_room_obj.id;
 
-    msg = `enters from ${Utils.get_opposite_direction(direction)}.`;
-    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg);
+    this.look_cmd();
 
-    this.look_cmd();    
+    msg = `enters from ${Utils.get_opposite_direction(direction)}.`;
+    Utils.msg_sender.send_chat_msg_to_room(this.id,'world', msg, true);    
   }
 
   look_cmd(target=null){
@@ -681,7 +686,7 @@ class User {
     }
 
     if (!is_wearing_something){
-      msg += 'Nothing interesting.';
+      msg += 'Plain cloths.';
     }
 
     msg += `</p>`;
@@ -783,74 +788,8 @@ class Item {
     this.props= {};
 
     //Set default porps according to type.
-    switch(type){
-      case ("Screwdriver"):
-        this.props = {
-          "name":           "A Screwdriver",
-          "type":           type,
-          "type_string":    "A Screwdriver",
-          "description":    "A philips screwdriver.",        
-          "container_id":   "0",
-          "is_consumable":  false,
-          "hp_restored":    null, //Num,
-          "is_holdable":    true,
-          "wear_slot":      null,
-          "is_gettable":    true,
-          "key_code":       null,
-        }
-        break;
-
-      case ("Candy"):
-        this.props = {
-          "name":           "A Candy",
-          "type":           type,
-          "type_string":    "A Candy",
-          "description":    "A sweet candy bar.",        
-          "container_id":   "0",
-          "is_consumable":  true,
-          "hp_restored":    50,
-          "is_holdable":    true,
-          "wear_slot":      null,
-          "is_gettable":    true,
-          "key_code":       null,
-        }
-        break;
-
-      case ("T-Shirt"):
-        this.props = {
-          "name":           "A T-Shirt",
-          "type":           type,
-          "type_string":    "A T-Shirt",
-          "description":    "A plain red T-Shirt.",        
-          "container_id":   "0",
-          "is_consumable":  false,
-          "hp_restored":    null,
-          "is_holdable":    false,
-          "wear_slot":      "Torso",
-          "is_gettable":    true,
-          "key_code":       null,
-        }
-        break;
-
-      case ("Keycard"):
-        this.props = {
-          "name":           "A Keycard",
-          "type":           type,
-          "type_string":    "A Keycard",
-          "description":    "A small rectangular plastic card.",        
-          "container_id":   "0",
-          "is_consumable":  false,
-          "hp_restored":    null,
-          "is_holdable":    true,
-          "wear_slot":      null,
-          "is_gettable":    true,
-          "key_code":       "000000",
-        }
-        break;
-      
-      default:
-        console.error(`Item constructor: unknown type - ${type}`);
-    }
+    let type_data = Types.Types[type];
+    this.props = type_data.props;        
 
     //Overwrite the default props with the saved ones.
     if (props!==null){
@@ -864,14 +803,14 @@ class Item {
   }
 
   set_container_id(new_container_id){
-    this.props["container_id"] = new_container_id;
+    this.props.container_id= new_container_id;
   }
 
   get_look_string(){
     //Returns a message with what a user sees when looking at the Item.
 
     let msg = `<h1>${Utils.generate_html(this.id, 'Item')}</h1>` +
-              `<p>${this.props["description"]}</p>`;
+              `<p>${this.props.description}</p>`;
     
     return msg;
   }
@@ -1114,53 +1053,85 @@ class NPC {
   }
 
   say_cmd(msg){
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', `says: ` + msg);
+  }
+
+  emote_cmd(emote){    
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', emote, true);
   }
 
 }
-
-// class Human extends NPC {
-//   constructor(props=null, id=null){
-//     super(id);
-
-//     //Default Constants
-//     this.BASE_HEALTH= 10;
-//     this.BASE_DAMAGE= 1;
-
-//     this.props = {
-//       "name":             "A Human",
-//       "type":             "Human",
-//       "description":      "It's a human being, like yourself.",      
-//       "container_id":     "0",
-//       "health":           this.BASE_HEALTH, //Num
-//       "wearing": {
-//         'Head':           null,//ID, String.
-//         'Torso':          null,
-//         'Legs':           null,
-//         'Feet':           null
-//       },
-//       "holding":          {
-//         'Hands':          null
-//       },
-//       "slots":            [],//IDs, String.
-//       "slots_size_limit": 10,
-//       "is_fighting_with": null,//ID, String.
-//       "state_machine": new Utils.StateMachine(this.id),
-//       "state_variables": null, //user_id: current_state_label
-//     }
-
-//     //Overwrite the default props with saved ones.
-//     if (props!==null){
-//       for (const [key, value] of Object.entries(props)){
-//         this.props[key]= value;
-//       }
-//     }
-
-//   }
-// }
 
 exports.Item=             Item;
 exports.User=             User;
 exports.Room=             Room;
 exports.NPC=              NPC;
-// exports.Human=            Human;
+
+// switch(type){
+//   case ("Screwdriver"):
+//     this.props = {
+//       "name":           "A Screwdriver",
+//       "type":           type,
+//       "type_string":    "A Screwdriver",
+//       "description":    "A philips screwdriver.",        
+//       "container_id":   "0",
+//       "is_consumable":  false,
+//       "hp_restored":    null, //Num,
+//       "is_holdable":    true,
+//       "wear_slot":      null,
+//       "is_gettable":    true,
+//       "key_code":       null,
+//     }
+//     break;
+
+//   case ("Candy"):
+//     this.props = {
+//       "name":           "A Candy",
+//       "type":           type,
+//       "type_string":    "A Candy",
+//       "description":    "A sweet candy bar.",        
+//       "container_id":   "0",
+//       "is_consumable":  true,
+//       "hp_restored":    50,
+//       "is_holdable":    true,
+//       "wear_slot":      null,
+//       "is_gettable":    true,
+//       "key_code":       null,
+//     }
+//     break;
+
+//   case ("T-Shirt"):
+//     this.props = {
+//       "name":           "A T-Shirt",
+//       "type":           type,
+//       "type_string":    "A T-Shirt",
+//       "description":    "A plain red T-Shirt.",        
+//       "container_id":   "0",
+//       "is_consumable":  false,
+//       "hp_restored":    null,
+//       "is_holdable":    false,
+//       "wear_slot":      "Torso",
+//       "is_gettable":    true,
+//       "key_code":       null,
+//     }
+//     break;
+
+//   case ("Keycard"):
+//     this.props = {
+//       "name":           "A Keycard",
+//       "type":           type,
+//       "type_string":    "A Keycard",
+//       "description":    "A small rectangular plastic card.",        
+//       "container_id":   "0",
+//       "is_consumable":  false,
+//       "hp_restored":    null,
+//       "is_holdable":    true,
+//       "wear_slot":      null,
+//       "is_gettable":    true,
+//       "key_code":       "000000",
+//     }
+//     break;
+  
+//   default:
+//     console.error(`Item constructor: unknown type - ${type}`);
+// }

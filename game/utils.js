@@ -196,8 +196,8 @@ function search_for_target(user_id, target){
   //Auxilary helper function
   const test_if_target = (entity, target) => {
     //Return ID (string) or null.
-    if ((entity.props["name"].toLowerCase()===target) ||
-        (entity.props["type"].toLowerCase()==target) ||
+    if ((entity.props.name.toLowerCase()===target) ||
+        (entity.props.type.toLowerCase()===target) ||
         (target===entity.id)){
       return entity.id;
     }
