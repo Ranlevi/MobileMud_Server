@@ -96,24 +96,25 @@ class Room {
   }
 
   do_tick(){
-    for (const obj of this.props.spawned_entities){
-      //Check for type and amonut.
-      let existing_amount = 0;
-      for (const entity of this.props.entities){
-        if (entity.type===obj.type){
-          existing_amount += 1;
+    if (this.props.spawned_entities!==null){
+      for (const obj of this.props.spawned_entities){        
+        //Check for type and amonut.
+        let existing_amount = 0;
+        for (const entity_id of this.props.entities){
+          let entity = World.world.get_instance(entity_id);
+          if (entity.props.type===obj.type){
+            existing_amount += 1;
+          }
+        }
+  
+        if (existing_amount<obj.amount){
+          //Not enough entitys, need to spawn.
+          for (let i=existing_amount;i<obj.amount;i++){
+            World.world.spawn_entity(obj["class"], obj.type, this.id);
+          }
         }
       }
-
-      if (existing_amount<obj.amount){
-        //Not enough entitys, need to spawn.
-        for (let i=existing_amount;i<obj.amount;i++){
-          World.world.spawn_entity()//continue here
-        }
-        // {"class": "NPC", "type": "Larry_Clarke",  "amount": 1}],
-
-      }
-    }
+    }    
   }
 }
 
@@ -675,6 +676,8 @@ class User {
       this.props.health = this.BASE_HEALTH;
     }    
 
+    //TODO: remove the item from the world!!!
+
     let msg = `consumes ${entity.props.name}.`;             
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);         
   }
@@ -840,6 +843,17 @@ class Item {
   get_short_look_string(){    
     let msg = `${Utils.generate_html(this.id, 'Item')}`; 
     return msg;
+  }
+
+  do_disintegrate(){
+
+  }
+
+  do_tick(){
+    
+    
+
+    //TBD
   }
   
 }

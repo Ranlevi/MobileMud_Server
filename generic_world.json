@@ -45,7 +45,7 @@
       "name":   "Larry's Office",
       "type":   "Room",
       "spawned_entities": [
-        {"class": "Item", "type": "Keycard",       "amount": 2},
+        {"class": "Item", "type": "Keycard",       "amount": 1},
         {"class": "NPC", "type": "Larry_Clarke",  "amount": 1}],
       "description": 
         "You enter a compact office-like room. A tall, thin man sits behind a table. When you walk in, he raises his eyes from the computer screen in front of him.",

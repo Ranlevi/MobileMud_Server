@@ -4,23 +4,23 @@ const World=      require('./world');
 const Types = {
   Larry_Clarke: {
     props: {
-      "name":             "Larry Clarke",  
-      "type":             "Larry_Clarke",    
-      "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
-      "container_id":     null,      
-      "wearing": {
-        "Head":           null,
-        "Torso":          null,
-        "Legs":           null,
-        "Feet":           null
+      name:             "Larry Clarke",  
+      type:             "Larry_Clarke",    
+      description:      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
+      container_id:     null,      
+      wearing: {
+        Head:           null,
+        Torso:          null,
+        Legs:           null,
+        Feet:           null
       },
-      "holding":          {
-        "Hands":          null
+      holding:          {
+        Hands:          null
       },
-      "slots":            [],
-      "slots_size_limit": 10,
-      "is_fighting_with": null,
-      "state_variables": {}
+      slots:            [],
+      slots_size_limit: 10,
+      is_fighting_with: null,
+      state_variables:  {}
     },
     stm_definition: {
       initialState: "Default",
@@ -159,6 +159,8 @@ const Types = {
       wear_slot:      null,
       is_gettable:    true,
       key_code:       null,
+      expiration_counter: 0,
+      expiration_limit: 20,//continue here
     }
   }
 }

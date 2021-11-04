@@ -159,9 +159,6 @@ a natural leveling/zoning system.
   So a room has spawn_items props. Every tick we check for them, and if not exist,
   we create new ones.
 
-  Also, each item has an 'allowed_rooms' props. Each tick we check the items, and if
-  not there - delete it. 
-
   Also, each item has a expiration period and counter props. Each tick we incremente and
   check. 
 
