@@ -46,6 +46,31 @@ class World {
     }
     return user_id;
   }
+
+  spawn_entity(klass, type, container_id, props, id=null){
+    switch(klass){
+      case("Room"):
+        new Classes.Room(props, id);
+        break;
+      
+      case("NPC"):
+        let entity = new Classes.NPC(type);
+        let room = this.get_instance(container_id);
+        room.add_entity(entity.id);
+        entity.set_container_id(container_id);
+        break;
+
+      case("Item"):
+        let entity = new Classes.Item(type);
+        let room = this.get_instance(container_id);
+        room.add_entity(entity.id);
+        entity.set_container_id(container_id);
+        break;
+
+      default:
+        console.error(`World.spawn_entity: unkown class ${klass}`);
+    }
+  }
   
 }
 const FIRST_ROOM_ID= '0';

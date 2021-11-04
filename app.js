@@ -19,6 +19,8 @@ const VERSION = 0.01;
 
 /*
 TODO:
+refactor to Type, SubType
+maybe no need for items in the generic_world load? because spawn!
 get rid of props strings
 modify Item to work with types
 center actions
@@ -92,19 +94,20 @@ class Game_Controller {
         //Create the entities, with their saves props.
         switch(data.type){
           case "Room":
-            new Classes.Room(data.props, id);
+            World.world.spawn_entity('Room', 'Room', null, data.props, id);
+            // new Classes.Room(data.props, id);
             break;
           
-          case "Screwdriver":
-          case "Candy":
-          case "T-Shirt":
-          case "Keycard":
-            new Classes.Item(data.type, data.props, id);
-            break;
+          // case "Screwdriver":
+          // case "Candy":
+          // case "T-Shirt":
+          // case "Keycard":
+          //   new Classes.Item(data.type, data.props, id);
+          //   break;
 
-          case "Larry_Clarke":
-            new Classes.NPC(data.type, data.props, id);            
-            break;
+          // case "Larry_Clarke":
+          //   new Classes.NPC(data.type, data.props, id);            
+          //   break;
 
           default:
             console.error(`GC.load_world: Unknown type: ${data.type}`);
@@ -224,15 +227,16 @@ class Game_Controller {
     //Iterate on all entities, and process their tick actions.    
 
     World.world.world.forEach(
-      (item) => {
-        //Currently, only NPCs and Users have tick actions.
+      (entity) => {
         //Fighting overrides the do_tick().
-        if (item instanceof Classes.NPC){
-          if (item.props["is_fighting_with"]!==null){
-            item.do_battle(); 
+        if (entity instanceof Classes.NPC){
+          if (entity.props.is_fighting_with!==null){
+            entity.do_battle(); 
           } else {
-            item.do_tick();
+            entity.do_tick();
           }
+        } else {
+          entity.do_tick();
         }       
       }
     );

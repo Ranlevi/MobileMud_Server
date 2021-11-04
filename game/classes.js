@@ -12,6 +12,7 @@ class Room {
       name:         "Room",
       type:         "Room",
       description:  "A simple, 3m by 3m room.",
+      spawned_entities: null,
       entities:     [],
       exits: {
         north:      null, //direction: {id: string, code: string}
@@ -92,6 +93,27 @@ class Room {
     msg += `</p>`
 
     return msg;
+  }
+
+  do_tick(){
+    for (const obj of this.props.spawned_entities){
+      //Check for type and amonut.
+      let existing_amount = 0;
+      for (const entity of this.props.entities){
+        if (entity.type===obj.type){
+          existing_amount += 1;
+        }
+      }
+
+      if (existing_amount<obj.amount){
+        //Not enough entitys, need to spawn.
+        for (let i=existing_amount;i<obj.amount;i++){
+          World.world.spawn_entity()//continue here
+        }
+        // {"class": "NPC", "type": "Larry_Clarke",  "amount": 1}],
+
+      }
+    }
   }
 }
 
@@ -823,7 +845,7 @@ class Item {
 }
 
 class NPC {
-  constructor(type, props, id=null){
+  constructor(type, props=null, id=null){
 
     //Default Constants
     this.BASE_HEALTH= 10;
@@ -869,7 +891,7 @@ class NPC {
   }
 
   set_container_id(new_container_id){
-    this.props["container_id"] = new_container_id;
+    this.props.container_id = new_container_id;
   }
 
   move_to_room(new_room_id){

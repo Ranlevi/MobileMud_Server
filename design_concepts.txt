@@ -147,6 +147,25 @@ a natural leveling/zoning system.
     - Typography for the text.
   This will not be random, but will have some intenral logic.
 
+  Spawning
+  --------
+  A keycard needs to disappear when out of the spaceship.
+  A new one needs to spawn when Larry's room doesn't have one. (minus the body of users)
+  Food needs to spawn in the storage, and disappear after some time. 
+  
+  The logic needs to be related to the the room, else there can be cases where several copies
+  of the item exist outside the room and we'll need to sync them.
+
+  So a room has spawn_items props. Every tick we check for them, and if not exist,
+  we create new ones.
+
+  Also, each item has an 'allowed_rooms' props. Each tick we check the items, and if
+  not there - delete it. 
+
+  Also, each item has a expiration period and counter props. Each tick we incremente and
+  check. 
+
+
   Game story
   -----------
   User wakes up from deep sleep. Has almost no memory.

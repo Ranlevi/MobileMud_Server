@@ -4,6 +4,7 @@
     "props": {
       "name":   "The Infirmary",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
       "entities": [],
@@ -23,6 +24,7 @@
     "props": {
       "name":   "A Narrow Corridor",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
       "entities": [],
@@ -42,9 +44,12 @@
     "props": {
       "name":   "Larry's Office",
       "type":   "Room",
+      "spawned_entities": [
+        {"class": "Item", "type": "Keycard",       "amount": 2},
+        {"class": "NPC", "type": "Larry_Clarke",  "amount": 1}],
       "description": 
         "You enter a compact office-like room. A tall, thin man sits behind a table. When you walk in, he raises his eyes from the computer screen in front of him.",
-      "entities": ["22", "23"],
+      "entities": [],
       "exits": {
         "north":  null,
         "south":  null,
@@ -61,6 +66,7 @@
     "props": {
       "name":   "A Narrow Corridor",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "The corridor has four exits. The door to the East is marked 'Storage', while the door to the West is labeled 'AirLock'. The door to the North has a sign that says: 'Danger! Authorized Personnel Only!'. The corridor continues to the South.",
       "entities": [],
@@ -80,6 +86,7 @@
     "props": {
       "name":   "Engineering",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -99,6 +106,7 @@
     "props": {
       "name":   "Storage",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -118,6 +126,7 @@
     "props": {
       "name":   "AirLock",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -137,6 +146,7 @@
     "props": {
       "name":   "Tunnel 1",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -156,6 +166,7 @@
     "props": {
       "name":   "Tunnel 2",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -175,6 +186,7 @@
     "props": {
       "name":   "Tunnel 3",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -194,6 +206,7 @@
     "props": {
       "name":   "Tunnel 4",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -213,6 +226,7 @@
     "props": {
       "name":   "Gaggarin Gate",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -232,6 +246,7 @@
     "props": {
       "name":   "Aldrin Av. 1",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -251,6 +266,7 @@
     "props": {
       "name":   "Mayor's House",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -270,6 +286,7 @@
     "props": {
       "name":   "Aldrin Av. 2",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -289,6 +306,7 @@
     "props": {
       "name":   "Aldrin Av. 3",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -308,6 +326,7 @@
     "props": {
       "name":   "Aldrin Av. 4",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -327,6 +346,7 @@
     "props": {
       "name":   "Armstrong Sq.",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -346,6 +366,7 @@
     "props": {
       "name":   "Aldrin Av. 5",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -365,6 +386,7 @@
     "props": {
       "name":   "Aldrin Av. 6",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -384,6 +406,7 @@
     "props": {
       "name":   "Aldrin Av. 7",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -403,6 +426,7 @@
     "props": {
       "name":   "Elon Gate 4",
       "type":   "Room",
+      "spawned_entities": null,
       "description": 
         "TBD",
       "entities": [],
@@ -415,43 +439,6 @@
         "down":   null
       },
       "lighting": "yellow"
-    }
-  },
-  "22": {
-    "type":     "Larry_Clarke",
-    "props": {
-      "name":             "Larry Clarke",      
-      "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
-      "container_id":     "2",      
-      "wearing": {
-        "Head":           null,
-        "Torso":          null,
-        "Legs":           null,
-        "Feet":           null
-      },
-      "holding":          {
-        "Hands":          null
-      },
-      "slots":            [],
-      "slots_size_limit": 10,
-      "is_fighting_with": null,
-      "state_variables": {}
-    }
-  },
-  "23": {
-    "type": "Keycard",
-    "props": {      
-        "name":           "A Yellow Keycard",
-        "type":           "Keycard",
-        "type_string":    "A Keycard",
-        "description":    "A small rectangular plastic card. This one opens the AirLock.",        
-        "container_id":   "2",
-        "is_consumable":  false,
-        "hp_restored":    null,
-        "is_holdable":    true,
-        "wear_slot":      null,
-        "is_gettable":    true,
-        "key_code":       "00000000"      
     }
   }
 }
