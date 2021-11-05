@@ -136,10 +136,15 @@ class Message_Sender {
   send_chat_msg_to_room(sender_id, sender, text, dont_send_to_user=false){
     
     //Send a Chat message to all entities in the same room as the sender.
-    let user= World.world.get_instance(sender_id);
-    let room= World.world.get_instance(user.props["container_id"]);
+    let sender_entity=     World.world.get_instance(sender_id);
+    let container= World.world.get_instance(sender_entity.props.container_id);
 
-    let arr = room.get_entities_ids();
+    if (!(container instanceof Classes.Room)){
+      container = World.world.get_instance(container.props.container_id);
+    }
+
+    //Now the container is the room
+    let arr = container.get_entities_ids();
     for (const id of arr){
       if (id===sender_id && dont_send_to_user) continue;
 
@@ -278,6 +283,26 @@ function generate_html(entity_id, type){
   }
 }
 
+function deepCopyFunction(inObject){
+  let outObject, value, key;
+
+  if (typeof inObject !== "object" || inObject === null) {
+    return inObject // Return the value if inObject is not an object
+  }
+
+  // Create an array or object to hold the values
+  outObject = Array.isArray(inObject) ? [] : {}
+
+  for (key in inObject) {
+    value = inObject[key]
+
+    // Recursively (deep) copy for nested objects, including arrays
+    outObject[key] = deepCopyFunction(value)
+  }
+
+  return outObject
+}
+
 class StateMachine {
   //A machine as a value (=current state), and a function that transition it 
   //from the current state to the next state according to given event.
@@ -325,3 +350,4 @@ exports.move_to_room=           move_to_room;
 exports.search_for_target=      search_for_target;
 exports.generate_html=          generate_html;
 exports.StateMachine=           StateMachine;
+exports.deepCopyFunction=       deepCopyFunction;

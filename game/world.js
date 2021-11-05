@@ -65,7 +65,7 @@ class World {
         break;
 
       case("Item"):
-        entity = new Classes.Item(type);
+        entity = new Classes.Item(type);        
         room = this.get_instance(container_id);
         room.add_entity(entity.id);
         entity.set_container_id(container_id);

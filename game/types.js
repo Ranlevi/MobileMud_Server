@@ -160,7 +160,7 @@ const Types = {
       is_gettable:    true,
       key_code:       null,
       expiration_counter: 0,
-      expiration_limit: 20,//continue here
+      expiration_limit:   20, //or null
     }
   }
 }

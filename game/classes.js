@@ -296,7 +296,7 @@ class User {
 
     if (result===null){
       Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
-        `There is no ${target} around.`);
+        `There is no such thing around.`);
         return;
     }
 
@@ -676,8 +676,8 @@ class User {
       this.props.health = this.BASE_HEALTH;
     }    
 
-    //TODO: remove the item from the world!!!
-
+    World.world.remove_from_world(entity.id);
+    
     let msg = `consumes ${entity.props.name}.`;             
     Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);         
   }
@@ -804,6 +804,44 @@ class User {
       opponent.do_death();
     }    
   }
+
+  remove_entity_from_user(entity_id){   
+
+    if (this.props.holding===entity_id){
+      this.props.holding = null;
+      return true;
+    }
+
+    if (this.props.wearing.Head===entity_id){
+      this.props.wearing.Head = null;
+      return true;
+    }
+
+    if (this.props.wearing.Torso===entity_id){
+      this.props.wearing.Torso = null;
+      return true;
+    }
+
+    if (this.props.wearing.Legs===entity_id){
+      this.props.wearing.Legs = null;
+      return true;
+    }
+
+    if (this.props.wearing.Feet===entity_id){
+      this.props.wearing.Feet = null;
+      return true;
+    }
+
+    let ix = this.props.slots.indexOf(entity_id);
+    if (ix!==-1){
+      this.props.slots.splice(ix,1);
+      return true;
+    }
+
+    //Didn't find entity
+    return false;
+
+  }
 }
 
 class Item {
@@ -814,7 +852,8 @@ class Item {
 
     //Set default porps according to type.
     let type_data = Types.Types[type];
-    this.props = type_data.props;        
+    
+    this.props = Utils.deepCopyFunction(type_data.props);
 
     //Overwrite the default props with the saved ones.
     if (props!==null){
@@ -847,13 +886,30 @@ class Item {
 
   do_disintegrate(){
 
+    let container = World.world.get_instance(this.props.container_id);
+    if (container instanceof User){
+      container.remove_entity_from_user(this.id);
+    } else if (container instanceof Room){
+      container.remove_entity(this.id);
+    } else {
+      console.error(`Item.do_disintegrate: can't find container!`);
+      return;
+    }
+
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', 
+      `${this.props.name} has disintegrated.`);
+
+    World.world.remove_from_world(this.id);
   }
 
-  do_tick(){
-    
-    
+  do_tick(){    
+    if (this.props.expiration_limit!==null){
+      this.props.expiration_counter += 1;
+      if (this.props.expiration_counter===this.props.expiration_limit){
+        this.do_disintegrate();
+      }
+    }
 
-    //TBD
   }
   
 }
@@ -875,7 +931,7 @@ class NPC {
 
     //Load the type
     let type_data = Types.Types[type];
-    this.props = type_data.props;    
+    this.props = Utils.deepCopyFunction(type_data.props);
     this.state_machine = new Utils.StateMachine(type_data.stm_definition);
         
     // {//Mandatory props for every NPC
