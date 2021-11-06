@@ -1,5 +1,5 @@
-const Classes=              require('./classes');
-const fs=                   require('fs');
+const Classes= require('./classes');
+const fs=      require('fs');
 
 class World {
   //Holds all entities and user instances, accesible by ID (String)
@@ -38,13 +38,15 @@ class World {
   }
 
   get_user_id_by_username(username){    
-    let user_id = null;
+    
     for (let inst of this.users.values()){      
-      if (inst.props["name"]===username){
-        user_id = inst.id;
+      if (inst.props.name===username){
+        return inst.id;        
       }
     }
-    return user_id;
+
+    //No user with given username was found.
+    return null;
   }
 
   spawn_entity(klass, type, container_id, props=null, id=null){

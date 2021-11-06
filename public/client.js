@@ -154,7 +154,7 @@ ws.onmessage = (event) => {
     let div = document.createElement("div");
     div.classList.add("box");
     div.classList.add("chat_box");
-    div.innerHTML = msg.content.text;
+    div.innerHTML = msg.content;
     chat_display.append(div);
 
     //If the chat is not frezzed, scroll it to view the latest msg.

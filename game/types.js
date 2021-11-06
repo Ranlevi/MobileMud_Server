@@ -1,4 +1,3 @@
-const Utils=      require('./utils');
 const World=      require('./world');
 
 const Types = {
@@ -148,7 +147,7 @@ const Types = {
       is_holdable:    true,
       wear_slot:      null,
       is_gettable:    true,
-      key_code:       null,
+      key_code:       "00000000",
       expiration_counter: 0,
       expiration_limit:   100, //or null
     }

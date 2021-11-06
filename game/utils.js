@@ -6,6 +6,8 @@ const Classes=  require('./classes');
 //There is a single ID_Generator instance.
 class ID_Generator {
   constructor(){
+    //Note: IDs are handled as Numbers internally, 
+    //but everywhere else in the game they are Strings.
     this.current_id = 0;
   }
   
@@ -112,11 +114,8 @@ class Message_Sender {
   send_chat_msg_to_user(user_id, sender, text){
     //Send a Chat message to the user via WebSocket.
     let message = {
-      type:       'Chat',
-        content: {
-          sender: sender,
-          text:   text
-        }        
+      type:    'Chat',      
+      content: text
     }
     let ws_client = World.world.get_instance(user_id).ws_client;
     ws_client.send(JSON.stringify(message));
@@ -154,7 +153,7 @@ class Message_Sender {
         //TODO: fix bug - larry is NPC but shows as User
         this.send_chat_msg_to_user(id, sender, `${generate_html(sender_id, 'User')} ${text}`);
       } else if (entity instanceof Classes.NPC){
-        entity.get_chat_msg(sender_id, text.toLowerCase());
+        entity.get_msg(sender_id, text.toLowerCase());
       }      
     }
   }

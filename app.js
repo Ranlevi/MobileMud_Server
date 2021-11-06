@@ -19,6 +19,7 @@ const VERSION = 0.01;
 
 /*
 TODO:
+tell cmd
 refactor to Type, SubType
 maybe no need for items in the generic_world load? because spawn!
 get rid of props strings
@@ -27,7 +28,6 @@ center actions
 create_cmd i/f
 set user description somehow
 improve client UI
-emote
 remove 'world' from send_msg
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
@@ -94,20 +94,8 @@ class Game_Controller {
         //Create the entities, with their saves props.
         switch(data.type){
           case "Room":
-            World.world.spawn_entity('Room', 'Room', null, data.props, id);
-            // new Classes.Room(data.props, id);
-            break;
-          
-          // case "Screwdriver":
-          // case "Candy":
-          // case "T-Shirt":
-          // case "Keycard":
-          //   new Classes.Item(data.type, data.props, id);
-          //   break;
-
-          // case "Larry_Clarke":
-          //   new Classes.NPC(data.type, data.props, id);            
-          //   break;
+            World.world.spawn_entity('Room', 'Room', null, data.props, id);            
+            break;          
 
           default:
             console.error(`GC.load_world: Unknown type: ${data.type}`);
@@ -228,9 +216,10 @@ class Game_Controller {
 
     World.world.world.forEach(
       (entity) => {
-        //Fighting overrides the do_tick().
-        if (entity instanceof Classes.NPC){
+        
+        if (entity instanceof Classes.NPC){          
           if (entity.props.is_fighting_with!==null){
+            //Fighting overrides the do_tick().
             entity.do_battle(); 
           } else {
             entity.do_tick();
@@ -242,7 +231,7 @@ class Game_Controller {
     );
 
     World.world.users.forEach((user)=> {
-      if (user.props["is_fighting_with"]!==null){
+      if (user.props.is_fighting_with!==null){
         user.do_battle();
       } else {
         user.do_tick();
