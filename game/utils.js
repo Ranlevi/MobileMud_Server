@@ -151,9 +151,10 @@ class Message_Sender {
       let entity = World.world.get_instance(id);
       
       if (entity instanceof Classes.User){
+        //TODO: fix bug - larry is NPC but shows as User
         this.send_chat_msg_to_user(id, sender, `${generate_html(sender_id, 'User')} ${text}`);
       } else if (entity instanceof Classes.NPC){
-        entity.get_chat_msg(sender_id, text);
+        entity.get_chat_msg(sender_id, text.toLowerCase());
       }      
     }
   }
@@ -310,36 +311,33 @@ class StateMachine {
     this.machine = this.createMachine(stm_definition);    
   }
 
-  createMachine(stm_definition){//stm_definition is the object with initstate and states.
+  createMachine(stm_definition){
     const machine = {
-      value: stm_definition.initialState, //value===current state
-      transition(current_state, event, params_obj){
-        const currentStateDefinition = stm_definition[current_state];
-        const destinationTransition = currentStateDefinition.transitions[event];
-        //Holds the target state, and the action to perform on transition.
+      current_state: stm_definition.initialState,
 
-        if (!destinationTransition){
+      transition(current_state, event, params_obj=null){        
+        const currentStateDefinition= stm_definition[current_state];
+        const next_state=             currentStateDefinition.transitions[event];        
+
+        if (!next_state){
           //If the given event does not trigger a transition, return early.
           return;
         }
 
-        const destinationState = destinationTransition.target;
-        const destinationStateDefinition = stm_definition[destinationState];
+        // const destinationState = destinationTransition.target;
+        const next_state_definition = stm_definition[next_state];
         
-        //Perform the actions.
-        
-        destinationTransition.action(params_obj);
-        currentStateDefinition.actions.onExit(params_obj);
-        destinationStateDefinition.actions.onEnter(params_obj);
+        //Perform the actions.        
+        next_state_definition.action(params_obj);        
 
         //return the next state.
-        machine.value = destinationState;
-
-        return machine.value
-      }
+        machine.current_state = next_state;
+        return machine.current_state;
+      }      
     }
+    
     return machine;
-  }
+  }  
   
 }
     

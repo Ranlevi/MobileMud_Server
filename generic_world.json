@@ -86,7 +86,9 @@
     "props": {
       "name":   "Engineering",
       "type":   "Room",
-      "spawned_entities": null,
+      "spawned_entities": [
+        {"class": "NPC", "type": "Lamar", "amount": 1}
+      ],
       "description": 
         "TBD",
       "entities": [],

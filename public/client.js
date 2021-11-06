@@ -36,8 +36,7 @@ parent.addEventListener('click', (evt)=>{
 
   if (evt.target.dataset.element==="pn_link"){    
 
-    let actions = evt.target.dataset.actions.split('_');
-
+    let actions = evt.target.dataset.actions.split('_');    
     let list = '';
     for (const action of actions){
       list += `<li><span class="pn_action" data-element="pn_action" ` + 

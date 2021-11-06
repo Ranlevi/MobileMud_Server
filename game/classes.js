@@ -610,6 +610,12 @@ class User {
       return;
     }
 
+    if (!entity.is_killable){
+      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
+        `That's not allowed.`);        
+      return;
+    }
+
     //Target is killable...
     this.props.is_fighting_with=   entity_id;
     entity.props.is_fighting_with= this.id;
@@ -691,7 +697,7 @@ class User {
     }
 
     let msg= `says: ${target}`;
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
+    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg, true);
   }
 
   get_look_string(){
@@ -909,7 +915,6 @@ class Item {
         this.do_disintegrate();
       }
     }
-
   }
   
 }
@@ -993,14 +998,14 @@ class NPC {
   get_look_string(){
     //Returns a string with what a user sees when looking at the NPC.
     let msg = `<h1>${Utils.generate_html(this.id, 'NPC')}</h1>`;
-    msg += `<p>${this.props["description"]}</p>`;
+    msg += `<p>${this.props.description}</p>`;
 
-    if (this.props["wearing"]!==undefined){
+    if (this.props.wearing!==null){
 
       msg += `<p>Wearing:  `;
 
       let text = '';
-      for (const [position, id] of Object.entries(this.props["wearing"])){
+      for (const [position, id] of Object.entries(this.props.wearing)){
         if (id!==null){
           let entity = World.world.get_instance(id);
           text += `<p>${position}: ${entity.get_look_string()}</p>`;
@@ -1014,11 +1019,11 @@ class NPC {
       }
     }
 
-    if (this.props["holding"]!==undefined){
+    if (this.props.holding!==null){
       msg += `<p>Holding:  `;
 
       let text = '';
-      for (const [position, id] of Object.entries(this.props["holding"])){
+      for (const [position, id] of Object.entries(this.props.holding)){
         if (id!==null){
           let entity = World.world.get_instance(id);
           text += `<p>${position}: ${entity.get_look_string()}</p>`;
@@ -1041,9 +1046,9 @@ class NPC {
   }
 
   do_tick(){
-    let current_state = this.state_machine.machine.value;
+    let current_state = this.state_machine.machine.current_state;    
     let params_obj = {
-      owner_id: this.id
+      owner_id:   this.id,      
     }
     this.state_machine.machine.transition(current_state,"tick", params_obj);
   }
@@ -1133,15 +1138,20 @@ class NPC {
     // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
   
   get_chat_msg(sender_id, msg){
+    let current_state = this.state_machine.machine.current_state;
+    let params_obj = {
+      owner_id:   this.id,
+      sender_id:  sender_id
+    }
+    let event;
+
     if (msg.includes('enters from')){
-      let current_state = this.state_machine.machine.value;
-      let params_obj = {
-        owner_id: this.id,
-        sender_id: sender_id
-      }
-      this.state_machine.machine.transition(current_state,"user_enters_room", params_obj);
+      event = "user_enters_room";
+    } else if (msg.includes('says')){
+      event = msg;
     }
 
+    this.state_machine.machine.transition(current_state, event, params_obj);
   }
 
   say_cmd(msg){
