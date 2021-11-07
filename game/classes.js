@@ -53,27 +53,35 @@ class Room {
     }    
   }
   
-  get_entities_ids(){
-    //Returns the entities array.
-    return this.props.entities;
+  get_entities(){
+    //Returns an array of objects, of the form: {id: string, location: "room"}
+    let inv_arr = [];
+    for (const id of this.props.entities){
+      inv_arr.push({id: id, location: "room"});
+    }
+    return inv_arr;
   }  
 
-  get_users(){
-    //Returns an array with IDs of all the users in the room.
-    let id_arr = [];
-    for (const id of this.props.entities){
-      let entity = World.world.get_instance(id);
-      if (entity instanceof User){
-        id_arr.push(id);
-      }      
-    }
-    return id_arr;
+  get_name(){
+    //Returns an HTML string for the name of the room.
+    let html = 
+      `<span `+
+      `class="pn_link" `+
+      `data-element="pn_link" `+
+      `data-type="${this.props.type}" `+
+      `data-id="${this.id}" `+
+      `data-name="${this.props.name}" `+
+      `data-actions="Look">`+
+      `${this.props.name}`+
+      `</span>`;
+
+    return html;
   }
 
   get_look_string(){
     //Returns a Look Command message (String)   
-    let msg = `<h1>${Utils.generate_html(this.id, 'Room')}</h1>` +
-              `<p>${this.props["description"]}</p>` + 
+    let msg = `<h1>${this.get_name()}</h1>` +
+              `<p>${this.props.description}</p>` + 
               `<p><span class="style1">Exits:</span> `;
     
     for (const [direction, obj] of Object.entries(this.props.exits)){      
@@ -122,6 +130,25 @@ class Room {
       }
     }    
   }
+
+  search_for_target(target){
+    //Search the entities in the room for a given target.
+    //Target can be name, type or id.
+    //returns an object: {id: string, location: string} or null if not found.
+
+    for (const id of this.props.entities){
+      let entity = World.world.get_instance(id);
+
+      if ((entity.props.name.toLowerCase()===target) ||
+          (entity.props.type.toLowerCase()===target) ||
+          (target===entity.id)){
+        return {id: id, location: "room"};
+      }
+    }
+
+    //target not found.
+    return null;
+  } //continue here. seperate room inv from user inv in commands to make it simple
 }
 
 class User {
@@ -145,17 +172,16 @@ class User {
       container_id:     "0",
       health:           this.BASE_HEALTH, //Num 
 
-      //TODO: change to body: head, torso, legs, feet, hands, slots.
-      //will make it easier to handle.
-
+      //Inventorhy
       wearing: {
-        Head:           null,//ID, String.
-        Torso:          null,
-        Legs:           null,
-        Feet:           null
+        head:           null,//ID, String.
+        torso:          null,
+        legs:           null,
+        feet:           null
       },
       holding:          null,
       slots:            [],//IDs, String.
+
       slots_size_limit: 10,
       is_fighting_with: null,//ID, String.
     }
@@ -169,6 +195,7 @@ class User {
   }
 
   do_tick(){
+    
     //Hunger mechanism. Reduce health over time.
     //If counter is zero, the user is dead.
     this.tick_counter += 1;
@@ -206,94 +233,90 @@ class User {
     return damage_from_opponent;
   }
 
+  //Inventory Manipulation Methods
+
   get_all_items_on_body(){
-    //Returns an array with IDs of all items on body (without location info.)
-    let array_of_ids = [];
-    if (this.props.holding!==null)        array_of_ids.push(this.props.holding);
-    if (this.props.wearing.Head!==null)   array_of_ids.push(this.props.wearing.Head);
-    if (this.props.wearing.Torso!==null)  array_of_ids.push(this.props.wearing.Torso);
-    if (this.props.wearing.Legs!==null)   array_of_ids.push(this.props.wearing.Legs);
-    if (this.props.wearing.Feet!==null)   array_of_ids.push(this.props.wearing.Feet);
+    //Returns an array of objects: {id: string, location: string}
+    //Results will be ordered by holding->wearing->slots.
+    let inv_arr = [];
+
+    if (this.props.holding!==null){
+      inv_arr.push({id: this.props.holding, location: "holding"});
+    }
+
+    if (this.props.wearing.head!==null){
+      inv_arr.push({id: this.props.wearing.head, location: "head"});
+    }
+
+    if (this.props.wearing.torso!==null){
+      inv_arr.push({id: this.props.wearing.torso, location: "torso"});
+    }
+
+    if (this.props.wearing.legs!==null){
+      inv_arr.push({id: this.props.wearing.legs, location: "legs"});
+    }
+
+    if (this.props.wearing.feet!==null){
+      inv_arr.push({id: this.props.wearing.feet, location: "feet"});
+    }
 
     for (const id of this.props.slots){
-      array_of_ids.push(id);
+      inv_arr.push({id: id, location: "slots"});      
     }
 
-    return array_of_ids;
-
+    return inv_arr;
   }
 
+  //Scan all entities on the user's body and in the room 
+  //return the first hit found as object {id: string, location: string} or null if not found.
+  //Search order: holding->wearing->slots->room
   search_for_target(target){
-
-
-
-
-    //Search for a target in the room, or in the user's vicinity, from close to far.  
-  //returns an object {entity_id, location} or null.
   
-  //Auxilary helper function
-  const test_if_target = (entity, target) => {
-    //Return ID (string) or null.
-    if ((entity.props.name.toLowerCase()===target) ||
-        (entity.props.type.toLowerCase()===target) ||
-        (target===entity.id)){
-      return entity.id;
+    //Get all entities on the user's body and in the room.
+    let inv_arr = this.get_all_items_on_body();
+
+    let room= World.world.get_instance(this.props.container_id);
+    inv_arr.concat(room.get_entities());
+
+    //Search for the target.
+    for (const obj of inv_arr){
+      let entity = World.world.get_instance(obj.id);
+
+      if ((entity.props.name.toLowerCase()===target) ||
+          (entity.props.type.toLowerCase()===target) ||
+          (target===entity.id)){
+        return obj;
+      }  
     }
+
+    //Target is not found.
     return null;
   }
 
-  let user = World.world.get_instance(user_id);
+  //Remove the given id from the given location.
+  //return Void
+  remove_item(id, location){
 
-  if (user.props["holding"]!==null){
-    let entity = World.world.get_instance(user.props["holding"]);
-    let entity_id = test_if_target(entity,target);
-    if (entity_id!==null){
-      return {entity_id: entity_id, location: "Holding"}
+    switch(location){
+      case("holding"):
+        this.props.holding = null;
+        break;
+
+      case('head'):
+      case('torso'):
+      case('fegs'):
+      case('feet'):
+        this.props.wearing[location] = null;
+        break;
+
+      case("slots"):
+        let ix = this.props.slots.indexOf(id);          
+        this.props.slots.splice(ix,1);
+        break;
+        
+      default:
+        console.error(`User.remove_item: unknown location ${location}`);
     }
-  }
-
-  //Target not in Holding. Check Wearing.
-
-  for (const [position, id] of Object.entries(user.props["wearing"])){
-    if (id!==null){
-      let entity = World.world.get_instance(id);
-      let entity_id = test_if_target(entity,target);
-      if (entity_id!==null){
-        return {entity_id: entity_id, location: `${position}`}
-      }
-    }
-  }
-  
-  //Target not in Wearing. Check Slots.
-
-  for (const id of user.props["slots"]){
-    let entity = World.world.get_instance(id);
-    let entity_id = test_if_target(entity,target);
-    if (entity_id!==null){
-      return {entity_id: entity_id, location: "Slots"}
-    }
-  }
-    
-  //Target Not found in Slots. Check Room.
-  
-  let room = World.world.get_instance(user.props["container_id"]);
-  let id_arr=   room.get_entities_ids();
-  for (const id of id_arr){
-    let entity = World.world.get_instance(id);
-    let entity_id = test_if_target(entity,target);
-    if (entity_id!==null){
-      return {entity_id: entity_id, location: "Room"}
-    }
-  }
-
-  //Check the room itself
-  let entity_id = test_if_target(room, target);
-  if (entity_id!==null){
-    return {entity_id: entity_id, location: "World"}
-  }
-
-  //Target is not found.
-  return null;
   }
 
   //Handle Client Commands.
@@ -313,21 +336,19 @@ class User {
     //Check if locked, and if true - check for key on the user's body.
     if (next_room_obj.code!==null){
       //This door requires a key.
-      let ids_arr = this.get_all_items_on_body();
+      let inv_arr = this.get_all_items_on_body();
       
-
       //Check for a key
       let key_exists = false;
-      for (const entity_id of ids_arr){
-        if (entity_id!==null){
-          let entity = World.world.get_instance(entity_id);          
-          if (entity.props.key_code===next_room_obj.code){
-            key_exists = true;
-            break;
-          }
-        }        
+      for (const obj of inv_arr){
+        //obj is of the form: {id: string, location: string}
+        let entity = World.world.get_instance(obj.id);
+        if (entity.props.key_code===next_room_obj.code){
+          key_exists = true;
+          break;
+        }
       }
-
+        
       if (!key_exists){
         //The user does not have a key on their body.
         this.send_chat_msg_to_client(`It's locked, and you don't have the key.`);        
@@ -355,181 +376,152 @@ class User {
   }
 
   look_cmd(target=null){
+    //search for a target on the user's body or in the room.
     //target can be an id, a type or a name.
-    //If it exists, returns a string message.
+    //returns a string message.
     let room = World.world.get_instance(this.props.container_id);  
 
     if (target===null || target==="room"){
-      //Look at the room the user is in.      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, room.get_look_string());        
+      //Look at the room the user is in.
+      this.send_chat_msg_to_client(room.get_look_string());      
       return;
     }
 
     //Target is not null. Search for it.
-    let result = Utils.search_for_target(this.id, target);
+    let result = this.search_for_target(target);    
 
     if (result===null){
-      Utils.msg_sender.send_chat_msg_to_user(this.id,'world',
-        `There is no such thing around.`);
-        return;
+      this.send_chat_msg_to_client(`There is no such thing around.`);
+      return;
     }
 
     //Target was found.
-    let entity = World.world.get_instance(result.entity_id);
-    Utils.msg_sender.send_chat_msg_to_user(
-      this.id, 
-      `world`, 
-      entity.get_look_string());    
+    let entity = World.world.get_instance(result.id);
+    this.send_chat_msg_to_client(entity.get_look_string());
   }
 
   get_cmd(target=null){
     //Pick an item from the room, and place it in a slot.
 
-    if (target===null){      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `What do you want to get?`);        
+    if (target===null){   
+      this.send_chat_msg_to_client(`What do you want to get?`);   
       return;
     }
 
     //Target is not null. Search in the room.
-    let result = Utils.search_for_target(this.id, target);
+    let room=     World.world.get_instance(this.props.container_id);
+    let inv_arr=  room.get_entities();
 
-    if (result===null || result.location!=="Room"){
-      //Target not found.
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `There's no ${target} in the room with you.`);        
-      return;
+    //Search for the target.    
+    let target_exists=  false; 
+    let entity=         null;
+    for (const obj of inv_arr){
+      entity = World.world.get_instance(obj.id);
+
+      if ((entity.props.name.toLowerCase()===target) ||
+          (entity.props.type.toLowerCase()===target) ||
+          (target===entity.id)){
+        target_exists = true;
+        break;
+      }  
+    }
+
+    if (!target_exists){
+      this.send_chat_msg_to_client(`There's no ${target} in the room with you.`);
     }
 
     //Target found.
     //Check if gettable
-    let entity = World.world.get_instance(result.entity_id);
-
+    
     if (!entity.props.is_gettable){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You can't pick it up.`);        
+      this.send_chat_msg_to_client(`You can't pick it up.`);
       return;
     }    
     
     //Check is misc_slots are full.
     if (this.props.slots_size_limit===this.props.slots.length){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You are carrying too many things already.`);
+      this.send_chat_msg_to_client(`You are carrying too many things already.`);
       return;
     }
 
     //The user can carry the item.
     //Remove it from the room, place it in the player's slots.
-    let room = World.world.get_instance(this.props.container_id);
-    room.remove_entity(result.entity_id);
-    this.props.slots.push(result.entity_id);
-
-    
+    room.remove_entity(entity.id);
+    this.props.slots.push(entity.id);    
     entity.set_container_id(this.id);
 
-    let msg = `gets ${Utils.generate_html(entity.id, 'Item')}.`;    
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg); 
+    //Notify client and room
+    this.send_chat_msg_to_client('You pick it up and place it in your slots.');
+    this.send_msg_to_room(`gets ${entity.get_name()}`);
   }
 
   drop_cmd(target=null){
-    //search for target on body and drop the target to the floor.
+    //search for target on body and drop the target to the room.
 
     if (target===null){      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `What do you want to drop?`);        
+      this.send_chat_msg_to_client(`What do you want to drop?`);
       return;
     }
 
-    let result = Utils.search_for_target(this.id, target);
+    let result = this.search_for_target(target);
     
-    if (result===null || result.location==="Room"){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You don't have it on your body.`);        
+    if (result===null || result.location==="room"){
+      this.send_chat_msg_to_client(`You don't have it on your body.`);
       return;
     }
 
-    //Target found. Remove it from the player.
-    switch(result.location){
-      case("Holding"):
-        this.props.holding = null;
-        break;
-
-      case('Head'):
-      case('Torso'):
-      case('Legs'):
-      case('Feet'):
-        this.props.wearing[result.location] = null;
-        break;
-
-      case("Slots"):
-        let ix = this.props.slots.indexOf(result.entity_id);          
-        this.props.slots.splice(ix,1);
-        break;      
-    }
+    //Target found, remove it from the user's body.
+    this.remove_item(result.id, result.location);
 
     //Place it in the room.
     let room = World.world.get_instance(this.props.container_id);
-    room.add_entity(result.entity_id);
-    let entity = World.world.get_instance(result.entity_id);
+    room.add_entity(result.id);
+
+    let entity = World.world.get_instance(result.id);
     entity.set_container_id(room.id);
 
-    let msg = `drops ${Utils.generate_html(entity.id, 'Item')}`;
-
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', msg);
+    //Send messages.
+    this.send_chat_msg_to_client('You drop it to the floor.');
+    this.send_msg_to_room(`drops ${entity.get_name}.`);    
   }
 
   hold_cmd(target=null){
     //Search for target on body and room, and hold it.
     
-    if (target===null){      
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `What do you want to hold?`);        
+    if (target===null){
+      this.send_chat_msg_to_client(`What do you want to hold?`);      
       return;
     }
 
-    let result = Utils.search_for_target(this.id, target);
-
+    let result = this.search_for_target(target);   
+    
     if (result===null){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `There's no ${target} around to hold.`);        
+      this.send_chat_msg_to_client(`There's no ${target} around to hold.`);
       return;
     }
 
-    if (result.location==="Holding"){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You're already holding it!`);        
+    if (result.location==="holding"){
+      this.send_chat_msg_to_client(`You're already holding it!`);
       return;
     }
 
     //Target found. 
     //Check if target is holdable
-    let entity = World.world.get_instance(result.entity_id);
+    let entity = World.world.get_instance(result.id);
 
     if (!entity.props.is_holdable){
-      Utils.msg_sender.send_chat_msg_to_user(this.id, `world`, 
-        `You can't hold it.`);        
+      this.send_chat_msg_to_client(`You can't hold it.`);
       return;
     }
 
-    //Remove it from it's current location.
-    switch(result.location){
-      case("Room"):
-        let room = World.world.get_instance(this.props.container_id);
-        room.remove_entity(result.entity_id);
-        break;
+    if (result.location==="room"){
 
-      case('Head'):
-      case('Torso'):
-      case('Legs'):
-      case('Feet'):
-        this.props.wearing[result.location] = null;
-        break;
 
-      case("Slots"):
-        let ix = this.props.slots.indexOf(result.entity_id);          
-        this.props.slots.splice(ix,1);
-        break;      
+      ///
     }
+
+    this.remove_item(result.id, result.location);
+
 
     this.props.holding = result.entity_id;
 
