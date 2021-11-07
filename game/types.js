@@ -8,13 +8,13 @@ const Types = {
       description:      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
       container_id:     null,      
       wearing: {
-        Head:           null,
-        Torso:          null,
-        Legs:           null,
-        Feet:           null
+        head:           null,
+        torso:          null,
+        legs:           null,
+        feet:           null
       },
       holding:          {
-        Hands:          null
+        hands:          null
       },
       slots:            [],
       slots_size_limit: 10,

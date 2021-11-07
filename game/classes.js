@@ -227,7 +227,7 @@ class User {
     return this.BASE_DAMAGE;
   }
 
-  recieve_damage(damage_from_opponent){ //Handle death here!! also for NPCs.
+  recieve_damage(damage_from_opponent){ 
     //Returns how much damage the user recives, after taking into account
     //shields, etc. (Num),
     //or null if the user is dead.
@@ -235,12 +235,23 @@ class User {
     if (this.props.health<0){
       this.props.health = 0;
     }
+    return damage_from_opponent;  
+  }
 
-    if (this.props.health===0) {
-      this.do_death();  //problem - if dead, damage reicved still returned??
-    } else {
-      return damage_from_opponent;  
-    }    
+  get_name(){
+    //Returns an HTML string for the name of the entity.
+    let html = 
+      `<span `+
+      `class="pn_link" `+
+      `data-element="pn_link" `+
+      `data-type="${this.props.type}" `+
+      `data-id="${this.id}" `+
+      `data-name="${this.props.name}" `+
+      `data-actions="Look">`+
+      `${this.props.name}`+
+      `</span>`;
+
+    return html;
   }
 
   //Inventory Manipulation Methods
@@ -795,7 +806,7 @@ class User {
     let inv_arr = this.get_all_items_on_body();
     for (const obj of inv_arr){
       //obj is of the form {id: string, location: string}
-      this.remove_entity_from_user(obj.id, obj.location);
+      this.remove_item(obj.id, obj.location);
       room.add_entity(obj.id);
       let item = World.world.get_instance(obj.id);
       item.set_container_id(room.id);
@@ -836,52 +847,17 @@ class User {
     if (opponent.props.health===0){
       //Opponent has died
       //Stop battle
-      this.props.is_fighting_with = null;      
-
-      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-        `kills ${opponent.props["name"]}.`);
+      this.props.is_fighting_with = null;   
+      
+      //Messages
+      this.send_chat_msg_to_client(`${opponent.props.name} is DEAD!`);
+      this.send_msg_to_room(`kills ${opponent.props.name}.`);
       
       opponent.do_death();
     }    
   }
-
-  remove_entity_from_user(entity_id){   
-
-    if (this.props.holding===entity_id){
-      this.props.holding = null;
-      return true;
-    }
-
-    if (this.props.wearing.Head===entity_id){
-      this.props.wearing.Head = null;
-      return true;
-    }
-
-    if (this.props.wearing.Torso===entity_id){
-      this.props.wearing.Torso = null;
-      return true;
-    }
-
-    if (this.props.wearing.Legs===entity_id){
-      this.props.wearing.Legs = null;
-      return true;
-    }
-
-    if (this.props.wearing.Feet===entity_id){
-      this.props.wearing.Feet = null;
-      return true;
-    }
-
-    let ix = this.props.slots.indexOf(entity_id);
-    if (ix!==-1){
-      this.props.slots.splice(ix,1);
-      return true;
-    }
-
-    //Didn't find entity
-    return false;
-
-  }
+  
+  //Handle Messages
 
   send_chat_msg_to_client(content){
     let message = {
@@ -966,22 +942,7 @@ class User {
 
     this.send_chat_msg_to_client(msg);
   }
-
-  get_name(){
-    //Returns an HTML string for the name of the entity.
-    let html = 
-      `<span `+
-      `class="pn_link" `+
-      `data-element="pn_link" `+
-      `data-type="${this.props.type}" `+
-      `data-id="${this.id}" `+
-      `data-name="${this.props.name}" `+
-      `data-actions="Look">`+
-      `${this.props.name}`+
-      `</span>`;
-
-    return html;
-  }
+  
 }
 
 class Item {
@@ -991,9 +952,8 @@ class Item {
     this.props= {};
 
     //Set default porps according to type.
-    let type_data = Types.Types[type];
-    
-    this.props = Utils.deepCopyFunction(type_data.props);
+    let type_data=  Types.Types[type];    
+    this.props=     Utils.deepCopyFunction(type_data.props);
 
     //Overwrite the default props with the saved ones.
     if (props!==null){
@@ -1013,31 +973,51 @@ class Item {
   get_look_string(){
     //Returns a message with what a user sees when looking at the Item.
 
-    let msg = `<h1>${Utils.generate_html(this.id, 'Item')}</h1>` +
-              `<p>${this.props.description}</p>`;
-    
+    let msg = `<h1>${this.get_name()}</h1>` +
+              `<p>${this.props.description}</p>`;    
     return msg;
   }
    
   do_disintegrate(){
+    //Remove the item from its container, and the world.
 
     let container = World.world.get_instance(this.props.container_id);
-    if (container instanceof User){
-      container.remove_entity_from_user(this.id);
-    } else if (container instanceof Room){
-      container.remove_entity(this.id);
-    } else {
-      console.error(`Item.do_disintegrate: can't find container!`);
-      return;
-    }
 
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', 
-      `${this.props.name} has disintegrated.`);
+    if (container instanceof User){
+      //Find the location of the item on the user's body.
+      let inv_arr = container.get_all_items_on_body();
+      for (const obj of inv_arr){
+        //{id, location}
+        if (this.id===obj.id){
+          container.remove_item(obj.id, obj.location);
+          container.get_msg(this.id, `${this.props.name} has disintegrated.`);
+          break;
+        }
+      }
+
+    } else if (container instanceof NPC){
+      //Find the location of the item on the NPC's body.
+      let inv_arr = container.get_all_items_on_body();
+      for (const obj of inv_arr){
+        //{id, location}
+        if (this.id===obj.id){
+          container.remove_item(obj.id, obj.location);
+          container.get_msg(this.id, `${this.props.name} has disintegrated.`);
+          break;
+        }
+      }
+
+    } else if (container instanceof Room){
+      container.remove_entity(this.id);      
+      this.send_msg_to_room(`${this.props.name} has disintegrated.`);
+    }
 
     World.world.remove_from_world(this.id);
   }
 
   do_tick(){    
+    //Expiration mechanism.
+
     if (this.props.expiration_limit!==null){
       this.props.expiration_counter += 1;
       if (this.props.expiration_counter===this.props.expiration_limit){
@@ -1065,10 +1045,28 @@ class Item {
 
     return html;
   }
+
+  send_msg_to_room(content){
+    //Check if the item is in a room (i.e. not on user, etc)
+    //and send a message to all entities.
+    let container=     World.world.get_instance(this.props.container_id);
+
+    if (container instanceof Room){
+      let ids_arr=  container.get_entities();
+      //array of objects, of the form: {id: string, location: "room"}
+
+      for (const obj of ids_arr){
+        if (obj.id!==this.id){ //Don't send to yourself.
+          let entity = World.world.get_instance(obj.id);
+          entity.get_msg(this.id, content);
+        }
+      }
+    }    
+  }
   
 }
 
-class NPC {
+class NPC { //continue here
   constructor(type, props=null, id=null){
 
     //Default Constants
@@ -1113,6 +1111,53 @@ class NPC {
 
     World.world.add_to_world(this);
   }
+
+  //Inventory manipulation Methods
+
+  get_all_items_on_body(){
+    //returns an array of {id, location}
+    let inv_arr = [];
+
+    if (this.props.wearing!==null){
+      for (const [location, id] of Object.entries(this.props.wearing)){
+        if (id!==null){
+          inv_arr.push({id: id, location: location});
+        }
+      }
+    }
+
+    if (this.props.holding!==null){
+      for (const [location, id] of Object.entries(this.props.holding)){
+        if (id!==null){
+          inv_arr.push({id: id, location: location});
+        }
+      }
+    }
+
+    if (this.props.slots!==null){
+      for (const id of this.props.slots){
+        inv_arr.push({id: id, location: "slots"});
+      }
+    }    
+
+    return inv_arr;
+  }
+
+  remove_item(id, slot_type, position){
+
+    if (slot_type==="wearing"){
+      this.props.wearing[position] = null;
+
+    } else if (slot_type==="holding"){
+      this.props.holding[position] = null;
+    } else if (slot_type==="slots"){
+      let ix = this.props.slots.indexOf(id);          
+      this.props.slots.splice(ix,1);
+    }
+
+  }
+
+  //Aux Methods.
 
   set_container_id(new_container_id){
     this.props.container_id = new_container_id;
@@ -1187,12 +1232,7 @@ class NPC {
     }
     
     return msg;
-  }
-
-  get_short_look_string(){
-    let msg = `${Utils.generate_html(this.id, 'NPC')}`;
-    return msg;
-  }
+  }  
 
   do_tick(){
     let current_state = this.state_machine.machine.current_state;    
