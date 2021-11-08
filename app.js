@@ -327,6 +327,11 @@ class Game_Controller {
         user.say_cmd(target);
         break;
 
+      case "emote":
+      case "em":
+        user.emote_cmd(target);
+        break;
+
       default:
         Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
     }  
@@ -349,9 +354,7 @@ class Game_Controller {
     
     //Send a welcome message, and a Status message to init the health bar.
     //Than perform a Look command on the room.
-    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
-      `Welcome ${user.props["name"]}!`);
-    
+    user.send_chat_msg_to_client(`Welcome ${user.props.name}!`);
     user.look_cmd();
 
     return user.id;
@@ -373,20 +376,20 @@ class Game_Controller {
     room.add_entity(user.id);
 
     //Get the items the user carries
-    for (const [position, id] of Object.entries(user.props["wearing"])){
+    for (const [position, id] of Object.entries(user.props.wearing)){
       if (id!==null){
         //Create the saved item, add it to the user and set its container ID.
-        let props=  World.users_db["items"][id];
-        let entity= new Classes.Item(props["type"], props);
+        let props=  World.users_db.items[id];
+        let entity= new Classes.Item(props.type, props);
 
         entity.set_container_id(user.id);
-        user.props["wearing"][position] = entity.id;        
+        user.props.wearing[position] = entity.id;        
       }
     }
 
-    if (user.props["holding"]!==null){
-      let props=  World.users_db["items"][user.props["holding"]];
-      let entity= new Classes.Item(props["type"], props);
+    if (user.props.holding!==null){
+      let props=  World.users_db.items.user.props.holding;
+      let entity= new Classes.Item(props.type, props);
 
       entity.set_container_id(user.id);
       user.props["holding"] = entity.id;        
@@ -404,8 +407,7 @@ class Game_Controller {
 
     //Send a welcome message, and a status message to init the health bar.
     //Then do a Look command on the room.
-    Utils.msg_sender.send_chat_msg_to_user(user.id,'world',
-    `Hi ${user.props["name"]}, your ID is ${user.id}`);
+    user.send_chat_msg_to_client(`Welcome back, ${user.get_name()}.`);
     
     user.look_cmd();
     return user.id;
@@ -444,8 +446,10 @@ wss.on('connection', (ws_client) => {
                 incoming_msg.content.username, 
                 incoming_msg.content.password);
               clients.set(ws_client, user_id);
+
+              let user = World.world.get_instance(user_id);
+              user.send_login_msg_to_client(true);
               
-              Utils.msg_sender.send_login_msg_to_user(ws_client,true);
             } else {
               //This is an already registed user
               //Verify password is correcnt.
@@ -456,11 +460,18 @@ wss.on('connection', (ws_client) => {
                   incoming_msg.content.username);            
                 clients.set(ws_client, user_id);
 
-                Utils.msg_sender.send_login_msg_to_user(ws_client,true);
+                let user = World.world.get_instance(user_id);
+                user.send_login_msg_to_client(true);
+                
               } else {
                 //invalid password
                 // ws_client.close(4000, 'Wrong Username or Password.');
-                Utils.msg_sender.send_login_msg_to_user(ws_client,false);
+                let message = {
+                  type:    'Login',      
+                  content: {is_login_successful: false}
+                }    
+                ws_client.send(JSON.stringify(message));
+                
               }
             }
           } else {

@@ -67,10 +67,10 @@ class Room {
     //Search the entities in the room for a given target.
     //Target can be name, type or id.
     //returns an object of first item found: {id: string, location: string} or null if not found.
-
+    
     for (const id of this.props.entities){
       let entity = World.world.get_instance(id);
-
+      
       if ((entity.props.name.toLowerCase()===target) ||
           (entity.props.type.toLowerCase()===target) ||
           (target===entity.id)){
@@ -118,7 +118,7 @@ class Room {
 
     for (const entity_id of this.props.entities){
       let entity = World.world.get_instance(entity_id);      
-      msg += `${entity.get_short_look_string()} `;
+      msg += `${entity.get_name()} `;
     }  
 
     msg += `</p>`
@@ -396,9 +396,13 @@ class User {
   look_cmd(target=null){
     //search for a target on the user's body or in the room.
     //target can be an id, a type or a name.
-    //returns a string message.    
+    //returns a string message.   
+    let room= World.world.get_instance(this.props.container_id);   
 
-    if (target===null || target==="room"){
+    if (target===null || 
+        target==="room" || 
+        target===room.props.name.toLowerCase() ||
+        target===room.id){
       //Look at the room the user is in.
       this.send_chat_msg_to_client(room.get_look_string());      
       return;
@@ -408,8 +412,7 @@ class User {
     let result = this.search_for_target(target);    
     
     if (result===null){
-      //Target not found on user. Try finding in the room.
-      let room= World.world.get_instance(this.props.container_id);  
+      //Target not found on user. Try finding in the room.      
       result=   room.search_for_target(target);
 
       if (result===null){
@@ -506,12 +509,12 @@ class User {
     }
 
     let result = this.search_for_target(target);   
-    let room= World.world.get_instance(this.id);
+    let room= World.world.get_instance(this.props.container_id);
 
     if (result===null){
-      //Target not found on user's body. Try to find it in room      
+      //Target not found on user's body. Try to find it in room       
       result= room.search_for_target(target);
-
+      
       if (result===null){
         //Target is not in room either
         this.send_chat_msg_to_client(`There's no ${target} around to hold.`);
@@ -575,8 +578,15 @@ class User {
     }
 
     //Target found
-    //Check that the user isn't already wearing/holding it.
-    
+    let entity = World.world.get_instance(result.id);
+
+    //Check that it's an Item (all others can't be worn)
+    if (!(entity instanceof Item) || entity.props.wear_slot===null){
+      this.send_chat_msg_to_client(`You can't wear that.`);
+      return;
+    }
+
+    //Check that the user isn't already wearing/holding it.    
     if (result.location==="Holding"){
       this.send_chat_msg_to_client(`You're holding it, you can't wear it.`); 
       return;
@@ -588,7 +598,7 @@ class User {
     }
 
     //Check if target can be worn
-    let entity = World.world.get_instance(result.id);
+    
     if (entity.props.wear_slot===null){
       this.send_chat_msg_to_client(`You can't wear that!`);
       return;
@@ -769,18 +779,30 @@ class User {
     this.send_msg_to_room(`says: ${target}`);
   }
 
+  emote_cmd(target=null){
+    if (target===null){    
+      this.send_chat_msg_to_client(`What do you want to emote?`);  
+      return;
+    }
+
+    this.send_chat_msg_to_client(`You emote: ${target}`);
+    this.send_msg_to_room(`${target}`);
+  }
+
   get_look_string(){
     //Return a String message with what other see when they look at the user.
 
-    let msg = `<h1>${this.get_name}</h1>` +
+    let msg = `<h1>${this.get_name()}</h1>` +
               `<p>${this.props.description}</p>` +
               `<p>Wearing: `;
 
     let text = ``;
 
     for (const id of Object.values(this.props.wearing)){
-      let entity = World.world.get_instance(id);
-      text += `${entity.get_name()} `; 
+      if (id!==null){
+        let entity = World.world.get_instance(id);
+        text += `${entity.get_name()} `; 
+      }      
     }
 
     if (text==='') text = 'Plain cloths.';
@@ -888,34 +910,34 @@ class User {
         
     if (this.props.holding!==null){
       let entity=           World.world.get_instance(this.props.holding);
-      msg.content.holding=  entity.get_short_look_string();
+      msg.content.holding=  entity.get_name();
     }  
       
-    if (this.props.wearing.Head!==null){
+    if (this.props.wearing.head!==null){
       let entity=               World.world.get_instance(this.props.wearing.Head);
-      msg.content.wearing.head= entity.get_short_look_string();
+      msg.content.wearing.head= entity.get_name();
     }  
   
-    if (this.props.wearing.Torso!==null){
+    if (this.props.wearing.torso!==null){
       let entity=                 World.world.get_instance(this.props.wearing.Torso);
-      msg.content.wearing.torso=  entity.get_short_look_string();
+      msg.content.wearing.torso=  entity.get_name();
     }
       
-    if (this.props.wearing.Legs!==null){
+    if (this.props.wearing.legs!==null){
       let entity=                 World.world.get_instance(this.props.wearing.Legs);
-      msg.content.wearing.legs=   entity.get_short_look_string();
+      msg.content.wearing.legs=   entity.get_name();
     }
        
-    if (this.props.wearing.Feet!==null){
+    if (this.props.wearing.feet!==null){
       let entity=                 World.world.get_instance(this.props.wearing.Feet);
-      msg.content.wearing.feet=   entity.get_short_look_string();
+      msg.content.wearing.feet=   entity.get_name();
     }
 
     if (this.props.slots.length!==0){
       let html = '';
       for (const id of this.props.slots){
         let entity= World.world.get_instance(id);
-        html += `${entity.get_short_look_string()} `;
+        html += `${entity.get_name()} `;
       }
       msg.content.slots = html;
     }
@@ -925,14 +947,22 @@ class User {
 
   send_msg_to_room(content){
     let room=     World.world.get_instance(this.props.container_id);
-    let ids_arr=  room.get_entities_ids();
+    let ids_arr=  room.get_entities();
 
-    for (const id of ids_arr){
-      if (id!==this.id){ //Don't send to yourself.
-        let entity = World.world.get_instance(id);
+    for (const obj of ids_arr){
+      if (obj.id!==this.id){ //Don't send to yourself.
+        let entity = World.world.get_instance(obj.id);
         entity.get_msg(this.id, content);
       }
     }
+  }
+
+  send_login_msg_to_client(is_login_successful){
+    let message = {
+      type:    'Login',      
+      content: {is_login_successful: is_login_successful}
+    }    
+    this.ws_client.send(JSON.stringify(message));
   }
 
   get_msg(sender_id, content){
@@ -1066,7 +1096,7 @@ class Item {
   
 }
 
-class NPC { //continue here
+class NPC {
   constructor(type, props=null, id=null){
 
     //Default Constants
@@ -1075,16 +1105,10 @@ class NPC { //continue here
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
-    //The base class has methods and constants. (methods expect some props.)
-    //We can load the default props for a given npc from a json.
-    //Then (if) we load from save - we override them. 
-    //A state machine definition should not be overriden.
-    //so it can be it's own param.
-
     //Load the type
-    let type_data = Types.Types[type];
-    this.props = Utils.deepCopyFunction(type_data.props);
-    this.state_machine = new Utils.StateMachine(type_data.stm_definition);
+    let type_data=      Types.Types[type];
+    this.props=         Utils.deepCopyFunction(type_data.props);
+    this.state_machine= new Utils.StateMachine(type_data.stm_definition);
         
     // {//Mandatory props for every NPC
     //   "name":             "An NPC",
@@ -1150,11 +1174,11 @@ class NPC { //continue here
 
     } else if (slot_type==="holding"){
       this.props.holding[position] = null;
+
     } else if (slot_type==="slots"){
       let ix = this.props.slots.indexOf(id);          
       this.props.slots.splice(ix,1);
     }
-
   }
 
   //Aux Methods.
@@ -1163,16 +1187,12 @@ class NPC { //continue here
     this.props.container_id = new_container_id;
   }
 
-  move_to_room(new_room_id){
-    Utils.move_to_room(this.id, this.props["container_id"], new_room_id);    
-  }
-
   reset_health(){
-    this.props["health"] = this.BASE_HEALTH;
+    this.props.health = this.BASE_HEALTH;
   }
 
   stop_battle(){
-    this.props["is_fighting_with"] = null;
+    this.props.is_fighting_with = null;
   }
 
   calc_damage(){
@@ -1182,27 +1202,26 @@ class NPC { //continue here
 
   recieve_damage(damage_from_opponent){
     //Returns how much damage the NPC recives after shields, etc.
-    this.props["health"] -= damage_from_opponent;
-    if (this.props["health"]<0){
-      this.props["health"] = 0;
+    this.props.health -= damage_from_opponent;
+    if (this.props.health<0){
+      this.props.health = 0;
     }
     return damage_from_opponent;
   }
 
   get_look_string(){
     //Returns a string with what a user sees when looking at the NPC.
-    let msg = `<h1>${Utils.generate_html(this.id, 'NPC')}</h1>`;
+    let msg = `<h1>${this.get_name()}</h1>`;
     msg += `<p>${this.props.description}</p>`;
 
     if (this.props.wearing!==null){
-
       msg += `<p>Wearing:  `;
 
       let text = '';
       for (const [position, id] of Object.entries(this.props.wearing)){
         if (id!==null){
           let entity = World.world.get_instance(id);
-          text += `<p>${position}: ${entity.get_look_string()}</p>`;
+          text += `<p>${position}: ${entity.get_name()}</p>`;
         }
       }
 
@@ -1220,7 +1239,7 @@ class NPC { //continue here
       for (const [position, id] of Object.entries(this.props.holding)){
         if (id!==null){
           let entity = World.world.get_instance(id);
-          text += `<p>${position}: ${entity.get_look_string()}</p>`;
+          text += `<p>${position}: ${entity.get_name()}</p>`;
         }
       }
 
@@ -1235,6 +1254,7 @@ class NPC { //continue here
   }  
 
   do_tick(){
+    //Notify state machine about the tick
     let current_state = this.state_machine.machine.current_state;    
     let params_obj = {
       owner_id:   this.id,      
@@ -1244,11 +1264,11 @@ class NPC { //continue here
 
   do_death(){
     //When an NPC dies, it drops it's items.
-    let room = World.world.get_instance(this.props["container_id"]);
+    let room = World.world.get_instance(this.props.container_id);
 
     //Move the items from the NPC to the room
-    if (this.props["wearing"]!==undefined){
-      for (const id of Object.values[this.props["wearing"]]){
+    if (this.props.wearing!==null){
+      for (const id of Object.values[this.props.wearing]){
         if (id!==null){
           room.add_entity(id);
           let item = World.world.get_instance(id);
@@ -1257,8 +1277,8 @@ class NPC { //continue here
       }
     }   
 
-    if (this.props["holding"]!==undefined){
-      for (const id of Object.values[this.props["holding"]]){
+    if (this.props.holding!==null){
+      for (const id of Object.values[this.props.holding]){
         if (id!==null){
           room.add_entity(id);
           let item = World.world.get_instance(id);
@@ -1267,8 +1287,8 @@ class NPC { //continue here
       }
     }
 
-    if (this.props["slots"]!==undefined){
-      for (const id of this.props["slots"]){
+    if (this.props.slots!==null){
+      for (const id of this.props.slots){
         room.add_entity(id);
         let item = World.world.get_instance(id);
         item.set_container_id(room.id);
@@ -1277,29 +1297,20 @@ class NPC { //continue here
 
     //Remove the NPC from the world and from the room    
     room.remove_entity(this.id);
-    World.world.remove_from_world(this.id);    
-  }
+    World.world.remove_from_world(this.id);
 
-  remove_entity_from_slots(id){
-    //try to remove the entity.
-    //Return True if successful, else False.
-    let success = false;
-    let ix = this.props["slots"].indexOf(id);
-    if (ix!==-1){
-      this.props["slots"].splice(ix,1);
-      success = true;
-    }
-    return success;
+    this.send_msg_to_room(`is DEAD.`);
   }
 
   do_battle(){
-    let opponent = World.world.get_instance(this.props["is_fighting_with"]);
+    let opponent = World.world.get_instance(this.props.is_fighting_with);
     //Check if opponent disconnected or logged out
     //This to prevent users abusing the fighting system by logging out 
     //and reloggin with full health...
     if (opponent===undefined){
       this.stop_battle();
       this.reset_health();
+      return;
     }
 
     //Opponent exists.
@@ -1307,24 +1318,19 @@ class NPC { //continue here
     let damage_dealt=     this.calc_damage(); 
     let damage_recieved=  opponent.recieve_damage(damage_dealt);
 
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world',
-      `${Utils.generate_html(this.id, 'NPC')} strikes` + 
-      `${Utils.generate_html(this.id, 'User')} ` + 
-      `dealing ${damage_recieved} HP of damage.`);
+    this.send_msg_to_room(
+      `strikes ${opponent.get_name()}`+
+      `dealing ${damage_recieved} HP of damage.`
+    );
 
     //Check & Handle death of the opponent.
-    if (opponent.props["health"]===0){
+    if (opponent.props.health===0){
       //Opponent has died
       this.stop_battle();
-
-      Utils.msg_sender.send_chat_msg_to_room(this.id,'world',
-        `kills ${Utils.generate_html(opponent.id, opponent.props["type"])}.`);
-      
+      this.send_msg_to_room(`kills ${opponent.get_name()}!`);      
       opponent.do_death();
     }    
-  }
-
-    // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
+  }   
   
   
   get_msg(sender_id, msg){
@@ -1346,11 +1352,11 @@ class NPC { //continue here
   }
 
   say_cmd(msg){
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', `says: ` + msg);
+    this.send_msg_to_room(`says: ${msg}`);    
   }
 
-  emote_cmd(emote){    
-    Utils.msg_sender.send_chat_msg_to_room(this.id, 'world', emote, true);
+  emote_cmd(emote){
+    this.send_msg_to_room(emote);    
   }
 
   get_name(){
@@ -1367,6 +1373,21 @@ class NPC { //continue here
       `</span>`;
 
     return html;
+  }
+
+  send_msg_to_room(content){
+    ///Send a message to all entities in the room.
+    let container=  World.world.get_instance(this.props.container_id);
+    
+    let ids_arr=  container.get_entities();
+    //array of objects, of the form: {id: string, location: "room"}
+
+    for (const obj of ids_arr){
+      if (obj.id!==this.id){ //Don't send to yourself.
+        let entity = World.world.get_instance(obj.id);
+        entity.get_msg(this.id, content);
+      }
+    }    
   }
 
 }

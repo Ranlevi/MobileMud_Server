@@ -162,6 +162,7 @@ a natural leveling/zoning system.
   Also, each item has a expiration period and counter props. Each tick we incremente and
   check. 
 
+ // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
 
   Game story
   -----------
