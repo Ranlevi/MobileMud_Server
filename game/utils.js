@@ -6,19 +6,37 @@ const Classes=  require('./classes');
 //There is a single ID_Generator instance.
 class ID_Generator {
   constructor(){
-    //Note: IDs are handled as Numbers internally, 
-    //but everywhere else in the game they are Strings.
-    this.current_id = 0;
+    this.LENGTH=      16; 
+    this.characters= 'abcdefghijklmnopqrstuvwxyz0123456789';//lowercase since input is always lowercase.  
   }
   
-  get_new_id(){
-    this.current_id += 1;
-    let new_id = this.current_id.toString();    
-    return new_id;
-  }
-  
-  set_new_current_id(id){
-    this.current_id = parseInt(id,10);
+  get_new_id(entity_type){
+    let id = ``;
+
+    switch(entity_type){
+      case "room":
+        id = 'r';
+        break;
+      
+      case "User":
+        id = 'u';
+        break;
+
+      case 'Item':
+        id = 'i';
+        break;
+
+      case "NPC":
+        id = 'n'; //conmtiues: fix generic world ids
+        break;
+    }
+
+    let charactersLength = this.characters.length;
+    for (let i = 0; i < this.LENGTH-1; i++ ) {
+      id += this.characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    
+    return id;
   }
 }
 const id_generator_instance = new ID_Generator();

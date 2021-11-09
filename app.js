@@ -100,11 +100,6 @@ class Game_Controller {
           default:
             console.error(`GC.load_world: Unknown type: ${data.type}`);
         }
-                 
-        //Since entities are loaded with their pre-existing IDs,
-        //we update the id_generator on the latest existing id (so it
-        //won't create an identical ID.)
-        Utils.id_generator.set_new_current_id(current_id);        
       } 
       
     } else {

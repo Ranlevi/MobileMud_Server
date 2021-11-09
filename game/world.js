@@ -79,7 +79,7 @@ class World {
   }
   
 }
-const FIRST_ROOM_ID= '0';
+const FIRST_ROOM_ID= 'R0000000';
 const world=         new World();
 
 //Datebase of registered users. Loaded on game initalization.

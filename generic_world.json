@@ -1,5 +1,5 @@
 {
-  "0": {
+  "R0000000": {
     "type":     "Room",
     "props": {
       "name":   "The Infirmary",
@@ -9,7 +9,7 @@
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
       "entities": [],
       "exits": {
-        "north":  {"id": "1", "code": null},
+        "north":  {"id": "R0000001", "code": null},
         "south":  null,
         "east":   null,
         "west":   null,
@@ -19,7 +19,7 @@
       "lighting": "white"
     }
   },
-  "1": {
+  "R0000001": {
     "type":     "Room",
     "props": {
       "name":   "A Narrow Corridor",
@@ -29,17 +29,17 @@
         "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
       "entities": [],
       "exits": {
-        "north":  {"id": "3", "code": null},
-        "south":  {"id": "0", "code": null},
+        "north":  {"id": "R0000003", "code": null},
+        "south":  {"id": "R0000000", "code": null},
         "east":   null,
-        "west":   {"id": "2", "code": null},
+        "west":   {"id": "R0000002", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "2": {
+  "R0000002": {
     "type":     "Room",
     "props": {
       "name":   "Larry's Office",
@@ -53,7 +53,7 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "1", "code": null},
+        "east":   {"id": "R0000001", "code": null},
         "west":   null,
         "up":     null,
         "down":   null
@@ -61,7 +61,7 @@
       "lighting": "yellow"
     }
   },
-  "3": {
+  "R0000003": {
     "type":     "Room",
     "props": {
       "name":   "A Narrow Corridor",
@@ -71,21 +71,21 @@
         "The corridor has four exits. The door to the East is marked 'Storage', while the door to the West is labeled 'AirLock'. The door to the North has a sign that says: 'Danger! Authorized Personnel Only!'. The corridor continues to the South.",
       "entities": [],
       "exits": {
-        "north":  {"id": "21", "code": null},
-        "south":  {"id": "1", "code": null},
-        "east":   {"id": "5", "code": null},
-        "west":   {"id": "4", "code": null},
+        "north":  {"id": "R0000021", "code": null},
+        "south":  {"id": "R0000001", "code": null},
+        "east":   {"id": "R0000005", "code": null},
+        "west":   {"id": "R0000004", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "21": {
+  "R0000021": {
     "type":     "Room",
     "props": {
       "name":   "Engineering",
-      "type":   "Room",
+      "type":   "Room", 
       "spawned_entities": [
         {"class": "NPC", "type": "Lamar", "amount": 1}
       ],
@@ -94,7 +94,7 @@
       "entities": [],
       "exits": {
         "north":  null,
-        "south":  {"id": "3", "code": null},
+        "south":  {"id": "R0000003", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -103,7 +103,7 @@
       "lighting": "yellow"
     }
   },
-  "4": {
+  "R0000004": {
     "type":     "Room",
     "props": {
       "name":   "Storage",
@@ -115,7 +115,7 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "3", "code": null},
+        "east":   {"id": "R0000003", "code": null},
         "west":   null,
         "up":     null,
         "down":   null
@@ -123,7 +123,7 @@
       "lighting": "yellow"
     }
   },
-  "5": {
+  "R0000005": {
     "type":     "Room",
     "props": {
       "name":   "AirLock",
@@ -135,15 +135,15 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "6", "code": "00000000"},
-        "west":   {"id": "3", "code": null},
+        "east":   {"id": "R0000006", "code": "00000000"},
+        "west":   {"id": "R0000003", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "6": {
+  "R0000006": {
     "type":     "Room",
     "props": {
       "name":   "Tunnel 1",
@@ -155,15 +155,15 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "7", "code": null},
-        "west":   {"id": "5", "code": null},
+        "east":   {"id": "R0000007", "code": null},
+        "west":   {"id": "R0000005", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "7": {
+  "R0000007": {
     "type":     "Room",
     "props": {
       "name":   "Tunnel 2",
@@ -175,15 +175,15 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "8", "code": null},
-        "west":   {"id": "6", "code": null},
+        "east":   {"id": "R0000008", "code": null},
+        "west":   {"id": "R0000006", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "8": {
+  "R0000008": {
     "type":     "Room",
     "props": {
       "name":   "Tunnel 3",
@@ -195,15 +195,15 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "9", "code": null},
-        "west":   {"id": "7", "code": null},
+        "east":   {"id": "R0000009", "code": null},
+        "west":   {"id": "R0000007", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "9": {
+  "R0000009": {
     "type":     "Room",
     "props": {
       "name":   "Tunnel 4",
@@ -215,15 +215,15 @@
       "exits": {
         "north":  null,
         "south":  null,
-        "east":   {"id": "10", "code": null},
-        "west":   {"id": "8", "code": null},
+        "east":   {"id": "R0000010", "code": null},
+        "west":   {"id": "R0000008", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "10": {
+  "R0000010": {
     "type":     "Room",
     "props": {
       "name":   "Gaggarin Gate",
@@ -234,16 +234,16 @@
       "entities": [],
       "exits": {
         "north":  null,
-        "south":  {"id": "11", "code": null},
+        "south":  {"id": "R0000011", "code": null},
         "east":   null,
-        "west":   {"id": "9", "code": null},
+        "west":   {"id": "R0000009", "code": null},
         "up":     null,
         "down":   null
       },
       "lighting": "yellow"
     }
   },
-  "11": {
+  "R0000011": {
     "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 1",
@@ -253,9 +253,9 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "10", "code": null},
-        "south":  {"id": "13", "code": null},
-        "east":   {"id": "12", "code": null},
+        "north":  {"id": "R0000010", "code": null},
+        "south":  {"id": "R0000013", "code": null},
+        "east":   {"id": "R0000012", "code": null},
         "west":   null,
         "up":     null,
         "down":   null
@@ -263,7 +263,7 @@
       "lighting": "yellow"
     }
   },
-  "12": {
+  "R0000012": {
     "type":     "Room",
     "props": {
       "name":   "Mayor's House",
@@ -276,7 +276,7 @@
         "north":  null,
         "south":  null,
         "east":   null,
-        "west":   {"id": "11", "code": null},
+        "west":   {"id": "R0000011", "code": null},
         "up":     null,
         "down":   null
       },
@@ -293,8 +293,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "11", "code": null},
-        "south":  {"id": "14", "code": null},
+        "north":  {"id": "R0000011", "code": null},
+        "south":  {"id": "R0000014", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -313,8 +313,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "13", "code": null},
-        "south":  {"id": "15", "code": null},
+        "north":  {"id": "R0000013", "code": null},
+        "south":  {"id": "R0000015", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -333,8 +333,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "14", "code": null},
-        "south":  {"id": "16", "code": null},
+        "north":  {"id": "R0000014", "code": null},
+        "south":  {"id": "R0000016", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -343,7 +343,7 @@
       "lighting": "yellow"
     }
   },
-  "16": {
+  "R0000016": {
     "type":     "Room",
     "props": {
       "name":   "Armstrong Sq.",
@@ -353,8 +353,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "15", "code": null},
-        "south":  {"id": "17", "code": null},
+        "north":  {"id": "R0000015", "code": null},
+        "south":  {"id": "R0000017", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -363,7 +363,7 @@
       "lighting": "yellow"
     }
   },
-  "17": {
+  "R0000017": {
     "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 5",
@@ -373,8 +373,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "16", "code": null},
-        "south":  {"id": "18", "code": null},
+        "north":  {"id": "R0000016", "code": null},
+        "south":  {"id": "R0000018", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -383,7 +383,7 @@
       "lighting": "yellow"
     }
   },
-  "18": {
+  "R0000018": {
     "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 6",
@@ -393,8 +393,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "17", "code": null},
-        "south":  {"id": "19", "code": null},
+        "north":  {"id": "R0000017", "code": null},
+        "south":  {"id": "R0000019", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -403,7 +403,7 @@
       "lighting": "yellow"
     }
   },
-  "19": {
+  "R0000019": {
     "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 7",
@@ -413,8 +413,8 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "18", "code": null},
-        "south":  {"id": "20", "code": null},
+        "north":  {"id": "R0000018", "code": null},
+        "south":  {"id": "R0000020", "code": null},
         "east":   null,
         "west":   null,
         "up":     null,
@@ -423,7 +423,7 @@
       "lighting": "yellow"
     }
   },
-  "20": {
+  "R0000020": {
     "type":     "Room",
     "props": {
       "name":   "Elon Gate 4",
@@ -433,7 +433,7 @@
         "TBD",
       "entities": [],
       "exits": {
-        "north":  {"id": "19", "code": null},
+        "north":  {"id": "R0000019", "code": null},
         "south":  null,
         "east":   null,
         "west":   null,

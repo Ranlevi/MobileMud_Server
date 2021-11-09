@@ -4,8 +4,12 @@ const Types= require('./types');
 
 class Room {
   constructor(props=null, id=null){
+
+    this.SPAWN_DELAY = 10;
       
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+
+    this.spawn_counter = 0;
     
     //Default props
     this.props = {
@@ -34,6 +38,8 @@ class Room {
 
     // Add To world.
     World.world.add_to_world(this);
+
+    this.do_spawn(true);
   }  
     
   //Inventory Manipulation Methods
@@ -126,31 +132,45 @@ class Room {
     return msg;
   }
 
-  do_tick(){
-    //Each tick, check if entities need to be spawned.
-    if (this.props.spawned_entities!==null){
+  do_spawn(is_initial_spawn=false){
 
-      for (const obj of this.props.spawned_entities){
-        //obj is of the form:
-        //{"class": "Item", "type": "Keycard", "amount": 1}
-        
-        //Count how many of the required item are already present.
-        let existing_amount = 0;
-        for (const entity_id of this.props.entities){
-          let entity = World.world.get_instance(entity_id);
-          if (entity.props.type===obj.type){
-            existing_amount += 1;
+    this.spawn_counter += 1;
+
+    if (this.spawn_counter===this.SPAWN_DELAY || is_initial_spawn){
+
+      if (!is_initial_spawn){
+        this.spawn_counter = 0;
+      }
+
+      if (this.props.spawned_entities!==null){
+                
+        for (const obj of this.props.spawned_entities){
+          //obj is of the form:
+          //{"class": "Item", "type": "Keycard", "amount": 1}
+                    
+          //Count how many of the required item are already present.
+          let existing_amount = 0;
+          for (const entity_id of this.props.entities){
+            let entity = World.world.get_instance(entity_id);
+            if (entity.props.type===obj.type){
+              existing_amount += 1;
+            }
           }
-        }
   
-        //If not enough items are present, spawn new ones.
-        if (existing_amount<obj.amount){          
-          for (let i=existing_amount;i<obj.amount;i++){
-            World.world.spawn_entity(obj["class"], obj.type, this.id);
+          //If not enough items are present, spawn new ones.
+          if (existing_amount<obj.amount){          
+            for (let i=existing_amount;i<obj.amount;i++){              
+              World.world.spawn_entity(obj["class"], obj.type, this.id);
+            }
           }
+            
         }
       }
-    }    
+    }
+  }
+
+  do_tick(){
+    this.do_spawn();        
   }
   
 }
