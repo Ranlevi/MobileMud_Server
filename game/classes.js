@@ -160,7 +160,9 @@ class Room {
           //If not enough items are present, spawn new ones.
           if (existing_amount<obj.amount){          
             for (let i=existing_amount;i<obj.amount;i++){              
-              World.world.spawn_entity(obj["class"], obj.type, this.id);
+              let entity_id = World.world.spawn_entity(obj["class"], obj.type, this.id);
+              let entity = World.world.get_instance(entity_id);
+              entity.send_msg_to_room(`has spawned here.`);
             }
           }
             
@@ -191,7 +193,7 @@ class User {
     this.props = {
       name:             "A User",
       type:             "User",
-      description:      "It's you, bozo!",
+      description:      "A (non-NPC) human.",
       password:         null, //String
       container_id:     "0",
       health:           this.BASE_HEALTH, //Num 

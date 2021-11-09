@@ -21,14 +21,10 @@ const VERSION = 0.01;
 TODO:
 tell cmd
 refactor to Type, SubType
-maybe no need for items in the generic_world load? because spawn!
-get rid of props strings
-modify Item to work with types
 center actions
 create_cmd i/f
 set user description somehow
 improve client UI
-remove 'world' from send_msg
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/
@@ -328,7 +324,7 @@ class Game_Controller {
         break;
 
       default:
-        Utils.msg_sender.send_chat_msg_to_user(user_id, `world`, `Unknown command.`);
+        user.send_chat_msg_to_client(`Unknown command.`);        
     }  
   }  
 

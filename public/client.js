@@ -13,7 +13,7 @@ let parent=                   document.getElementById('parent');
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "bisque";
 
-const DEBUG = true;
+const DEBUG = false;
 
 freeze_btn.addEventListener('click', ()=>{
   stop_chat_scroll = !stop_chat_scroll;

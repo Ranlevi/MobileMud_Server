@@ -27,7 +27,7 @@ class ID_Generator {
         break;
 
       case "NPC":
-        id = 'n'; //conmtiues: fix generic world ids
+        id = 'n';
         break;
     }
 

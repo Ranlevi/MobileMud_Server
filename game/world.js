@@ -56,7 +56,7 @@ class World {
 
     switch(klass){
       case("Room"):
-        new Classes.Room(props, id);
+        entity = new Classes.Room(props, id);
         break;
       
       case("NPC"):
@@ -76,10 +76,11 @@ class World {
       default:
         console.error(`World.spawn_entity: unkown class ${klass}`);
     }
+    return entity.id;
   }
   
 }
-const FIRST_ROOM_ID= 'R0000000';
+const FIRST_ROOM_ID= 'r000000000000000';
 const world=         new World();
 
 //Datebase of registered users. Loaded on game initalization.
