@@ -1276,15 +1276,7 @@ class NPC {
   }  
 
   do_tick(){
-
-    // for (const entity_id of Object.keys(this.state_machine.machine.current_state)){
-    //   //Notify state machine about the tick
-    //   let current_state = this.state_machine.machine.current_state[entity_id];    
-    //   let params_obj = {
-    //     owner_id:   this.id,      
-    //   }
-    //   this.state_machine.machine.transition(current_state,"tick", params_obj);
-    // }   
+    this.state_machine.do_tick(this.id);
   }
 
   do_death(){
@@ -1366,48 +1358,8 @@ class NPC {
         event = msg;
     }
 
-    this.state_machine.recive_event(sender_id, event);
-    
-
-
-    // let current_state = this.state_machine.machine.current_state[sender_id];
-
-    // if (current_state===undefined){
-    //   //a new user
-    //   this.state_machine.machine.current_state[sender_id] = "Idle";
-    // }
-    // let params_obj = {
-    //   owner_id:   this.id,
-    //   sender_id:  sender_id
-    // }
-    // let event;
-
-    // if (msg.includes('enters from')){
-    //   event = "user_enters_room";
-    // } else if (msg.includes('says')){
-    //   event = msg;
-    // }
-
-    // this.state_machine.machine.transition(current_state, event, params_obj);
+    this.state_machine.recive_event(sender_id, event);    
   }
-
-  // get_msg(sender_id, msg){
-
-  //   let current_state = this.state_machine.machine.current_state;
-  //   let params_obj = {
-  //     owner_id:   this.id,
-  //     sender_id:  sender_id
-  //   }
-  //   let event;
-
-  //   if (msg.includes('enters from')){
-  //     event = "user_enters_room";
-  //   } else if (msg.includes('says')){
-  //     event = msg;
-  //   }
-
-  //   this.state_machine.machine.transition(current_state, event, params_obj);
-  // }
 
   say_cmd(msg){
     this.send_msg_to_room(`says: ${msg}`);    

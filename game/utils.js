@@ -93,9 +93,9 @@ class StateMachine {
 
       transition(current_state, sender_id, event, params_obj){        
         const currentStateDefinition= stm_definition[current_state];
-        const next_state=             currentStateDefinition.transitions[event];        
-
-        if (!next_state){
+        const next_state=             currentStateDefinition.transitions[event];    
+        
+        if (next_state===undefined){
           //If the given event does not trigger a transition, return early.
           return;
         }
@@ -116,43 +116,28 @@ class StateMachine {
   }
 
   recive_event(sender_id, event, params_obj=null){
-
+    
     if (this.machine.current_state[sender_id]===undefined){
       this.machine.current_state[sender_id] = this.initial_state;
     }
 
     //Now we have the current state for the specific entity.
+    // console.log(this.machine.current_state[sender_id], sender_id, event, params_obj);
     this.machine.transition(this.machine.current_state[sender_id], sender_id, event, params_obj);
   }
   
-  // createMachine(stm_definition){
-  //   const machine = {
-  //     current_state: stm_definition.initialState,
+  do_tick(owner_id){
 
-  //     transition(current_state, event, params_obj=null){        
-  //       const currentStateDefinition= stm_definition[current_state];
-  //       const next_state=             currentStateDefinition.transitions[event];        
-
-  //       if (!next_state){
-  //         //If the given event does not trigger a transition, return early.
-  //         return;
-  //       }
-
-  //       // const destinationState = destinationTransition.target;
-  //       const next_state_definition = stm_definition[next_state];
-        
-  //       //Perform the actions.        
-  //       next_state_definition.action(params_obj);        
-
-  //       //return the next state.
-  //       machine.current_state = next_state;
-  //       return machine.current_state;
-  //     }      
-  //   }
+    if (this.machine.current_state[owner_id]===undefined){
+      this.machine.current_state[owner_id] = this.initial_state;
+    }
     
-  //   return machine;
-  // }
-  
+    for (const id of Object.keys(this.machine.current_state)){      
+      this.recive_event(id, "tick");
+    }
+
+  }
+   
 }
     
 exports.id_generator=           id_generator_instance;
