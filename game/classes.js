@@ -15,6 +15,7 @@ class Room {
     this.props = {
       name:               "Room",
       type:               "Room",
+      subtype:            "Room",
       description:        "A simple, 3m by 3m room.",
       spawned_entities:   null,
       entities:           [],
@@ -71,14 +72,14 @@ class Room {
 
   search_for_target(target){
     //Search the entities in the room for a given target.
-    //Target can be name, type or id.
+    //Target can be name, usbtype or id.
     //returns an object of first item found: {id: string, location: string} or null if not found.
     
     for (const id of this.props.entities){
       let entity = World.world.get_instance(id);
       
       if ((entity.props.name.toLowerCase()===target) ||
-          (entity.props.type.toLowerCase()===target) ||
+          (entity.props.subtype.toLowerCase()===target) ||
           (target===entity.id)){
         return {id: id, location: "room"};
       }
@@ -96,7 +97,7 @@ class Room {
       `<span `+
       `class="pn_link" `+
       `data-element="pn_link" `+
-      `data-type="${this.props.type}" `+
+      `data-type="${this.props.subtype}" `+
       `data-id="${this.id}" `+
       `data-name="${this.props.name}" `+
       `data-actions="Look">`+
@@ -146,13 +147,13 @@ class Room {
                 
         for (const obj of this.props.spawned_entities){
           //obj is of the form:
-          //{"class": "Item", "type": "Keycard", "amount": 1}
+          //{"type": "Item", "subtype": "Keycard", "amount": 1}
                     
           //Count how many of the required item are already present.
           let existing_amount = 0;
           for (const entity_id of this.props.entities){
             let entity = World.world.get_instance(entity_id);
-            if (entity.props.type===obj.type){
+            if (entity.props.subtype===obj.subtype){
               existing_amount += 1;
             }
           }
@@ -160,7 +161,7 @@ class Room {
           //If not enough items are present, spawn new ones.
           if (existing_amount<obj.amount){          
             for (let i=existing_amount;i<obj.amount;i++){              
-              let entity_id = World.world.spawn_entity(obj["class"], obj.type, this.id);
+              let entity_id = World.world.spawn_entity(obj.type, obj.subtype, this.id);
               let entity = World.world.get_instance(entity_id);
               entity.send_msg_to_room(`has spawned here.`);
             }
@@ -193,6 +194,7 @@ class User {
     this.props = {
       name:             "A User",
       type:             "User",
+      subtype:          "User",
       description:      "A (non-NPC) human.",
       password:         null, //String
       container_id:     "0",
@@ -266,7 +268,7 @@ class User {
       `<span `+
       `class="pn_link" `+
       `data-element="pn_link" `+
-      `data-type="${this.props.type}" `+
+      `data-type="${this.props.subtype}" `+
       `data-id="${this.id}" `+
       `data-name="${this.props.name}" `+
       `data-actions="Look">`+
@@ -323,7 +325,7 @@ class User {
       let entity = World.world.get_instance(obj.id);
 
       if ((entity.props.name.toLowerCase()===target) ||
-          (entity.props.type.toLowerCase()===target) ||
+          (entity.props.subtype.toLowerCase()===target) ||
           (target===entity.id)){
         return obj;
       }  
@@ -417,7 +419,7 @@ class User {
 
   look_cmd(target=null){
     //search for a target on the user's body or in the room.
-    //target can be an id, a type or a name.
+    //target can be an id, a subtype or a name.
     //returns a string message.   
     let room= World.world.get_instance(this.props.container_id);   
 
@@ -801,6 +803,33 @@ class User {
     this.send_msg_to_room(`says: ${target}`);
   }
 
+  tell_cmd(username, content=null){
+
+    console.log(username, content);
+
+    if (username===undefined){
+      this.send_chat_msg_to_client(`Who do you want to talk to?`);
+      return;
+    }
+
+    let user_id = World.world.get_user_id_by_username(username);
+
+    if (user_id===null){
+      this.send_chat_msg_to_client('No User by this name is online.');
+      return;
+    }
+
+    let user = World.world.get_instance(user_id);
+
+    if (content===''){
+      this.send_chat_msg_to_client(`What do you want to tell ${user.get_name()}?`);
+      return;
+    }
+    
+    this.send_chat_msg_to_client(`You tell ${user.get_name()}: ${content}`);
+    user.get_msg(this.id, `tells you: ${content}`);
+  }
+
   emote_cmd(target=null){
     if (target===null){    
       this.send_chat_msg_to_client(`What do you want to emote?`);  
@@ -998,14 +1027,14 @@ class User {
 }
 
 class Item {
-  constructor(type, props=null, id=null){
+  constructor(subtype, props=null, id=null){
       
     this.id=    (id===null)? Utils.id_generator.get_new_id() : id;  
     this.props= {};
 
-    //Set default porps according to type.
-    let type_data=  Types.Types[type];    
-    this.props=     Utils.deepCopyFunction(type_data.props);
+    //Set default porps according to subtype.
+    let subtype_data=  Types.Types[subtype];    
+    this.props=     Utils.deepCopyFunction(subtype_data.props);
 
     //Overwrite the default props with the saved ones.
     if (props!==null){
@@ -1088,7 +1117,7 @@ class Item {
       `<span `+
       `class="pn_link" `+
       `data-element="pn_link" `+
-      `data-type="${this.props.type}" `+
+      `data-type="${this.props.subtype}" `+
       `data-id="${this.id}" `+
       `data-name="${this.props.name}" `+
       `data-actions="Look_Get_Drop_Wear_Hold_Consume_Remove">`+
@@ -1119,7 +1148,7 @@ class Item {
 }
 
 class NPC {
-  constructor(type, props=null, id=null){
+  constructor(subtype, props=null, id=null){
 
     //Default Constants
     this.BASE_HEALTH= 10;
@@ -1127,14 +1156,15 @@ class NPC {
 
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
-    //Load the type
-    let type_data=      Types.Types[type];
-    this.props=         Utils.deepCopyFunction(type_data.props);
-    this.state_machine= new Utils.StateMachine(this.id, type_data.stm_definition);
+    //Load the subtype
+    let subtype_data=      Types.Types[subtype];
+    this.props=         Utils.deepCopyFunction(subtype_data.props);
+    this.state_machine= new Utils.StateMachine(this.id, subtype_data.stm_definition);
         
     // {//Mandatory props for every NPC
     //   "name":             "An NPC",
     //   "type":             "An NPC",
+    //   "subtype":          "Larry",
     //   "description":      "It's an NPC.",      
     //   "container_id":     "0", //
     //   "health":           this.BASE_HEALTH, //Num
@@ -1375,7 +1405,7 @@ class NPC {
       `<span `+
       `class="pn_link" `+
       `data-element="pn_link" `+
-      `data-type="${this.props.type}" `+
+      `data-type="${this.props.subtype}" `+
       `data-id="${this.id}" `+
       `data-name="${this.props.name}" `+
       `data-actions="Look_Kill">`+

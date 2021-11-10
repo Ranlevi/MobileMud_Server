@@ -1,9 +1,9 @@
 {
   "r000000000000000": {
-    "type":     "Room",
     "props": {
-      "name":   "The Infirmary",
-      "type":   "Room",
+      "name":     "The Infirmary",
+      "type":     "Room",
+      "subtype":  "Room",
       "spawned_entities": null,
       "description": 
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
@@ -20,10 +20,10 @@
     }
   },
   "r000000000000001": {
-    "type":     "Room",
     "props": {
-      "name":   "A Narrow Corridor",
-      "type":   "Room",
+      "name":     "A Narrow Corridor",
+      "type":     "Room",
+      "subtype":  "Room",
       "spawned_entities": null,
       "description": 
         "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
@@ -40,13 +40,13 @@
     }
   },
   "r000000000000002": {
-    "type":     "Room",
     "props": {
-      "name":   "Larry's Office",
-      "type":   "Room",
+      "name":     "Larry's Office",
+      "type":     "Room",
+      "subtype":  "Room",
       "spawned_entities": [
-        {"class": "Item", "type": "Keycard",       "amount": 1},
-        {"class": "NPC", "type": "Larry_Clarke",  "amount": 1}],
+        {"type": "Item", "subtype": "Keycard",       "amount": 1},
+        {"type": "NPC",  "subtype": "Larry_Clarke",  "amount": 1}],
       "description": 
         "You enter a compact office-like room. A tall, thin man sits behind a table. When you walk in, he raises his eyes from the computer screen in front of him.",
       "entities": [],
@@ -62,10 +62,10 @@
     }
   },
   "r000000000000003": {
-    "type":     "Room",
     "props": {
-      "name":   "A Narrow Corridor",
-      "type":   "Room",
+      "name":     "A Narrow Corridor",
+      "type":     "Room",
+      "subtype":  "Room",
       "spawned_entities": null,
       "description": 
         "The corridor has four exits. The door to the East is marked 'Storage', while the door to the West is labeled 'AirLock'. The door to the North has a sign that says: 'Danger! Authorized Personnel Only!'. The corridor continues to the South.",
@@ -82,10 +82,10 @@
     }
   },
   "r000000000000021": {
-    "type":     "Room",
     "props": {
-      "name":   "Engineering",
-      "type":   "Room", 
+      "name":     "Engineering",
+      "type":     "Room", 
+      "subtype":  "Room",
       "spawned_entities": [
         {"class": "NPC", "type": "Lamar", "amount": 1}
       ],
@@ -104,10 +104,10 @@
     }
   },
   "r000000000000004": {
-    "type":     "Room",
     "props": {
       "name":   "Storage",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -124,10 +124,10 @@
     }
   },
   "r000000000000005": {
-    "type":     "Room",
     "props": {
       "name":   "AirLock",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -144,10 +144,10 @@
     }
   },
   "r000000000000006": {
-    "type":     "Room",
     "props": {
       "name":   "Tunnel 1",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -164,10 +164,10 @@
     }
   },
   "r000000000000007": {
-    "type":     "Room",
     "props": {
       "name":   "Tunnel 2",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -184,10 +184,10 @@
     }
   },
   "r000000000000008": {
-    "type":     "Room",
     "props": {
       "name":   "Tunnel 3",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -204,10 +204,10 @@
     }
   },
   "r000000000000009": {
-    "type":     "Room",
     "props": {
       "name":   "Tunnel 4",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -224,10 +224,10 @@
     }
   },
   "r000000000000010": {
-    "type":     "Room",
     "props": {
       "name":   "Gaggarin Gate",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -244,10 +244,10 @@
     }
   },
   "r000000000000011": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 1",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -264,10 +264,10 @@
     }
   },
   "r000000000000012": {
-    "type":     "Room",
     "props": {
       "name":   "Mayor's House",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -284,10 +284,10 @@
     }
   },
   "r000000000000013": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 2",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -304,10 +304,10 @@
     }
   },
   "r000000000000014": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 3",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -324,10 +324,10 @@
     }
   },
   "r000000000000015": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 4",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -344,10 +344,10 @@
     }
   },
   "r000000000000016": {
-    "type":     "Room",
     "props": {
       "name":   "Armstrong Sq.",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -364,10 +364,10 @@
     }
   },
   "r000000000000017": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 5",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -384,10 +384,10 @@
     }
   },
   "r000000000000018": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 6",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -404,10 +404,10 @@
     }
   },
   "r000000000000019": {
-    "type":     "Room",
     "props": {
       "name":   "Aldrin Av. 7",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",
@@ -424,10 +424,10 @@
     }
   },
   "r000000000000020": {
-    "type":     "Room",
     "props": {
       "name":   "Elon Gate 4",
       "type":   "Room",
+      "subtype": "Room",
       "spawned_entities": null,
       "description": 
         "TBD",

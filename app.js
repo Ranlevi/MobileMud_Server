@@ -19,8 +19,6 @@ const VERSION = 0.01;
 
 /*
 TODO:
-
-tell cmd
 refactor to Type, SubType
 center actions
 create_cmd i/f
@@ -82,20 +80,21 @@ class Game_Controller {
     }
 
     if (fs.existsSync(path)){
-      let current_id;
+      
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
       for (const [id, data] of Object.entries(parsed_info)){
-        current_id=  id;
-        
+                
         //Create the entities, with their saves props.
-        switch(data.type){
+        switch(data.props.subtype){
           case "Room":
             World.world.spawn_entity('Room', 'Room', null, data.props, id);            
-            break;          
+            break;
+
+          
 
           default:
-            console.error(`GC.load_world: Unknown type: ${data.type}`);
+            console.error(`GC.load_world: Unknown type: ${data.props.subtype}`);
         }
       } 
       
@@ -146,20 +145,19 @@ class Game_Controller {
 
       if (!(container instanceof Classes.User)){
         //Save all items not carried by users.
-        data[item.id] = {
-          "type": item.props["type"],
-          "props": Object.assign({}, item.props)
+        data[item.id] = {          
+          props: Object.assign({}, item.props)
         };        
       }
 
       if (item instanceof Classes.Room){
         //If the item is a room - remove users from it's entities        
-        data[item.id]["props"]["entities"] = [];
+        data[item.id].props.entities = [];
         
-        for (const id of item.props["entities"]){
+        for (const id of item.props.entities){
           let entity = World.world.get_instance(id);
           if (!(entity instanceof Classes.User)){
-            data[item.id]["props"]["entities"].push(id);
+            data[item.id].props.entities.push(id);
           }
         }
 
@@ -324,6 +322,14 @@ class Game_Controller {
         user.emote_cmd(target);
         break;
 
+      case "tell":
+      case "'":
+      case "t":
+        let username = input_arr[1];
+        let content = input_arr.slice(2).join(' ');
+        user.tell_cmd(username, content);
+        break;
+
       default:
         user.send_chat_msg_to_client(`Unknown command.`);        
     }  
@@ -372,7 +378,7 @@ class Game_Controller {
       if (id!==null){
         //Create the saved item, add it to the user and set its container ID.
         let props=  World.users_db.items[id];
-        let entity= new Classes.Item(props.type, props);
+        let entity= new Classes.Item(props.subtype, props);
 
         entity.set_container_id(user.id);
         user.props.wearing[position] = entity.id;        
@@ -381,7 +387,7 @@ class Game_Controller {
 
     if (user.props.holding!==null){
       let props=  World.users_db.items.user.props.holding;
-      let entity= new Classes.Item(props.type, props);
+      let entity= new Classes.Item(props.subtype, props);
 
       entity.set_container_id(user.id);
       user.props["holding"] = entity.id;        
@@ -391,10 +397,10 @@ class Game_Controller {
     user.props["slots"] = [];
     for (const id of temp_arr){
       let props=  World.users_db["items"][id];
-      let entity= new Classes.Item(props["type"], props);
+      let entity= new Classes.Item(props.subtype, props);
 
       entity.set_container_id(user.id);
-      user.props["slots"].push(entity.id);
+      user.props.slots.push(entity.id);
     }
 
     //Send a welcome message, and a status message to init the health bar.

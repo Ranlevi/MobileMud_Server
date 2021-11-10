@@ -4,7 +4,8 @@ const Types = {
   Larry_Clarke: {
     props: {
       name:             "Larry Clarke",  
-      type:             "Larry_Clarke",    
+      type:             "Larry_Clarke",
+      //from here    
       description:      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
       container_id:     null,      
       wearing: {
