@@ -79,17 +79,19 @@ function deepCopyFunction(inObject){
 }
 
 class StateMachine {
-  //A machine as a value (=current state), and a function that transition it 
+  //A machine as a current state, and a function that transition it 
   //from the current state to the next state according to given event.
-  constructor(stm_definition){
-    this.machine = this.createMachine(stm_definition);    
+  constructor(owner_id, stm_definition){
+    this.owner_id=      owner_id;
+    this.initial_state= stm_definition.initialState;
+    this.machine=       this.createMachine(owner_id, stm_definition);    
   }
 
-  createMachine(stm_definition){
+  createMachine(owner_id, stm_definition){
     const machine = {
-      current_state: stm_definition.initialState,
+      current_state: {},
 
-      transition(current_state, event, params_obj=null){        
+      transition(current_state, sender_id, event, params_obj){        
         const currentStateDefinition= stm_definition[current_state];
         const next_state=             currentStateDefinition.transitions[event];        
 
@@ -98,20 +100,58 @@ class StateMachine {
           return;
         }
 
-        // const destinationState = destinationTransition.target;
         const next_state_definition = stm_definition[next_state];
         
-        //Perform the actions.        
-        next_state_definition.action(params_obj);        
+        //Perform the actions.   
+        
+        next_state_definition.action(owner_id, sender_id, params_obj);        
 
         //return the next state.
-        machine.current_state = next_state;
-        return machine.current_state;
+        machine.current_state[sender_id] = next_state;
+        return machine.current_state[sender_id];
       }      
     }
     
     return machine;
-  }  
+  }
+
+  recive_event(sender_id, event, params_obj=null){
+
+    if (this.machine.current_state[sender_id]===undefined){
+      this.machine.current_state[sender_id] = this.initial_state;
+    }
+
+    //Now we have the current state for the specific entity.
+    this.machine.transition(this.machine.current_state[sender_id], sender_id, event, params_obj);
+  }
+  
+  // createMachine(stm_definition){
+  //   const machine = {
+  //     current_state: stm_definition.initialState,
+
+  //     transition(current_state, event, params_obj=null){        
+  //       const currentStateDefinition= stm_definition[current_state];
+  //       const next_state=             currentStateDefinition.transitions[event];        
+
+  //       if (!next_state){
+  //         //If the given event does not trigger a transition, return early.
+  //         return;
+  //       }
+
+  //       // const destinationState = destinationTransition.target;
+  //       const next_state_definition = stm_definition[next_state];
+        
+  //       //Perform the actions.        
+  //       next_state_definition.action(params_obj);        
+
+  //       //return the next state.
+  //       machine.current_state = next_state;
+  //       return machine.current_state;
+  //     }      
+  //   }
+    
+  //   return machine;
+  // }
   
 }
     
