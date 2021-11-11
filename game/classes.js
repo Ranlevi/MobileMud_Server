@@ -180,7 +180,7 @@ class Room {
 }
 
 class User {
-  constructor(props, ws_client, id=null){
+  constructor(props, ws_client=null, id=null){
 
     //Default Constants
     this.BASE_HEALTH=           100;
@@ -198,7 +198,7 @@ class User {
       subtype:          "User",
       description:      "A (non-NPC) human.",
       password:         null, //String
-      container_id:     "0",
+      container_id:     World.world.FIRST_ROOM_ID,
       health:           this.BASE_HEALTH, //Num 
 
       //Inventorhy
@@ -214,13 +214,17 @@ class User {
       slots_size_limit: 10,
       is_fighting_with: null,//ID, String.
     }
-
+    
     //Overwrite props with saved props.         
     for (const [key, value] of Object.entries(props)){
       this.props[key]= value;
-    }    
+    }      
     
     World.world.add_to_world(this);    
+    
+    //Place the user in a room
+    let room = World.world.get_instance(this.props.container_id);
+    room.add_entity(this.id);    
   }
 
   do_tick(){
@@ -1046,6 +1050,10 @@ class Item {
 
     // Add To world.
     World.world.add_to_world(this);
+
+    //Add to container
+    let container = World.world.get_instance(this.props.container_id);
+    container.add_entity(this.id);
   }
 
   set_container_id(new_container_id){
@@ -1187,6 +1195,10 @@ class NPC {
     }
 
     World.world.add_to_world(this);
+
+    //Place the npc in a room
+    let room = World.world.get_instance(this.props.container_id);
+    room.add_entity(this.id);    
   }
 
   //Inventory manipulation Methods

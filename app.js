@@ -14,6 +14,7 @@ const VERSION = 0.01;
 
 /*
 TODO:
+//check loading and saving, fix spwaning mechanism
 center actions
 create_cmd i/f
 set user description somehow
@@ -21,6 +22,7 @@ improve client UI
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/
+//todo: place user in room, fix spawn_entity parameters?
 */
 
 
@@ -50,16 +52,14 @@ class Game_Controller {
       let data = JSON.parse(fs.readFileSync('./users_db.json'));
 
       for (const [username, user_obj] of Object.entries(data.users)){
-        World.world.spawn_entity(
-          user_obj.props.type, 
-          user_obj.props.subtype,
-          user_obj.props.container_id,
-          user_obj.props,
-          user_obj.id
-          )//todo: place user in room, fix spawn_entity parameters?
-
-        spawn_entity(type, subtype, container_id, props=null, id=null)
+        //user_obj: {id: user.id, props: user.props};
+        World.world.users_db.users[username] = user_obj;
       }
+
+      for (const [id, props] of Object.entries(this.data.items)){
+        World.world.users_db.items[id] = props;
+      }
+      
     }
   }
   
@@ -70,8 +70,25 @@ class Game_Controller {
     if (fs.existsSync(path)){      
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
-      for (const [id, data] of Object.entries(parsed_info)){        
-        World.world.spawn_entity(data.props.type, data.props.subtype, null, data.props, id);
+      for (const [id, data] of Object.entries(parsed_info)){   
+        
+        switch (data.props.type){
+          case("Item"):
+            new Classes.Item(data.props.subtype, data.props, id);
+            break;
+
+          case('NPC'):
+            new Classes.NPC(data.props.subtype, data.props, id);
+            break;
+
+          case("Room"):
+            new Classes.Room(data.props, id);
+            break;
+
+          default:
+            console.error(`app.js->load_world: unknown type ${data.props.type}`);
+        }
+        
       }     
               
     } else {
@@ -264,19 +281,14 @@ class Game_Controller {
   }  
 
   create_new_user(ws_client, username, password){
-    //Create a new user, and associate the ws_client with it.
+    //Create a new user, spawned at spawn room, and associate the ws_client with it.
     //Returns the ID of the created user (String)
     let props = {
-      "name":         username,
-      "password":     password,
-      "container_id": World.FIRST_ROOM_ID
+      name:         username,
+      password:     password      
     }
 
     let user = new Classes.User(props, ws_client);
-    
-    //Add the user to the Spawn room.
-    let room = World.world.get_instance(World.FIRST_ROOM_ID);
-    room.add_entity(user.id);
     
     //Send a welcome message, and a Status message to init the health bar.
     //Than perform a Look command on the room.
@@ -293,47 +305,24 @@ class Game_Controller {
     
     console.log('Loading existing user');
 
-    let user_data = World.users_db["users"][username];
+    let user_data = World.world.users_db[username]; //user_data= {id:, props:}
 
-    let user = new Classes.User(user_data, ws_client);
-  
-    //Spawn the user it the saved room.
-    let room = World.world.get_instance(user.props["container_id"]);
-    room.add_entity(user.id);
+    let user = new Classes.User(user_data.props, ws_client, user_data.id);
 
-    //Get the items the user carries
-    for (const [position, id] of Object.entries(user.props.wearing)){
-      if (id!==null){
-        //Create the saved item, add it to the user and set its container ID.
-        let props=  World.users_db.items[id];
-        let entity= new Classes.Item(props.subtype, props);
+    //Spawn the items the users carries
+    let inv_arr = user.get_all_items_on_body();
 
-        entity.set_container_id(user.id);
-        user.props.wearing[position] = entity.id;        
-      }
-    }
+    for (const obj of inv_arr){
+      let props = World.world.users_db.items[obj.id];
 
-    if (user.props.holding!==null){
-      let props=  World.users_db.items.user.props.holding;
-      let entity= new Classes.Item(props.subtype, props);
-
-      entity.set_container_id(user.id);
-      user.props["holding"] = entity.id;        
-    }
-
-    let temp_arr = user.props["slots"];
-    user.props["slots"] = [];
-    for (const id of temp_arr){
-      let props=  World.users_db["items"][id];
-      let entity= new Classes.Item(props.subtype, props);
-
-      entity.set_container_id(user.id);
-      user.props.slots.push(entity.id);
-    }
+      //Must be of type Item
+      new Classes.Item(props.subtype, props, obj.id);      
+    }  
 
     //Send a welcome message, and a status message to init the health bar.
     //Then do a Look command on the room.
     user.send_chat_msg_to_client(`Welcome back, ${user.get_name()}.`);
+    user.send_status_msg_to_client();
     
     user.look_cmd();
     return user.id;

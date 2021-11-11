@@ -166,8 +166,22 @@ a natural leveling/zoning system.
 
   Save Users
   ---------
-  On init, we load all the users from the JSON to the world itself.
-  we then create new ones if needed. 
+  Users and the items they carry are saved to users_db.json.
+  It is loaded on init to an object.
+  Every so often the object is updated with new players created.
+  
+  
+  Spawning
+  --------
+  Scenarios:
+  1. New user: has wsclient, no id, no props.
+
+
+  1. load world from JSON
+  2. Spawn ingame 
+  3. Load user from JSON
+  4. New user
+  6. existing user.
 
 
   Game story

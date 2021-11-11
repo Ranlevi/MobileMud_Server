@@ -7,6 +7,10 @@ class World {
   constructor(){
     this.world = new Map(); //id: item instance.
     this.users = new Map();    
+    this.users_db = {
+      users: {}, //username: {id:, props:}
+      items: {}  //id: props
+    }
   }
 
   get_instance(instance_id){
@@ -49,7 +53,7 @@ class World {
     return null;
   }
 
-  spawn_entity(type, subtype, container_id, props=null, id=null){
+  spawn_entity(type, subtype, props=null, id=null){
     
     let entity;
     let room;
