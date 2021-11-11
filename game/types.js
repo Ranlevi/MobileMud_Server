@@ -4,8 +4,9 @@ const Types = {
   Larry_Clarke: {
     props: {
       name:             "Larry Clarke",  
-      type:             "Larry_Clarke",
-      //from here    
+      type:             "NPC",
+      subtype:          "Larry_Clarke",
+      
       description:      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
       container_id:     null,      
       wearing: {
@@ -140,8 +141,8 @@ const Types = {
   Keycard: {
     props: {
       name:           "A Keycard",
-      type:           'Keycard',
-      type_string:    "A Keycard",
+      type:           'Item',
+      subtype:        "Keycard",
       description:    "A small rectangular plastic card.",        
       container_id:   null,
       is_consumable:  false,
@@ -157,7 +158,8 @@ const Types = {
   Lamar: {
     props: {
       name:             "Lamar",  
-      type:             "Lamar",    
+      type:             "NPC",   
+      subtype:          "Lamar", 
       description:      "It is a mechanical spider-like creature: 30cm tall, with 6 short legs. It is clearly made out of several types of metals, yet to call it 'a robot' wouldn't do it justice: It's various parts are tiny and intricate, not so much connecting with each other than *flowing* into one another. It is as if a clockwork mechanism came to life...You see no visible eyes on the thing, yet Lamar is clearly aware of your presence.",      
       container_id:     null,      
       wearing: null,

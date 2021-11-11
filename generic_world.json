@@ -87,7 +87,7 @@
       "type":     "Room", 
       "subtype":  "Room",
       "spawned_entities": [
-        {"class": "NPC", "type": "Lamar", "amount": 1}
+        {"type": "NPC", "subtype": "Lamar", "amount": 1}
       ],
       "description": 
         "TBD",

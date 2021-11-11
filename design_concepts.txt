@@ -164,22 +164,10 @@ a natural leveling/zoning system.
 
  // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
 
-  state machine:
-  NPCs need to interact with several players. 
-  If there's no interaction, then the state of the NPC is determined wholly internally.
-  If there's interaction, then external events need to be part of the state.
-  But if there are two players, each expects the NPC's state to be relevant to him.
-  
-  We need to have the internal state of the NPC change according to who issues 
-  the external event.
-
-
-  NPC state is Idle. 
-  An event is recived, togther with sender_id.
-  The NPC performs an action, and updates...
-  This is actually a stm for each user.
-
-
+  Save Users
+  ---------
+  On init, we load all the users from the JSON to the world itself.
+  we then create new ones if needed. 
 
 
   Game story

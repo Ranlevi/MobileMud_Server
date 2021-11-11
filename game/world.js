@@ -49,32 +49,32 @@ class World {
     return null;
   }
 
-  spawn_entity(klass, type, container_id, props=null, id=null){
-
+  spawn_entity(type, subtype, container_id, props=null, id=null){
+    
     let entity;
     let room;
 
-    switch(klass){
+    switch(type){
       case("Room"):
         entity = new Classes.Room(props, id);
         break;
       
       case("NPC"):
-        entity = new Classes.NPC(type);
+        entity = new Classes.NPC(subtype);
         room = this.get_instance(container_id);
         room.add_entity(entity.id);
         entity.set_container_id(container_id);
         break;
 
       case("Item"):
-        entity = new Classes.Item(type);        
+        entity = new Classes.Item(subtype);        
         room = this.get_instance(container_id);
         room.add_entity(entity.id);
         entity.set_container_id(container_id);
         break;
 
       default:
-        console.error(`World.spawn_entity: unkown class ${klass}`);
+        console.error(`World.spawn_entity: unkown class ${type}`);
     }
     return entity.id;
   }
@@ -83,9 +83,5 @@ class World {
 const FIRST_ROOM_ID= 'r000000000000000';
 const world=         new World();
 
-//Datebase of registered users. Loaded on game initalization.
-let users_db=        null;
-
 exports.world=          world;
-exports.users_db=       users_db;
 exports.FIRST_ROOM_ID = FIRST_ROOM_ID;

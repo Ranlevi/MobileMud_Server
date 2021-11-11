@@ -144,20 +144,21 @@ class Room {
       }
 
       if (this.props.spawned_entities!==null){
-                
+        
         for (const obj of this.props.spawned_entities){
           //obj is of the form:
           //{"type": "Item", "subtype": "Keycard", "amount": 1}
-                    
+          
           //Count how many of the required item are already present.
           let existing_amount = 0;
           for (const entity_id of this.props.entities){
             let entity = World.world.get_instance(entity_id);
+            
             if (entity.props.subtype===obj.subtype){
               existing_amount += 1;
             }
           }
-  
+          
           //If not enough items are present, spawn new ones.
           if (existing_amount<obj.amount){          
             for (let i=existing_amount;i<obj.amount;i++){              

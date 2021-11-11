@@ -7,19 +7,13 @@ const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
 
-const LOAD_WORLD_FROM_SAVE=   true;
-const LOAD_GENERIC_WORLD=     true;
-const ENABLE_USER_SAVE=       false;
-const ENABLE_WORLD_SAVE=      true;
+const ENABLE_USER_SAVE=       true;
 const USER_SAVE_INTERVAL=     10;
-const WORLD_SAVE_INTERVAL=    10;
-const GEN_WORLD_NUM_OF_ROOMS= 2;
 
 const VERSION = 0.01;
 
 /*
 TODO:
-refactor to Type, SubType
 center actions
 create_cmd i/f
 set user description somehow
@@ -27,7 +21,6 @@ improve client UI
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/
-Tell
 */
 
 
@@ -40,64 +33,47 @@ app.get('/', function(req, res){
 
 class Game_Controller {
   constructor(){
-    this.user_save_counter=   USER_SAVE_INTERVAL;
-    this.world_save_counter=  WORLD_SAVE_INTERVAL;
+    this.user_save_counter=   USER_SAVE_INTERVAL;    
     this.init_game();
   }
 
-  init_game(){
-
-    this.load_users_db();
-      
-    if (LOAD_WORLD_FROM_SAVE){      
-      this.load_world();
-    } else {
-      this.generate_world(GEN_WORLD_NUM_OF_ROOMS);
-    }    
-  
+  init_game(){    
+    // this.load_users_db();
+    this.load_world();  
     app.listen(3000); //Ready to recive connections.
-    this.game_loop();  
-  }
-
-  generate_world(num_of_rooms){
-    //TODO: implelemt.      
+    this.game_loop();      
   }
 
   load_users_db(){
-    //Load the database of registered users.    
+    //Load the database of existing users.    
     if (fs.existsSync('./users_db.json')){
-      World.users_db = JSON.parse(fs.readFileSync('./users_db.json'));
+      let data = JSON.parse(fs.readFileSync('./users_db.json'));
+
+      for (const [username, user_obj] of Object.entries(data.users)){
+        World.world.spawn_entity(
+          user_obj.props.type, 
+          user_obj.props.subtype,
+          user_obj.props.container_id,
+          user_obj.props,
+          user_obj.id
+          )//todo: place user in room, fix spawn_entity parameters?
+
+        spawn_entity(type, subtype, container_id, props=null, id=null)
+      }
     }
   }
   
   load_world(){
     //Load all rooms and entities (except users) from the save file.
-    let path;
-    if (LOAD_GENERIC_WORLD){
-      path = `./generic_world.json`
-    } else {
-      path = `./world_save.json`;
-    }
-
-    if (fs.existsSync(path)){
-      
+    let path = `./generic_world.json`;
+    
+    if (fs.existsSync(path)){      
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
-      for (const [id, data] of Object.entries(parsed_info)){
-                
-        //Create the entities, with their saves props.
-        switch(data.props.subtype){
-          case "Room":
-            World.world.spawn_entity('Room', 'Room', null, data.props, id);            
-            break;
-
-          
-
-          default:
-            console.error(`GC.load_world: Unknown type: ${data.props.subtype}`);
-        }
-      } 
-      
+      for (const [id, data] of Object.entries(parsed_info)){        
+        World.world.spawn_entity(data.props.type, data.props.subtype, null, data.props, id);
+      }     
+              
     } else {
       console.error(`app.load_world -> ${path} does not exist.`);
     }
@@ -107,71 +83,29 @@ class Game_Controller {
   save_users_to_file(){
     //Save all the users and the entities they carry on them.
     if (!ENABLE_USER_SAVE) return;
-        
+
     let data = {
-      "users": {},
-      "items": {}
-    };
+      users: {}, //username: {id:, props:}
+      items: {}  //id: props
+    }; 
 
     World.world.users.forEach((user)=>{
-      data["users"][user.props["name"]] = user.props;
+      data.users[user.props.name] = {id: user.id, props: user.props};
+
+      let inv_arr = user.get_all_items_on_body();
+      for (const obj of inv_arr){
+        //obj: {id: string, location: string}
+        let entity = World.world.get_instance(obj.id);
+        data.items[entity.id] = entity.props
+      }
     });
-
-    World.world.world.forEach((item)=>{
-      //For each item in the world, check if it is carried by a user.
-      let container = World.world.get_instance(item.props["container_id"]);
-
-      if (container instanceof Classes.User){        
-        data["items"][item.id] = item.props;                
-        
-      };
-    });
-
+       
     fs.writeFile(`./users_db.json`, 
                   JSON.stringify(data),  
                   function(err){if (err) console.log(err);}
                 );
     console.log('Users saved.');    
-  }
-
-  save_world_to_file(){
-    //Save all non-users, and items not held by users.
-
-    if (!ENABLE_WORLD_SAVE) return;
-
-    let data = {};
-    World.world.world.forEach((item)=>{
-      let container = World.world.get_instance(item.props["container_id"]);
-
-      if (!(container instanceof Classes.User)){
-        //Save all items not carried by users.
-        data[item.id] = {          
-          props: Object.assign({}, item.props)
-        };        
-      }
-
-      if (item instanceof Classes.Room){
-        //If the item is a room - remove users from it's entities        
-        data[item.id].props.entities = [];
-        
-        for (const id of item.props.entities){
-          let entity = World.world.get_instance(id);
-          if (!(entity instanceof Classes.User)){
-            data[item.id].props.entities.push(id);
-          }
-        }
-
-      }
-
-    });
-
-    fs.writeFile(
-      `./world_save.json`, 
-      JSON.stringify(data),  
-      function(err){if (err) console.log(err);}
-    );   
-    console.log('World saved.');         
-  }
+  }  
   
   game_loop(){
     //Note: the loop technique allows for a minimum fixed length between
@@ -185,12 +119,6 @@ class Game_Controller {
         if (this.user_save_counter===0){
           this.user_save_counter = USER_SAVE_INTERVAL;
           this.save_users_to_file();
-        }
-
-        this.world_save_counter -= 1;
-        if (this.world_save_counter===0){
-          this.world_save_counter = WORLD_SAVE_INTERVAL;
-          this.save_world_to_file();
         }
 
         this.run_simulation_tick();
