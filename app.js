@@ -14,11 +14,12 @@ const VERSION = 0.01;
 
 /*
 TODO:
-//check loading and saving, fix spwaning mechanism
+add new user to user_db
+check loading and saving,
 center actions
 create_cmd i/f
 set user description somehow
-improve client UI
+improve client UI, add disconnect btn
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/
@@ -285,11 +286,12 @@ class Game_Controller {
     //Returns the ID of the created user (String)
     let props = {
       name:         username,
-      password:     password      
+      password:     password,      
     }
 
     let user = new Classes.User(props, ws_client);
-    
+    user.send_login_msg_to_client(true);
+
     //Send a welcome message, and a Status message to init the health bar.
     //Than perform a Look command on the room.
     user.send_chat_msg_to_client(`Welcome ${user.props.name}!`);
@@ -321,6 +323,7 @@ class Game_Controller {
 
     //Send a welcome message, and a status message to init the health bar.
     //Then do a Look command on the room.
+    user.send_login_msg_to_client(true);
     user.send_chat_msg_to_client(`Welcome back, ${user.get_name()}.`);
     user.send_status_msg_to_client();
     
@@ -330,7 +333,7 @@ class Game_Controller {
 }
 
 let game_controller=  new Game_Controller();
-const clients=        new Map(); //holds all connected clients. ws_client: user_id
+// const clients=        new Map(); //holds all connected clients. ws_client: user_id
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {    
@@ -342,68 +345,62 @@ wss.on('connection', (ws_client) => {
     switch (incoming_msg.type){
       
       case ('Login'):
-        user_id = clients.get(ws_client);
-        
-        if (user_id===undefined){
-          //This client is not bonded to a playing user.
-          //Check the username to find if the user is already in the game.
-          user_id = World.world.get_user_id_by_username(incoming_msg.content.username);          
-          
-          if (user_id===null){
-            //User is not in the game.
-            //Is it a new player, or a registred one?
-            let user_data = World.users_db["users"][incoming_msg.content.username];
+        //Try to find an active user with the same username.
+        user_id = World.world.get_user_id_by_username(incoming_msg.content.username);
+
+        if (user_id===null){
+          //This is not an active player
+          //Check if it is a preveiouly created player.
+          let data = World.world.users_db.users[incoming_msg.content.username];
+
+          if (data===undefined){
+            //This is a new player
+            user_id = game_controller.create_new_user(
+                                        ws_client, 
+                                        incoming_msg.content.username, 
+                                        incoming_msg.content.password);
             
-            if (user_data===undefined){
-              //This is a new player.
-              user_id = game_controller.create_new_user(
-                ws_client, 
-                incoming_msg.content.username, 
-                incoming_msg.content.password);
-              clients.set(ws_client, user_id);
 
-              let user = World.world.get_instance(user_id);
-              user.send_login_msg_to_client(true);
-              
-            } else {
-              //This is an already registed user
-              //Verify password is correcnt.
-              if (user_data["password"]===incoming_msg.content.password){
-                //Valid passworld
-                user_id = game_controller.load_existing_user(
-                  ws_client, 
-                  incoming_msg.content.username);            
-                clients.set(ws_client, user_id);
-
-                let user = World.world.get_instance(user_id);
-                user.send_login_msg_to_client(true);
-                
-              } else {
-                //invalid password
-                // ws_client.close(4000, 'Wrong Username or Password.');
-                let message = {
-                  type:    'Login',      
-                  content: {is_login_successful: false}
-                }    
-                ws_client.send(JSON.stringify(message));
-                
-              }
-            }
           } else {
-            //The user is in the game.
-            //We need to replace the existing ws_client with this new one.            
-            let user = World.world.get_instance(user_id);
-            clients.delete(user.ws_client);
-            user.ws_client = ws_client;
-            clients.set(ws_client, user_id);            
+            //This is a previously created player.
+            //Check if the password is correct:
+            if (data.props.password===incoming_msg.content.password){
+              //Password is correct
+              user_id = game_controller.load_existing_user(
+                ws_client, 
+                incoming_msg.content.username);
+            } else {
+              //Password incorrect
+              let message = {
+                type:    'Login',      
+                content: {is_login_successful: false}
+              }    
+              ws_client.send(JSON.stringify(message));
+              //End login
+            }
+            
           }
-          
         } else {
-          //This client is bonded to a playing user.
-          //We ignore the login message. 
+          //This is an active player.
+          //Check password
+          let user = World.world.get_instance(user_id);
+
+          if (user.password===incoming_msg.content.password){
+            //Password correct, change ws_client
+            user.ws_client = ws_client;
+            user.send_chat_msg_to_client('Reconnected.');
+
+          } else {
+            //Password incorrect
+            let message = {
+              type:    'Login',      
+              content: {is_login_successful: false}
+            }    
+            ws_client.send(JSON.stringify(message));
+          }
         }
         break;
-
+                
       case ("User Input"):        
         game_controller.process_user_input(incoming_msg.content, user_id);        
         break;

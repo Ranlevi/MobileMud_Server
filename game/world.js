@@ -51,37 +51,7 @@ class World {
 
     //No user with given username was found.
     return null;
-  }
-
-  spawn_entity(type, subtype, props=null, id=null){
-    
-    let entity;
-    let room;
-
-    switch(type){
-      case("Room"):
-        entity = new Classes.Room(props, id);
-        break;
-      
-      case("NPC"):
-        entity = new Classes.NPC(subtype);
-        room = this.get_instance(container_id);
-        room.add_entity(entity.id);
-        entity.set_container_id(container_id);
-        break;
-
-      case("Item"):
-        entity = new Classes.Item(subtype);        
-        room = this.get_instance(container_id);
-        room.add_entity(entity.id);
-        entity.set_container_id(container_id);
-        break;
-
-      default:
-        console.error(`World.spawn_entity: unkown class ${type}`);
-    }
-    return entity.id;
-  }
+  }  
   
 }
 const FIRST_ROOM_ID= 'r000000000000000';

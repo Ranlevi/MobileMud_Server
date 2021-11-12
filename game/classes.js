@@ -161,9 +161,27 @@ class Room {
           
           //If not enough items are present, spawn new ones.
           if (existing_amount<obj.amount){          
-            for (let i=existing_amount;i<obj.amount;i++){              
-              let entity_id = World.world.spawn_entity(obj.type, obj.subtype, this.id);
-              let entity = World.world.get_instance(entity_id);
+            for (let i=existing_amount;i<obj.amount;i++){
+              
+              let props = {
+                container_id: this.id
+              }
+
+              let entity;
+
+              switch (obj.type){
+                case("Item"):
+                  entity = new Item(obj.subtype, props);
+                  break;
+
+                case('NPC'):
+                  entity = new NPC(obj.subtype, props);                  
+                  break;                
+
+                default:
+                  console.error(`classes.js->do_spawn: unknown type ${data.props.type}`);
+              }              
+              
               entity.send_msg_to_room(`has spawned here.`);
             }
           }
@@ -198,7 +216,7 @@ class User {
       subtype:          "User",
       description:      "A (non-NPC) human.",
       password:         null, //String
-      container_id:     World.world.FIRST_ROOM_ID,
+      container_id:     World.FIRST_ROOM_ID,
       health:           this.BASE_HEALTH, //Num 
 
       //Inventorhy
@@ -222,7 +240,7 @@ class User {
     
     World.world.add_to_world(this);    
     
-    //Place the user in a room
+    //Place the user in a room    
     let room = World.world.get_instance(this.props.container_id);
     room.add_entity(this.id);    
   }
@@ -470,6 +488,7 @@ class User {
 
     if (result===null){
       this.send_chat_msg_to_client(`There's no ${target} in the room with you.`);
+      return;
     }
 
     //Target found.
@@ -581,7 +600,7 @@ class User {
 
     //Send messgaes
     this.send_chat_msg_to_client(`You hold it.`);
-    this.send_msg_to_room(`holds ${entity.get_name}.`);
+    this.send_msg_to_room(`holds ${entity.get_name()}.`);
   }
 
   wear_cmd(target=null){
