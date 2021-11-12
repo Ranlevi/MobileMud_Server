@@ -41,7 +41,7 @@ class Game_Controller {
   }
 
   init_game(){    
-    // this.load_users_db();
+    this.load_users_db();
     this.load_world();  
     app.listen(3000); //Ready to recive connections.
     this.game_loop();      
@@ -57,7 +57,7 @@ class Game_Controller {
         World.world.users_db.users[username] = user_obj;
       }
 
-      for (const [id, props] of Object.entries(this.data.items)){
+      for (const [id, props] of Object.entries(data.items)){
         World.world.users_db.items[id] = props;
       }
       
@@ -99,27 +99,29 @@ class Game_Controller {
   }
 
   save_users_to_file(){
-    //Save all the users and the entities they carry on them.
+    //Save all the users and the entities they carry on them.    
+
     if (!ENABLE_USER_SAVE) return;
 
-    let data = {
-      users: {}, //username: {id:, props:}
-      items: {}  //id: props
-    }; 
+    //Update the users_db object with new values
+    for (const user of World.world.users.values()){
 
-    World.world.users.forEach((user)=>{
-      data.users[user.props.name] = {id: user.id, props: user.props};
+      World.world.users_db.users[user.props.name] = {
+        id: user.id,
+        props: user.props
+      }
 
-      let inv_arr = user.get_all_items_on_body();
+      let inv_arr = user.get_all_items_on_body();        
       for (const obj of inv_arr){
         //obj: {id: string, location: string}
         let entity = World.world.get_instance(obj.id);
-        data.items[entity.id] = entity.props
-      }
-    });
+        World.world.users_db.items[entity.id] = entity.props;
+      }     
+      
+    }
        
     fs.writeFile(`./users_db.json`, 
-                  JSON.stringify(data),  
+                  JSON.stringify(World.world.users_db),  
                   function(err){if (err) console.log(err);}
                 );
     console.log('Users saved.');    
@@ -307,7 +309,7 @@ class Game_Controller {
     
     console.log('Loading existing user');
 
-    let user_data = World.world.users_db[username]; //user_data= {id:, props:}
+    let user_data = World.world.users_db.users[username]; //user_data= {id:, props:}
 
     let user = new Classes.User(user_data.props, ws_client, user_data.id);
 
@@ -352,7 +354,7 @@ wss.on('connection', (ws_client) => {
           //This is not an active player
           //Check if it is a preveiouly created player.
           let data = World.world.users_db.users[incoming_msg.content.username];
-
+          console.log(data);
           if (data===undefined){
             //This is a new player
             user_id = game_controller.create_new_user(
