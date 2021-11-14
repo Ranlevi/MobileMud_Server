@@ -4,17 +4,55 @@ html, body {
 
 
 
-#P {
-  min-height: 100%;
+#Parent {  
+  height: 100%;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-evenly;
-  background-color: cyan;
+  justify-content: space-evenly;  
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#Chat {  
+  height: 80%;
+  border: solid;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+}
+
+#Input {  
+  height: 10%;
+  border-left: solid;
+  border-right: solid;
+}
+
+#Inv {  
+  height: 10%;
+  border: solid;
+}
+
+.box {
+  max-width: fit-content;  
+  margin-left: 3px;
+  margin-right: 3px;  
+  margin-top: 3px;
+  padding: 0.5rem;
+}
+
+.box_user {
+  align-self: flex-end;
+  border: 1px solid red;  
+}
+
+.box_server {
+  border: 1px solid blue;  
 }
 
 
-
+/* 
 .container {
   min-height: 100%;
 }
@@ -47,8 +85,7 @@ html, body {
   height: fit-content;
 }
 
-.chat_box {
-  /* max-width: 75%; */
+.chat_box {  
   width: fit-content;
   padding: 1%;
   font-size: small;
@@ -68,4 +105,4 @@ html, body {
 
 .style1 {
   font-weight: 600;
-}
+} */
