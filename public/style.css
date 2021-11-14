@@ -2,6 +2,27 @@ html, body {
   height: 100%;
 }
 
+
+
+#P {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  background-color: cyan;
+}
+
+
+
+.container {
+  min-height: 100%;
+}
+
+
+
+
+
 .parent {
   display: grid;
   grid-template-rows: 6fr 1fr 1fr;

@@ -3,12 +3,13 @@ const World= require('./world');
 const Types= require('./types');
 
 class Room {
-  constructor(id=null){
+  constructor(props=null, id=null){
 
     this.SPAWN_DELAY = 10;
       
-    this.id=              this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-    this.spawn_counter =  0;
+    this.id= (id===null)? Utils.id_generator.get_new_id() : id;
+
+    this.spawn_counter = 0;
     
     //Default props
     this.props = {
@@ -29,49 +30,18 @@ class Room {
       lighting:           "white", //CSS colors
     }
 
+    //Overwrite the default props with the custome ones from the save file.
+    if (props!==null){
+      for (const [key, value] of Object.entries(props)){
+        this.props[key]= value;
+      }
+    }      
+
+    // Add To world.
     World.world.add_to_world(this);
+
     this.do_spawn(true);
-  }  
-
-  // constructor(props=null, id=null){
-
-  //   this.SPAWN_DELAY = 10;
-      
-  //   this.id= (id===null)? Utils.id_generator.get_new_id() : id;
-
-  //   this.spawn_counter = 0;
-    
-  //   //Default props
-  //   this.props = {
-  //     name:               "Room",
-  //     type:               "Room",
-  //     subtype:            "Room",
-  //     description:        "A simple, 3m by 3m room.",
-  //     spawned_entities:   null,
-  //     entities:           [],
-  //     exits: {
-  //       north:            null, //direction: {id: string, code: string}
-  //       south:            null,
-  //       west:             null,
-  //       east:             null,
-  //       up:               null,
-  //       down:             null
-  //     },
-  //     lighting:           "white", //CSS colors
-  //   }
-
-  //   //Overwrite the default props with the custome ones from the save file.
-  //   if (props!==null){
-  //     for (const [key, value] of Object.entries(props)){
-  //       this.props[key]= value;
-  //     }
-  //   }      
-
-  //   // Add To world.
-  //   World.world.add_to_world(this);
-
-  //   this.do_spawn(true);
-  // }
+  }
     
   //Inventory Manipulation Methods
   add_entity(entity_id){
@@ -223,18 +193,13 @@ class Room {
 
   do_tick(){
     this.do_spawn();        
-  }
-
-  load_props(props){
-    for (const [key, value] of Object.entries(props)){
-      this.props[key]= value;
-    }
-  }
+  } 
   
 }
 
 class User {
-  constructor(ws_client, id=null){
+  
+  constructor(props, ws_client=null, id=null){
 
     //Default Constants
     this.BASE_HEALTH=           100;
@@ -267,58 +232,19 @@ class User {
 
       slots_size_limit: 10,
       is_fighting_with: null,//ID, String.
-    }     
+    }
     
-    World.world.add_to_world(this);   
+   //Overwrite props with saved props.         
+    for (const [key, value] of Object.entries(props)){
+      this.props[key]= value;
+    }      
     
+    World.world.add_to_world(this);    
+    
+    //Place the user in a room    
+    let room = World.world.get_instance(this.props.container_id);
+    room.add_entity(this.id);    
   }
-
-  // constructor(props, ws_client=null, id=null){
-
-  //   //Default Constants
-  //   this.BASE_HEALTH=           100;
-  //   this.BASE_DAMAGE=           1;
-  //   this.HEALTH_DECLINE_RATE =  100; //1 HP drop every X ticks
-
-  //   this.id=            (id===null)? Utils.id_generator.get_new_id() : id;
-  //   this.ws_client=     ws_client; //The WebSocket for server-client comm.
-  //   this.tick_counter = 0; //For use with state machines, etc.
-
-  //   //Default values for a new player.
-  //   this.props = {
-  //     name:             "A User",
-  //     type:             "User",
-  //     subtype:          "User",
-  //     description:      "A (non-NPC) human.",
-  //     password:         null, //String
-  //     container_id:     World.FIRST_ROOM_ID,
-  //     health:           this.BASE_HEALTH, //Num 
-
-  //     //Inventorhy
-  //     wearing: {
-  //       head:           null,//ID, String.
-  //       torso:          null,
-  //       legs:           null,
-  //       feet:           null
-  //     },
-  //     holding:          null,
-  //     slots:            [],//IDs, String.
-
-  //     slots_size_limit: 10,
-  //     is_fighting_with: null,//ID, String.
-  //   }
-    
-  //  //Overwrite props with saved props.         
-  //   for (const [key, value] of Object.entries(props)){
-  //     this.props[key]= value;
-  //   }      
-    
-  //   World.world.add_to_world(this);    
-    
-  //   //Place the user in a room    
-  //   let room = World.world.get_instance(this.props.container_id);
-  //   room.add_entity(this.id);    
-  // }
 
   do_tick(){
     
@@ -1121,11 +1047,12 @@ class User {
     let msg=    `${entity.get_name()} ${content}`;
 
     this.send_chat_msg_to_client(msg);
-  }
+  }  
   
 }
 
-class Item {
+class Item { 
+
   constructor(subtype, props=null, id=null){
       
     this.id=    (id===null)? Utils.id_generator.get_new_id() : id;  
@@ -1145,9 +1072,13 @@ class Item {
     // Add To world.
     World.world.add_to_world(this);
 
-    //Add to container
+    //If container is room - add it to the room. Else, don't add it.    
+    //(this is because in User loading, the user already has the item on him.)
     let container = World.world.get_instance(this.props.container_id);
-    container.add_entity(this.id);
+    if (container instanceof Room){
+      container.add_entity(this.id);
+    }
+    
   }
 
   set_container_id(new_container_id){
@@ -1539,44 +1470,12 @@ class NPC {
 
 }
 
-function spawn_user(ws_client, props=null, id=null){
-
-  let user = new User(ws_client, id);
-
-   //  //Overwrite props with saved props.         
-  //   for (const [key, value] of Object.entries(props)){
-  //     this.props[key]= value;
-  //   }      
-    
-  //   World.world.add_to_world(this);    
-    
-  //   //Place the user in a room    
-  //   let room = World.world.get_instance(this.props.container_id);
-  //   room.add_entity(this.id);   
-
-}
-
-
-function spawn_entity(type, props=null, id=null){
-  let entity;
-
-  switch(type){
-    case('Room'):
-      entity = new Room(id);
-      entity.load_props(props);
-      break;
-
-    
-  }
-
-}
 
 
 exports.Item=             Item;
 exports.User=             User;
 exports.Room=             Room;
 exports.NPC=              NPC;
-exports.spawn_entity=     spawn_entity;
 
 // switch(type){
 //   case ("Screwdriver"):

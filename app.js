@@ -7,15 +7,14 @@ const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
 
-const ENABLE_USER_SAVE=       true;
+const ENABLE_USER_SAVE=       false;
 const USER_SAVE_INTERVAL=     10;
 
 const VERSION = 0.01;
 
 /*
 TODO:
-add new user to user_db
-check loading and saving,
+
 center actions
 create_cmd i/f
 set user description somehow
@@ -48,19 +47,24 @@ class Game_Controller {
   }
 
   load_users_db(){
-    //Load the database of existing users.    
+    //Load the database of existing users.
+
     if (fs.existsSync('./users_db.json')){
-      let data = JSON.parse(fs.readFileSync('./users_db.json'));
 
-      for (const [username, user_obj] of Object.entries(data.users)){
-        //user_obj: {id: user.id, props: user.props};
-        World.world.users_db.users[username] = user_obj;
-      }
+      let text = fs.readFileSync('./users_db.json');
 
-      for (const [id, props] of Object.entries(data.items)){
-        World.world.users_db.items[id] = props;
+      if (text.toString() !== ''){
+        let data = JSON.parse(text);
+
+        for (const [username, user_obj] of Object.entries(data.users)){
+          //user_obj: {id: user.id, props: user.props};
+          World.world.users_db.users[username] = user_obj;
+        }
+  
+        for (const [id, props] of Object.entries(data.items)){
+          World.world.users_db.items[id] = props;
+        }
       }
-      
     }
   }
   
@@ -335,7 +339,6 @@ class Game_Controller {
 }
 
 let game_controller=  new Game_Controller();
-// const clients=        new Map(); //holds all connected clients. ws_client: user_id
 
 //-- WebSockets
 wss.on('connection', (ws_client) => {    
@@ -360,8 +363,7 @@ wss.on('connection', (ws_client) => {
             user_id = game_controller.create_new_user(
                                         ws_client, 
                                         incoming_msg.content.username, 
-                                        incoming_msg.content.password);
-            
+                                        incoming_msg.content.password);            
 
           } else {
             //This is a previously created player.
@@ -410,7 +412,27 @@ wss.on('connection', (ws_client) => {
   }
 
   ws_client.on('close', () => {
-    clients.delete(ws_client);
+    //This is an unxpected close of connection (user didn't press 'close')
+    //find the user with the ws_client and remove from the world.
+    for (const user of Object.values(World.world.users)){
+      if (user.ws_client===ws_client){
+        //Save the user to users_db
+        World.world.users_db.users[user.props.name] = {
+          id: user.id,
+          props: user.props
+        }
+  
+        let inv_arr = user.get_all_items_on_body();        
+        for (const obj of inv_arr){
+          //obj: {id: string, location: string}
+          let entity = World.world.get_instance(obj.id);
+          World.world.users_db.items[entity.id] = entity.props;
+        } 
+        
+        break;
+      }
+    }
+
   });
   
 });
