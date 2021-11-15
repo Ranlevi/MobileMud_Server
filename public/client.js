@@ -1,17 +1,17 @@
 let ws=                       new WebSocket('ws://localhost:8080');
 // let ws=                       new WebSocket('ws://10.0.0.6:8080');
-let chat_display=             document.getElementById('chat_display');
-let dashboard=                document.getElementById('dashboard');
+let chat_display=             document.getElementById('Chat');
+let dashboard=                document.getElementById('Inv');
 let signin_form=              document.getElementById("signin");
-let login_modal_body=         document.getElementById('login_modal_body');
-let login_modal=              document.getElementById('login_modal');
+let login_modal_body=         document.getElementById('modal_content');
+let login_modal=              document.getElementById('modal');
 let input_form=               document.getElementById('input_form');
-let input_field=              document.getElementById('input_field');
+let input_field=              document.getElementById('Input');
 let freeze_btn=               document.getElementById('freeze_btn');
-let parent=                   document.getElementById('parent');
+let parent=                   document.getElementById('Parent');
 
 let stop_chat_scroll=       false;
-let current_chat_bg_color=  "bisque";
+let current_chat_bg_color=  "white";
 
 const DEBUG = false;
 
