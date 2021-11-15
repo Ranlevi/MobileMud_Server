@@ -35,16 +35,47 @@
     <div id="Inv" class="is-align-self-stretch has-background-grey-lighter">
       <div class="inv_container"></div>
     </div>
+
+    <div class="modal is-active">
+      <div class="modal-background"></div>
+      <div id="modal_content" class="modal-content">      
+        <div class="has-text-white has-text-centered">Welcome to</div>
+        <div class="has-text-white is-size-1 has-text-centered">Planet Nine</div>
+        <div class="has-text-white has-text-centered">
+          A modern, mobile-friendly 
+          <a href="https://medium.com/@williamson.f93/multi-user-dungeons-muds-what-are-they-and-how-to-play-af3ec0f29f4a">
+            MUD</a> game.
+        </div>
+        <div class="has-text-white is-italic is-size-7 has-text-centered">(Version: 0.01 Alpha)</div>
+        <div class="block"></div>
+        <div class="block"></div>
+        <div class="has-text-white has-text-centered">Create a new charcter (or Login an existing one)</div>
+
+        <div class="field login_input">
+          <label class="label has-text-white">Name</label>
+          <div class="control">
+            <input class="input" type="text" placeholder="e.g Morpheus, Neo...">
+          </div>
+        </div>
+        
+        <div class="field login_input">
+          <label class="label has-text-white">Password</label>
+          <div class="control">
+            <input class="input" type="password">
+          </div>
+        </div>
+        <div class="has-text-danger has-text-centered is-size-7">
+          Important: DO NOT REUSE EXISTING PASSWORDS!
+        </div>
+        <div class="has-text-danger has-text-centered is-size-7">
+          This is an alpha version, passwords are not stored securely (yet). 
+        </div>
+      </div>      
+    </div>
     
    </div>
    
-   <div id="modal" class="modal is-active">
-    <div class="modal-background"></div>
-    <div id="modal_content" class="modal-content">      
-      <div class="has-text-white">Welcome to Planet Nine</div>      
-    </div>
-    <button class="modal-close is-large" aria-label="close"></button>
-  </div>
+   
     
   </body>
 </html>
