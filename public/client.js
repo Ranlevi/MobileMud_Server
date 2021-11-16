@@ -10,9 +10,18 @@ let username_input = document.getElementById("username_input");
 let password_input = document.getElementById("password_input");
 let warning_text= document.getElementById("warning_text");
 let input_field= document.getElementById("input_field");
+let inv_btn= document.getElementById("inv_btn");
 
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "white";
+let status_obj = {
+  holding: "",
+  head: "",
+  torso: "",
+  legs: "",
+  feet: "",
+  slots: ""
+};
 
 //Web Socket Interface
 //-----------------------
@@ -27,6 +36,7 @@ ws.onmessage = (event) => {
     case("Chat"):
       //Display the Chat Message as a server_box.
       let div = document.createElement("div");
+      div.classList.add("box");
       div.classList.add("box_server");
       div.innerHTML = msg.content;
       chat.append(div);
@@ -38,16 +48,18 @@ ws.onmessage = (event) => {
       break;
 
     case("Status"):
-      let html =  `♥️ ${msg.content.health} `+ 
-                  `<p>&#9995;  ${msg.content.holding}</p>`+
-                  `<p>&#x1F3A9 ${msg.content.wearing.head} `+ 
-                  `&#x1F455 ${msg.content.wearing.torso} `+ 
-                  `&#x1F456 ${msg.content.wearing.legs} `+ 
-                  `&#x1F45E ${msg.content.wearing.feet}</p>`+
-                  `<p>&#x1F9F3 ${msg.content.slots}</p>`;
+      status_obj = {
+        holding: msg.content.holding,
+        head: msg.content.wearing.head,
+        torso: msg.content.wearing.torso,
+        legs: msg.content.wearing.legs,
+        feet: msg.content.wearing.feet,
+        slots: msg.content.slots
+      }
 
+      let html =  `♥️ ${msg.content.health}`;
       inv.innerHTML = html;
-
+      
       //Change the chat backgroud color.
       if (msg.content.room_lighting!==current_chat_bg_color){
         chat.style.backgroundColor = msg.content.room_lighting;
@@ -108,11 +120,11 @@ freeze_btn.addEventListener('click', ()=>{
   stop_chat_scroll = !stop_chat_scroll;
 
   if (stop_chat_scroll===true){
-    freeze_btn.classList.remove(`is-primary`);
-    freeze_btn.classList.add('is-danger');    
+    freeze_btn.classList.remove(`has-text-danger`);
+    freeze_btn.classList.add('has-text-success');    
   } else {
-    freeze_btn.classList.add(`is-primary`);
-    freeze_btn.classList.remove('is-danger');    
+    freeze_btn.classList.add(`has-text-danger`);
+    freeze_btn.classList.remove('has-text-success');    
     
     chat_display.lastElementChild.scrollIntoView();
   }
@@ -186,6 +198,29 @@ parent.addEventListener('click', (evt)=>{
     
   } else {
     input_field.focus();
+  }
+})
+
+inv_btn.addEventListener('click', ()=>{
+
+  let html = 
+    `Your Inventory:`+
+    `<p>&#9995; ${status_obj.holding}</p>`+
+    `<p>&#x1F3A9 ${status_obj.head}</p>`+ 
+    `<p>&#x1F455 ${status_obj.torso}</p>`+ 
+    `<p>&#x1F456 ${status_obj.legs}</p>`+ 
+    `<p>&#x1F45E ${status_obj.feet}</p>`+
+    `<p>&#x1F9F3 ${status_obj.slots}</p>`;
+
+  let div = document.createElement("div");
+  div.classList.add("box");
+  div.classList.add("box_server");
+  div.innerHTML = html;
+  chat.append(div);
+
+  //If the chat is not frezzed, scroll it to view the latest msg.
+  if (!stop_chat_scroll){
+    div.scrollIntoView();  
   }
 })
 

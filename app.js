@@ -14,8 +14,8 @@ const VERSION = 0.01;
 
 /*
 TODO:
-
-center actions
+fix bug - user stays in room after ws close.
+in client, health changes color when changed
 create_cmd i/f
 set user description somehow
 improve client UI, add disconnect btn
@@ -352,12 +352,12 @@ wss.on('connection', (ws_client) => {
       case ('Login'):
         //Try to find an active user with the same username.
         user_id = World.world.get_user_id_by_username(incoming_msg.content.username);
-
+        
         if (user_id===null){
           //This is not an active player
           //Check if it is a preveiouly created player.
           let data = World.world.users_db.users[incoming_msg.content.username];
-          console.log(data);
+          
           if (data===undefined){
             //This is a new player
             user_id = game_controller.create_new_user(
@@ -414,7 +414,9 @@ wss.on('connection', (ws_client) => {
   ws_client.on('close', () => {
     //This is an unxpected close of connection (user didn't press 'close')
     //find the user with the ws_client and remove from the world.
-    for (const user of Object.values(World.world.users)){
+    
+    for (const user of World.world.users.values()){
+      
       if (user.ws_client===ws_client){
         //Save the user to users_db
         World.world.users_db.users[user.props.name] = {
@@ -429,6 +431,7 @@ wss.on('connection', (ws_client) => {
           World.world.users_db.items[entity.id] = entity.props;
         } 
         
+        World.world.remove_from_world(user.id);        
         break;
       }
     }
