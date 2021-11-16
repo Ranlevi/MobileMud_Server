@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">        
     <link rel="stylesheet" href="./style.css"> 
-    <!-- <script type="module"   src="./client.js" defer></script> -->
+    <script type="module"   src="./client.js" defer></script>
     </head>
   <body>
     
@@ -19,12 +19,13 @@
       <div class="box box_cmds">This is a server box</div>
        -->
     </div>
+
     <div id="Input" 
      class="is-align-self-stretch has-background-light is-flex is-justify-content-space-between is-align-items-center"
      >
       
       <div class="control is-flex-grow-1 input_control">
-        <input class="input" type="text" placeholder="Text input">      
+        <input id="input_field" class="input" type="text" placeholder="Text input">      
       </div>
       <button id="freeze_btn" class="button">Freeze</button>
       <span class="icon is-large">
@@ -34,48 +35,53 @@
 
     <div id="Inv" class="is-align-self-stretch has-background-grey-lighter">
       <div class="inv_container"></div>
-    </div>
-
-    <div class="modal is-active">
-      <div class="modal-background"></div>
-      <div id="modal_content" class="modal-content">      
-        <div class="has-text-white has-text-centered">Welcome to</div>
-        <div class="has-text-white is-size-1 has-text-centered">Planet Nine</div>
-        <div class="has-text-white has-text-centered">
-          A modern, mobile-friendly 
-          <a href="https://medium.com/@williamson.f93/multi-user-dungeons-muds-what-are-they-and-how-to-play-af3ec0f29f4a">
-            MUD</a> game.
-        </div>
-        <div class="has-text-white is-italic is-size-7 has-text-centered">(Version: 0.01 Alpha)</div>
-        <div class="block"></div>
-        <div class="block"></div>
-        <div class="has-text-white has-text-centered">Create a new charcter (or Login an existing one)</div>
-
-        <div class="field login_input">
-          <label class="label has-text-white">Name</label>
-          <div class="control">
-            <input class="input" type="text" placeholder="e.g Morpheus, Neo...">
-          </div>
-        </div>
-        
-        <div class="field login_input">
-          <label class="label has-text-white">Password</label>
-          <div class="control">
-            <input class="input" type="password">
-          </div>
-        </div>
-        <div class="has-text-danger has-text-centered is-size-7">
-          Important: DO NOT REUSE EXISTING PASSWORDS!
-        </div>
-        <div class="has-text-danger has-text-centered is-size-7">
-          This is an alpha version, passwords are not stored securely (yet). 
-        </div>
-      </div>      
-    </div>
+    </div>    
     
    </div>
    
-   
+   <div id="login_modal" class="modal is-active">
+    <div class="modal-background"></div>
+    <div id="modal_content" class="modal-content">      
+      <div class="has-text-white has-text-centered">Welcome to</div>
+      <div class="has-text-white is-size-2 has-text-centered">Planet Nine</div>
+      <div class="has-text-white has-text-centered">
+        A modern, mobile-friendly 
+        <a href="https://medium.com/@williamson.f93/multi-user-dungeons-muds-what-are-they-and-how-to-play-af3ec0f29f4a">
+          MUD</a> game.
+      </div>
+      <div class="has-text-white is-italic is-size-7 has-text-centered">(Version: 0.01 Alpha)</div>
+      <div class="block"></div>
+      <div class="has-text-white has-text-centered">Create a new charcter (or Login an existing one)</div>
+
+      <div class="field login_input">
+        <label class="label has-text-white">Name</label>
+        <div class="control">
+          <input id="username_input" class="input" type="text" placeholder="e.g Morpheus, Neo...">
+        </div>
+      </div>
+      
+      <div class="field login_input">
+        <label class="label has-text-white">Password</label>
+        <div class="control">
+          <input id="password_input" class="input" type="password" placeholder="e.g. **********">
+        </div>
+      </div>
+
+      <div id="warning_text" class="has-text-warning has-text-centered is-size-6"></div> 
+
+      <div class="control login_input">
+        <button id="submit_btn" class="button is-primary">Submit</button>
+      </div>
+      <div class="block"></div>
+      <div class="has-text-danger has-text-centered is-size-7">
+        Important: DO NOT REUSE EXISTING PASSWORDS!
+      </div>
+      <div class="has-text-danger has-text-centered is-size-7">
+        This is an alpha version, passwords are not stored securely (yet). 
+      </div>
+      
+    </div>      
+  </div>
     
   </body>
 </html>

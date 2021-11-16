@@ -19,6 +19,8 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow-y: scroll;
+  background-color: white;
+  transition: background-color 1s linear;
 }
 
 #Input {  
@@ -50,6 +52,7 @@ html, body {
 }
 
 .box_user {
+  max-width: 80%;
   align-self: flex-end;
   border: 1px solid red;  
 }
