@@ -1,5 +1,6 @@
-let ws=                       new WebSocket('ws://localhost:8080');
+// let ws=                       new WebSocket('ws://localhost:8080');
 // let ws=                       new WebSocket('ws://10.0.0.6:8080');
+let ws=                       new WebSocket('ws://192.168.0.48:8080');
 let chat=                       document.getElementById('Chat');
 let inv=                document.getElementById('Inv');
 let freeze_btn=               document.getElementById('freeze_btn');
@@ -255,7 +256,7 @@ settings_submit_btn.addEventListener('click', ()=>{
 
 //Handle user input in the game i/f.
 input_field.addEventListener('keypress', (evt)=> {
-
+  
   if (evt.code==='Enter'){
     evt.preventDefault();  
 

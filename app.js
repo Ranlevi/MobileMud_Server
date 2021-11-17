@@ -14,10 +14,10 @@ const VERSION = 0.01;
 
 /*
 TODO:
-fix bug - user stays in room after ws close.
+
 in client, health changes color when changed
 create_cmd i/f
-set user description somehow
+
 improve client UI, add disconnect btn
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
@@ -410,7 +410,8 @@ wss.on('connection', (ws_client) => {
         break;
 
       case ("Settings"):
-        console.log(incoming_msg.content);
+        let user = World.world.get_instance(user_id);
+        user.set_description(incoming_msg.content.description);
         break;
     }
   }

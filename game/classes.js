@@ -1069,6 +1069,11 @@ class User {
     room.remove_entity(this.id);
     World.world.remove_from_world(this.id); 
   }
+
+  set_description(text){
+    this.props.description = text;
+    this.send_chat_msg_to_client(`Description updated.`);
+  }
   
 }
 
