@@ -872,7 +872,7 @@ class User {
               `<p>${this.props.description}</p>` +
               `<p>Wearing: `;
 
-    let text = ``;
+    let text = '';
 
     for (const id of Object.values(this.props.wearing)){
       if (id!==null){
@@ -880,8 +880,9 @@ class User {
         text += `${entity.get_name()} `; 
       }      
     }
-
+    
     if (text==='') text = 'Plain cloths.';
+    msg += text;
     msg += `</p>`;
 
     msg += `<p>Holding: `;
@@ -1047,7 +1048,27 @@ class User {
     let msg=    `${entity.get_name()} ${content}`;
 
     this.send_chat_msg_to_client(msg);
-  }  
+  }
+
+  disconnect_from_game(){
+
+    //Save user state to users_db
+    World.world.users_db.users[this.props.name] = {
+      id: this.id,
+      props: this.props
+    }
+
+    let inv_arr = this.get_all_items_on_body();        
+    for (const obj of inv_arr){
+      //obj: {id: string, location: string}
+      let entity = World.world.get_instance(obj.id);
+      World.world.users_db.items[entity.id] = entity.props;
+    } 
+    
+    let room = World.world.get_instance(this.props.container_id);
+    room.remove_entity(this.id);
+    World.world.remove_from_world(this.id); 
+  }
   
 }
 

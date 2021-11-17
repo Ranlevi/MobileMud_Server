@@ -25,14 +25,13 @@
      >
       
       <div class="control is-flex-grow-1 input_control">
-        <textarea id="input_field" class="textarea" rows="1" placeholder="Text input"></textarea>
-        <!-- <input id="input_field" class="input" type="text" placeholder="Text input">       -->
+        <textarea id="input_field" class="textarea" rows="1" placeholder="Text input"></textarea>        
       </div>
       <span id="freeze_btn" class="icon is-large has-text-success">
         <i class="mdi mdi-24px mdi-hand-back-left"></i>
       </span>
       
-      <span class="icon is-large">
+      <span id="settings_btn" class="icon is-large">
         <i class="mdi mdi-24px mdi-cog"></i>
       </span>
       <span id="inv_btn" class="icon is-large">
@@ -86,6 +85,26 @@
       <div class="has-text-danger has-text-centered is-size-7">
         This is an alpha version, passwords are not stored securely (yet). 
       </div>
+      
+    </div>      
+  </div>
+
+  <div id="settings_modal" class="modal">
+    <div class="modal-background"></div>
+    <div id="settings_modal_content" class="modal-content">      
+            
+      <div class="login_input">
+        <label class="label has-text-white">Enter a new description for your charecter:</label>
+        <div class="control">
+          <textarea id="description_input" class="textarea" rows="3"
+                 placeholder="e.g A Lumberjack: I sleep all night and work all day!"></textarea>
+        </div>
+      </div>
+      
+      <div class="control login_input">
+        <button id="settings_submit_btn" class="button is-primary">Submit</button>
+        <button id="settings_cancel_btn" class="button is-danger">Cancel</button>
+      </div>     
       
     </div>      
   </div>

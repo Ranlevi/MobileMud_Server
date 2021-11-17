@@ -300,7 +300,7 @@ class Game_Controller {
 
     //Send a welcome message, and a Status message to init the health bar.
     //Than perform a Look command on the room.
-    user.send_chat_msg_to_client(`Welcome ${user.props.name}!`);
+    user.send_chat_msg_to_client(`Welcome ${user.get_name()}!`);
     user.look_cmd();
 
     return user.id;
@@ -408,6 +408,10 @@ wss.on('connection', (ws_client) => {
       case ("User Input"):        
         game_controller.process_user_input(incoming_msg.content, user_id);        
         break;
+
+      case ("Settings"):
+        console.log(incoming_msg.content);
+        break;
     }
   }
 
@@ -418,21 +422,7 @@ wss.on('connection', (ws_client) => {
     for (const user of World.world.users.values()){
       
       if (user.ws_client===ws_client){
-        //Save the user to users_db
-        World.world.users_db.users[user.props.name] = {
-          id: user.id,
-          props: user.props
-        }
-  
-        let inv_arr = user.get_all_items_on_body();        
-        for (const obj of inv_arr){
-          //obj: {id: string, location: string}
-          let entity = World.world.get_instance(obj.id);
-          World.world.users_db.items[entity.id] = entity.props;
-        } 
-        
-        World.world.remove_from_world(user.id);        
-        break;
+        user.disconnect_from_game();
       }
     }
 

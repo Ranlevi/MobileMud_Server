@@ -11,6 +11,11 @@ let password_input = document.getElementById("password_input");
 let warning_text= document.getElementById("warning_text");
 let input_field= document.getElementById("input_field");
 let inv_btn= document.getElementById("inv_btn");
+let settings_btn= document.getElementById("settings_btn");
+let settings_modal= document.getElementById("settings_modal");
+let settings_submit_btn= document.getElementById("settings_submit_btn");
+let settings_cancel_btn= document.getElementById("settings_cancel_btn");
+let description_input= document.getElementById("description_input");
 
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "white";
@@ -120,13 +125,13 @@ freeze_btn.addEventListener('click', ()=>{
   stop_chat_scroll = !stop_chat_scroll;
 
   if (stop_chat_scroll===true){
-    freeze_btn.classList.remove(`has-text-danger`);
-    freeze_btn.classList.add('has-text-success');    
+    freeze_btn.classList.remove(`has-text-success`);
+    freeze_btn.classList.add('has-text-danger');    
   } else {
-    freeze_btn.classList.add(`has-text-danger`);
-    freeze_btn.classList.remove('has-text-success');    
+    freeze_btn.classList.add(`has-text-success`);
+    freeze_btn.classList.remove('has-text-danger');    
     
-    chat_display.lastElementChild.scrollIntoView();
+    chat.lastElementChild.scrollIntoView();
   }
 })
 
@@ -152,7 +157,7 @@ parent.addEventListener('click', (evt)=>{
     div.classList.add("box");
     div.classList.add("box_cmds");    
     div.innerHTML = html;    
-    chat_display.append(div);
+    chat.append(div);
 
     if (!stop_chat_scroll){
       div.scrollIntoView();  
@@ -171,7 +176,7 @@ parent.addEventListener('click', (evt)=>{
     div.classList.add("box");
     div.classList.add("box_user");    
     div.append(`${evt.target.dataset.action} ${evt.target.dataset.name}`);  
-    chat_display.append(div);
+    chat.append(div);
 
     if (!stop_chat_scroll){
       div.scrollIntoView();  
@@ -190,7 +195,7 @@ parent.addEventListener('click', (evt)=>{
     div.classList.add("box");
     div.classList.add("box_user");
     div.append(`${evt.target.dataset.actions}`);  
-    chat_display.append(div);
+    chat.append(div);
 
     if (!stop_chat_scroll){
       div.scrollIntoView();  
@@ -224,26 +229,55 @@ inv_btn.addEventListener('click', ()=>{
   }
 })
 
+settings_btn.addEventListener('click', ()=>{
+  settings_modal.classList.add('is-active');
+  description_input.focus();
+})
+
+settings_cancel_btn.addEventListener('click', ()=>{
+  settings_modal.classList.remove('is-active');
+})
+
+settings_submit_btn.addEventListener('click', ()=>{
+
+  if (description_input.value!==''){
+    let msg = {
+      type: 'Settings',
+      content: {
+        description: description_input.value
+      }
+    }
+    ws.send(JSON.stringify(msg));
+    settings_modal.classList.remove('is-active');
+  }  
+})
+
+
 //Handle user input in the game i/f.
-input_field.addEventListener('submit', (evt)=> {
-  evt.preventDefault();  
+input_field.addEventListener('keypress', (evt)=> {
 
-  let msg = {
-    type: 'User Input',
-    content: input_field.value
-  }
-  ws.send(JSON.stringify(msg));
+  if (evt.code==='Enter'){
+    evt.preventDefault();  
 
-  //Create a Chat box and add it to the Chat, as feedback.
-  let div = document.createElement("div");
-  div.classList.add("box");
-  div.classList.add("box_user");
-  chat_display.append(div);
+    let msg = {
+      type: 'User Input',
+      content: input_field.value
+    }
+    ws.send(JSON.stringify(msg));
 
-  if (!stop_chat_scroll){
-    div.scrollIntoView();  
+    //Create a Chat box and add it to the Chat, as feedback.
+    let div = document.createElement("div");
+    div.classList.add("box");
+    div.classList.add("box_user");
+    div.innerHTML = input_field.value;
+    chat.append(div);
+
+    if (!stop_chat_scroll){
+      div.scrollIntoView();  
+    }
+
+    input_field.value = '';
+    input_field.blur(); //close soft keyboard.
   }
   
-  input_field.value = '';
-  input_field.blur(); //close soft keyboard.
 })
