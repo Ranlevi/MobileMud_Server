@@ -258,9 +258,7 @@ settings_submit_btn.addEventListener('click', ()=>{
 //Handle user input in the game i/f.
 input_field.addEventListener('submit', (evt)=> { 
     
-  evt.preventDefault();  
-
-  console.log(input_form);
+  evt.preventDefault();    
   
   let msg = {
     type: 'User Input',

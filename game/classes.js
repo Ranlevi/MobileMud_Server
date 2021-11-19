@@ -824,7 +824,7 @@ class User {
     }
 
     //Send messages.
-    this.send_chat_msg_to_client(`You say: ${target}`);
+    this.send_chat_msg_to_client(`You say: <span class="say_text">${target}</span`);
     this.send_msg_to_room(`says: ${target}`);
   }
 
@@ -1456,7 +1456,7 @@ class NPC {
   }
 
   say_cmd(msg){
-    this.send_msg_to_room(`says: ${msg}`);    
+    this.send_msg_to_room(`says: <span class="say_text">${msg}</span>`);    
   }
 
   emote_cmd(emote){

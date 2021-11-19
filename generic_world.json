@@ -6,7 +6,7 @@
       "subtype":  "Room",
       "spawned_entities": null,
       "description": 
-        "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner. On it, there's a pile of colorful sweets.",
+        "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner.",
       "entities": [],
       "exits": {
         "north":  {"id": "r000000000000001", "code": null},
@@ -16,7 +16,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "white"
+      "lighting": "#FFFFFF"
     }
   },
   "r000000000000001": {
@@ -26,7 +26,7 @@
       "subtype":  "Room",
       "spawned_entities": null,
       "description": 
-        "This narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
+        "This dimly-lit, narrow corridor is typical of ships, who usually need to make efficent use of all avialble space. Memories come back to you slowly and hazily: You left Earth on this vessel. Why?...You shake your head, but the fog is yet to clear.",
       "entities": [],
       "exits": {
         "north":  {"id": "r000000000000003", "code": null},
@@ -36,7 +36,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#2F4F4F"
     }
   },
   "r000000000000002": {
@@ -58,7 +58,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#FFFAF0"
     }
   },
   "r000000000000003": {
@@ -78,19 +78,19 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#2F4F4F"
     }
   },
   "r000000000000021": {
     "props": {
-      "name":     "Engineering",
+      "name":     "Entrance To Engineering",
       "type":     "Room", 
       "subtype":  "Room",
       "spawned_entities": [
         {"type": "NPC", "subtype": "Lamar", "amount": 1}
       ],
       "description": 
-        "TBD",
+        "This small room seperates the living quarters area of the ship, from its machinary and engines. A sign on the wall reads: `Qualified Personal Only.`",
       "entities": [],
       "exits": {
         "north":  null,
@@ -100,7 +100,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#FFFAF0"
     }
   },
   "r000000000000004": {
@@ -110,7 +110,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "Shelves cover the walls of this storage room from top to bottom, densely packed with various provisions, spare parts and tools.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -120,7 +120,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#FFFFFF"
     }
   },
   "r000000000000005": {
@@ -130,7 +130,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "The walls of the AirLock are painted with red and yellow stripes. A green LED is flashing about the outer door, indicating that opening it is probably safe.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -140,7 +140,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#FFFFFF"
     }
   },
   "r000000000000006": {
@@ -150,7 +150,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "This wide tunnel was obviously dug in a hurry. The dark stone walls are rough, and thick powerlines lay on the floor, leading deeper into the tunnel. Two weak LED lights cast deep shadows on the walls.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -160,7 +160,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#808080"
     }
   },
   "r000000000000007": {
@@ -170,7 +170,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "The tunnel continues from East to West here.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -180,7 +180,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#696969"
     }
   },
   "r000000000000008": {
@@ -190,7 +190,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "This is the deepest part of the tunnel. Your footsteps bounce and echo from the roughly dug walls.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -200,7 +200,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#2F4F4F"
     }
   },
   "r000000000000009": {
@@ -210,7 +210,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "The tunnel connects to Gaggarin Gate to the East. The thick powerlines running along the walls continue to the West.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -220,7 +220,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#708090"
     }
   },
   "r000000000000010": {
@@ -230,7 +230,7 @@
       "subtype": "Room",
       "spawned_entities": null,
       "description": 
-        "TBD",
+        "This is a wide mesh-metal door. Behind it, to the East, the tunnel opens up to a wider, bigger cave-like stucture. To the West, thick powerlines connect the settelement to the Deep Sleep.",
       "entities": [],
       "exits": {
         "north":  null,
@@ -240,7 +240,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000011": {
@@ -260,7 +260,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000012": {
@@ -280,7 +280,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "white"
     }
   },
   "r000000000000013": {
@@ -300,7 +300,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000014": {
@@ -320,7 +320,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000015": {
@@ -340,7 +340,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000016": {
@@ -360,7 +360,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#66CDAA"
     }
   },
   "r000000000000017": {
@@ -380,7 +380,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000018": {
@@ -400,7 +400,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000019": {
@@ -420,7 +420,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   },
   "r000000000000020": {
@@ -440,7 +440,7 @@
         "up":     null,
         "down":   null
       },
-      "lighting": "yellow"
+      "lighting": "#F5FFFA"
     }
   }
 }

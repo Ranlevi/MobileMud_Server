@@ -20,7 +20,7 @@ html, body {
   flex-direction: column;
   overflow-y: scroll;
   background-color: white;
-  transition: background-color 3s linear;
+  transition: background-color 2s linear;
 }
 
 #Input {    
@@ -44,10 +44,6 @@ html, body {
   font-size: 1.5em;
 }
 
-/* .inv_container {
-  margin-left: 3px;
-} */
-
 .box {
   max-width: 80%;  
   margin-left: 5px;
@@ -59,15 +55,18 @@ html, body {
 .box_user {
   align-self: flex-end;
   border: 1px solid red;  
+  background-color: snow;
 }
 
 .box_server {
   border: 1px solid blue;  
+  background-color: aliceblue;
 }
 
 .box_cmds {
   align-self: center;
-  border: 1px solid green;  
+  border: 1px solid green;
+  width: fit-content;
 }
 
 #modal_content{
@@ -86,10 +85,15 @@ html, body {
   color: blue;
   text-decoration: underline;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .pn_action {
   color: blue;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.say_text {
+  font-weight: 600;
 }
