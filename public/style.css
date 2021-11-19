@@ -27,20 +27,26 @@ html, body {
   max-height: 10%;
   border-left: solid;
   border-right: solid;
+  width: 100%;
 }
 
-.input_control {
-  margin-left: 3px;
-}
-
-#Inv {  
-  height: 5%;
+#Dashboard {  
+  height: 3rem;
+  width: 100%;
   border: solid;
+  display: flex;
+  justify-content: space-between;  
 }
 
-.inv_container {
-  margin-left: 3px;
+#dashboard_text {
+  margin-top: auto;
+  margin-bottom: auto;
+  font-size: 1.5em;
 }
+
+/* .inv_container {
+  margin-left: 3px;
+} */
 
 .box {
   max-width: 80%;  

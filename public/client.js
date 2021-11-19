@@ -2,7 +2,7 @@
 let ws=                       new WebSocket('ws://10.0.0.8:8080');
 // let ws=                       new WebSocket('ws://192.168.0.48:8080');
 let chat=                       document.getElementById('Chat');
-let inv=                document.getElementById('Inv');
+let dashboard_text=                document.getElementById('dashboard_text');
 let freeze_btn=               document.getElementById('freeze_btn');
 let parent=                   document.getElementById('Parent');
 let login_modal=  document.getElementById("login_modal");
@@ -65,7 +65,7 @@ ws.onmessage = (event) => {
       }
 
       let html =  `♥️ ${msg.content.health}`;
-      inv.innerHTML = html;
+      dashboard_text.innerHTML = html;
       
       //Change the chat backgroud color.
       if (msg.content.room_lighting!==current_chat_bg_color){
@@ -272,7 +272,7 @@ input_field.addEventListener('submit', (evt)=> {
   let div = document.createElement("div");
   div.classList.add("box");
   div.classList.add("box_user");
-  div.innerHTML = input_field.value;
+  div.innerHTML = input_form.value;
   chat.append(div);
 
   if (!stop_chat_scroll){
@@ -280,6 +280,6 @@ input_field.addEventListener('submit', (evt)=> {
   }
 
   input_form.value = '';
-  input_field.blur(); //close soft keyboard. 
+  input_form.blur(); //close soft keyboard. 
   
 })

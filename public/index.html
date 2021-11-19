@@ -18,38 +18,40 @@
    <div id="Parent">
     <div id="Chat" class="is-align-self-stretch"></div>
 
-    <div id="Input" 
-     class="is-align-self-stretch has-background-light is-flex is-justify-content-space-between is-align-items-center"
-     >
+    <div id="Input" class="has-background-light">
       
-      <div class="control is-flex-grow-1 input_control">        
+      <div class="control">        
         <form id="input_field">            
           <input
             id="input_form"             
             class="input" 
+            autocomplete="off"
             type="text" 
             rows="1" 
             placeholder="Text input">
-          </input>
+          </input>          
         </form>
       </div>
       
-      <span id="freeze_btn" class="icon is-large has-text-success">
-        <i class="mdi mdi-24px mdi-hand-back-left"></i>
-      </span>
+    </div> 
+              
+    <div id="Dashboard">
       
-      <span id="settings_btn" class="icon is-large">
-        <i class="mdi mdi-24px mdi-cog"></i>
-      </span>
+      <div id="dashboard_text">♥️</div>
 
-      <span id="inv_btn" class="icon is-large">
-        <i class="mdi mdi-24px mdi-human"></i>
-      </span>
-    </div>   
+      <div id="freeze_btn" class="icon is-large has-text-success">        
+        <i class="mdi mdi-24px mdi-hand-back-left"></i>
+      </div>
 
-    <div id="Inv" class="is-align-self-stretch has-background-grey-lighter">
-      <div class="inv_container"></div>
-    </div>    
+      <div id="settings_btn" class="icon is-large">
+        <i class="mdi mdi-24px mdi-cog"></i>        
+      </div>       
+      
+      <div id="inv_btn" class="icon is-large">
+        <i class="mdi mdi-24px mdi-human"></i>        
+      </div>  
+
+    </div>
     
    </div>
    
