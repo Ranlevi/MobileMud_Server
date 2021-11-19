@@ -1,6 +1,6 @@
 // let ws=                       new WebSocket('ws://localhost:8080');
-// let ws=                       new WebSocket('ws://10.0.0.6:8080');
-let ws=                       new WebSocket('ws://192.168.0.48:8080');
+let ws=                       new WebSocket('ws://10.0.0.8:8080');
+// let ws=                       new WebSocket('ws://192.168.0.48:8080');
 let chat=                       document.getElementById('Chat');
 let inv=                document.getElementById('Inv');
 let freeze_btn=               document.getElementById('freeze_btn');
@@ -17,6 +17,7 @@ let settings_modal= document.getElementById("settings_modal");
 let settings_submit_btn= document.getElementById("settings_submit_btn");
 let settings_cancel_btn= document.getElementById("settings_cancel_btn");
 let description_input= document.getElementById("description_input");
+let input_form= document.getElementById("input_form");
 
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "white";
@@ -137,7 +138,7 @@ freeze_btn.addEventListener('click', ()=>{
 })
 
 //Handle clicks.
-parent.addEventListener('click', (evt)=>{
+chat.addEventListener('click', (evt)=>{
 
   evt.stopPropagation();
 
@@ -255,30 +256,30 @@ settings_submit_btn.addEventListener('click', ()=>{
 
 
 //Handle user input in the game i/f.
-input_field.addEventListener('keypress', (evt)=> {
+input_field.addEventListener('submit', (evt)=> { 
+    
+  evt.preventDefault();  
+
+  console.log(input_form);
   
-  if (evt.code==='Enter'){
-    evt.preventDefault();  
-
-    let msg = {
-      type: 'User Input',
-      content: input_field.value
-    }
-    ws.send(JSON.stringify(msg));
-
-    //Create a Chat box and add it to the Chat, as feedback.
-    let div = document.createElement("div");
-    div.classList.add("box");
-    div.classList.add("box_user");
-    div.innerHTML = input_field.value;
-    chat.append(div);
-
-    if (!stop_chat_scroll){
-      div.scrollIntoView();  
-    }
-
-    input_field.value = '';
-    input_field.blur(); //close soft keyboard.
+  let msg = {
+    type: 'User Input',
+    content: input_form.value
   }
+  ws.send(JSON.stringify(msg));
+
+  //Create a Chat box and add it to the Chat, as feedback.
+  let div = document.createElement("div");
+  div.classList.add("box");
+  div.classList.add("box_user");
+  div.innerHTML = input_field.value;
+  chat.append(div);
+
+  if (!stop_chat_scroll){
+    div.scrollIntoView();  
+  }
+
+  input_form.value = '';
+  input_field.blur(); //close soft keyboard. 
   
 })

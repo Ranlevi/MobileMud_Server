@@ -11,22 +11,29 @@
     <script type="module"   src="./client.js" defer></script>
     </head>
   <body>
+
+    <!-- <script src="//cdn.jsdelivr.net/npm/eruda"></script> -->
+    <!-- <script>eruda.init();</script> -->
     
    <div id="Parent">
-    <div id="Chat" class="is-align-self-stretch">
-      <!-- <div class="box box_server">This is a server box</div>
-      <div class="box box_user">This is a user box</div>
-      <div class="box box_cmds">This is a server box</div>
-       -->
-    </div>
+    <div id="Chat" class="is-align-self-stretch"></div>
 
     <div id="Input" 
      class="is-align-self-stretch has-background-light is-flex is-justify-content-space-between is-align-items-center"
      >
       
-      <div class="control is-flex-grow-1 input_control">
-        <textarea id="input_field" class="textarea" rows="1" placeholder="Text input"></textarea>        
+      <div class="control is-flex-grow-1 input_control">        
+        <form id="input_field">            
+          <input
+            id="input_form"             
+            class="input" 
+            type="text" 
+            rows="1" 
+            placeholder="Text input">
+          </input>
+        </form>
       </div>
+      
       <span id="freeze_btn" class="icon is-large has-text-success">
         <i class="mdi mdi-24px mdi-hand-back-left"></i>
       </span>
@@ -34,6 +41,7 @@
       <span id="settings_btn" class="icon is-large">
         <i class="mdi mdi-24px mdi-cog"></i>
       </span>
+
       <span id="inv_btn" class="icon is-large">
         <i class="mdi mdi-24px mdi-human"></i>
       </span>

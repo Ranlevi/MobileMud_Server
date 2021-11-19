@@ -283,7 +283,7 @@ class Game_Controller {
         break;
 
       default:
-        user.send_chat_msg_to_client(`Unknown command.`);        
+        user.send_chat_msg_to_client(`Unknown command: ${text}`);        
     }  
   }  
 
