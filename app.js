@@ -1,11 +1,13 @@
 var express=                require('express');
 const { WebSocketServer }=  require('ws');
 var app=                    express();
-const wss=                  new WebSocketServer({port: 8080});
+
 const fs=                   require('fs');
 const Utils=                require('./game/utils');
 const Classes=              require('./game/classes');
 const World=                require('./game/world');
+
+const wss=                  new WebSocketServer({port: 8080});
 
 const ENABLE_USER_SAVE=       false;
 const USER_SAVE_INTERVAL=     10;
@@ -17,7 +19,6 @@ TODO:
 
 in client, health changes color when changed
 create_cmd i/f
-
 improve client UI, add disconnect btn
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
@@ -42,7 +43,11 @@ class Game_Controller {
   init_game(){    
     this.load_users_db();
     this.load_world();  
-    app.listen(3000); //Ready to recive connections.
+    
+    app.listen(5000, ()=>{
+      console.log(`Server listening on port 5000`);
+    }); //Ready to recive connections.
+    
     this.game_loop();      
   }
 

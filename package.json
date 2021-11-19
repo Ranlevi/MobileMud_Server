@@ -4,8 +4,8 @@
   "description": "MobileMud Server in Node",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+    "start": "node app.js"
+  },  
   "author": "Ran Levi",
   "license": "ISC",
   "dependencies": {
@@ -13,7 +13,6 @@
     "@emotion/styled": "^11.3.0",
     "@mui/material": "^5.0.1",
     "express": "^4.17.1",
-    "react": "^17.0.2",
     "ws": "^8.2.2"
   }
 }
