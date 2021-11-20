@@ -199,7 +199,7 @@ class Room {
 
 class User {
   
-  constructor(props, ws_client=null, id=null){
+  constructor(props, socket=null, id=null){
 
     //Default Constants
     this.BASE_HEALTH=           100;
@@ -207,7 +207,7 @@ class User {
     this.HEALTH_DECLINE_RATE =  100; //1 HP drop every X ticks
 
     this.id=            (id===null)? Utils.id_generator.get_new_id() : id;
-    this.ws_client=     ws_client; //The WebSocket for server-client comm.
+    this.socket=        socket; //The WebSocket for server-client comm.
     this.tick_counter = 0; //For use with state machines, etc.
 
     //Default values for a new player.
@@ -959,17 +959,15 @@ class User {
   //Handle Messages
 
   send_chat_msg_to_client(content){
-    let message = {
-      type:    'Chat',      
+    let message = {      
       content: content
     }    
-    this.ws_client.send(JSON.stringify(message));
+    this.socket.emit('Chat Message', message);
   }
 
   send_status_msg_to_client(){
 
-    let msg = {
-      type:       "Status",
+    let msg = {      
       content:  {
         health:   this.props.health,
         holding:  'Nothing.',
@@ -1019,7 +1017,7 @@ class User {
       msg.content.slots = html;
     }
   
-    this.ws_client.send(JSON.stringify(msg));      
+    this.socket.emit("Status Message", msg);
   }
 
   send_msg_to_room(content){
@@ -1035,11 +1033,10 @@ class User {
   }
 
   send_login_msg_to_client(is_login_successful){
-    let message = {
-      type:    'Login',      
+    let message = {      
       content: {is_login_successful: is_login_successful}
     }    
-    this.ws_client.send(JSON.stringify(message));
+    this.socket.emit('Login Message', message);
   }
 
   get_msg(sender_id, content){

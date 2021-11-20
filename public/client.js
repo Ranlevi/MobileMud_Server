@@ -1,6 +1,19 @@
-let ws=                       new WebSocket('ws://localhost:8080');
-// let ws=                       new WebSocket('ws://10.0.0.8:8080');
-// let ws=                       new WebSocket('ws://192.168.0.48:8080');
+//Note: On page load, the Login Modal is already displayed.
+//      If login was successfull, we remove the modal.
+
+//Handle WS messages from the server.
+// socket.on('chat message', (msg) => {
+//   console.log('message: ' + msg);
+// });
+
+// let text = {
+//   content: "BBB"
+// }
+
+// socket.emit('chat message', text);
+
+
+
 let chat=                       document.getElementById('Chat');
 let dashboard_text=                document.getElementById('dashboard_text');
 let freeze_btn=               document.getElementById('freeze_btn');
@@ -30,66 +43,56 @@ let status_obj = {
   slots: ""
 };
 
-//Web Socket Interface
-//-----------------------
-//Note: On page load, the Login Modal is already displayed.
-//      If login was successfull, we remove the modal.
 
-//Handle WS messages from the server.
-ws.onmessage = (event) => {
-  let msg = JSON.parse(event.data);  
+let socket = io();
 
-  switch(msg.type){
-    case("Chat"):
-      //Display the Chat Message as a server_box.
-      let div = document.createElement("div");
-      div.classList.add("box");
-      div.classList.add("box_server");
-      div.innerHTML = msg.content;
-      chat.append(div);
+socket.on('Chat Message', (msg)=>{
+  //Display the Chat Message as a server_box.
 
-      //If the chat is not frezzed, scroll it to view the latest msg.
-      if (!stop_chat_scroll){
-        div.scrollIntoView();  
-      }
-      break;
+  let div = document.createElement("div");
+  div.classList.add("box");
+  div.classList.add("box_server");
+  div.innerHTML = msg.content;
+  chat.append(div);
 
-    case("Status"):
-      status_obj = {
-        holding: msg.content.holding,
-        head: msg.content.wearing.head,
-        torso: msg.content.wearing.torso,
-        legs: msg.content.wearing.legs,
-        feet: msg.content.wearing.feet,
-        slots: msg.content.slots
-      }
-
-      let html =  `♥️ ${msg.content.health}`;
-      dashboard_text.innerHTML = html;
-      
-      //Change the chat backgroud color.
-      if (msg.content.room_lighting!==current_chat_bg_color){
-        chat.style.backgroundColor = msg.content.room_lighting;
-      }
-      break;
-
-    case("Login"):
-      //Check if Login was successful. If true - remove modal. Else - display error.
-      if (msg.content.is_login_successful){        
-        login_modal.classList.remove('is-active');
-      } else {
-        warning_text.innerHTML = 'Wrong username/password.';
-      }
-      break;
-
-    default:
-      console.error(`ws.onmessage: unknown msg.type: ${msg.type}`);
+  //If the chat is not frezzed, scroll it to view the latest msg.
+  if (!stop_chat_scroll){
+    div.scrollIntoView();  
   }
-}
+});
 
-ws.onclose = function(event){
-  console.log(`Connection Closed. Code: ${event.code}, Reason: ${event.reason}`);
-}
+socket.on('Status Message', (msg)=>{
+
+  status_obj = {
+    holding: msg.content.holding,
+    head: msg.content.wearing.head,
+    torso: msg.content.wearing.torso,
+    legs: msg.content.wearing.legs,
+    feet: msg.content.wearing.feet,
+    slots: msg.content.slots
+  }
+
+  let html =  `♥️ ${msg.content.health}`;
+  dashboard_text.innerHTML = html;
+  
+  //Change the chat backgroud color.
+  if (msg.content.room_lighting!==current_chat_bg_color){
+    chat.style.backgroundColor = msg.content.room_lighting;
+  }
+});
+
+socket.on('Login Message', (msg)=>{
+  //Check if Login was successful. If true - remove modal. Else - display error.
+  if (msg.content.is_login_successful){        
+    login_modal.classList.remove('is-active');
+  } else {
+    warning_text.innerHTML = 'Wrong username/password.';
+  }
+});
+
+socket.on('disconnect', ()=>{
+  console.log(`Connection Closed.`);
+});
  
 //Login Modal
 //----------------------
@@ -97,8 +100,7 @@ ws.onclose = function(event){
 //Handle Login Modal
 submit_btn.addEventListener('click', ()=>{
 
-  let login_msg = {
-    type: 'Login',
+  let login_msg = {    
     content: {
       username: null,
       password: null
@@ -116,7 +118,8 @@ submit_btn.addEventListener('click', ()=>{
   } else {
     login_msg.content.username=username;
     login_msg.content.password=password;
-    ws.send(JSON.stringify(login_msg));
+
+    socket.emit('Login Message', login_msg);    
   }  
 });
 
@@ -167,11 +170,11 @@ chat.addEventListener('click', (evt)=>{
   
   } else if (evt.target.dataset.element==="pn_action"){
 
-    let msg = {
-      type: 'User Input',
+    let msg = {      
       content: `${evt.target.dataset.action} ${evt.target.dataset.id}`
     }
-    ws.send(JSON.stringify(msg));
+
+    socket.emit('User Input Message', msg);    
 
     //Create a Chat box and add it to the Chat, as feedback.
     let div = document.createElement("div");    
@@ -186,11 +189,10 @@ chat.addEventListener('click', (evt)=>{
     
   } else if (evt.target.dataset.element==="pn_cmd"){
 
-    let msg = {
-      type: 'User Input',
+    let msg = {      
       content: `${evt.target.dataset.actions}`
     }
-    ws.send(JSON.stringify(msg));
+    socket.emit('User Input Message', msg);        
 
     //Create a Chat box and add it to the Chat, as feedback.
     let div = document.createElement("div");
@@ -243,13 +245,10 @@ settings_cancel_btn.addEventListener('click', ()=>{
 settings_submit_btn.addEventListener('click', ()=>{
 
   if (description_input.value!==''){
-    let msg = {
-      type: 'Settings',
-      content: {
-        description: description_input.value
-      }
+    let msg = {      
+      content: {description: description_input.value}
     }
-    ws.send(JSON.stringify(msg));
+    socket.emit('Settings Message', msg);        
     settings_modal.classList.remove('is-active');
   }  
 })
@@ -260,11 +259,10 @@ input_field.addEventListener('submit', (evt)=> {
     
   evt.preventDefault();    
   
-  let msg = {
-    type: 'User Input',
+  let msg = {    
     content: input_form.value
   }
-  ws.send(JSON.stringify(msg));
+  socket.emit('User Input Message', msg);          
 
   //Create a Chat box and add it to the Chat, as feedback.
   let div = document.createElement("div");
@@ -278,6 +276,7 @@ input_field.addEventListener('submit', (evt)=> {
   }
 
   input_form.value = '';
-  input_form.blur(); //close soft keyboard. 
-  
+  input_form.blur(); //close soft keyboard.   
 })
+
+

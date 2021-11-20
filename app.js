@@ -1,18 +1,113 @@
-var express=                require('express');
-const { WebSocketServer }=  require('ws');
-var app=                    express();
+const fs=         require('fs');
+const Classes=    require('./game/classes');
+const World=      require('./game/world');
 
-const fs=                   require('fs');
-const Utils=                require('./game/utils');
-const Classes=              require('./game/classes');
-const World=                require('./game/world');
+const express=    require('express');
+const app=        express();
+const http =      require('http');
+const server =    http.createServer(app);
+const { Server }= require("socket.io");
+const io=         new Server(server);
 
-const wss=                  new WebSocketServer({port: 8080});
+//-- HTML 
+//Serving the demo client to the browser
+app.use(express.static('public'));
 
-const ENABLE_USER_SAVE=       false;
-const USER_SAVE_INTERVAL=     10;
+app.get('/', (req, res) => {  
+  res.sendFile(__dirname + '/index.html');
+});
 
-const VERSION = 0.01;
+server.listen(5000, () => {
+  console.log('listening on *:5000');
+});
+
+const ENABLE_USER_SAVE=   false;
+const USER_SAVE_INTERVAL= 10;
+const VERSION=            0.01;
+
+//Socket.IO Connections and messages.
+
+io.on('connection', (socket) => {
+  console.log('a user connected');
+
+  socket.on('Login Message', (msg)=>{
+
+    //Try to find an active user with the same username.
+    user_id = World.world.get_user_id_by_username(msg.content.username);
+
+    if (user_id===null){
+      //This is not an active player
+      //Check if it is a preveiouly created player.
+      let data = World.world.users_db.users[msg.content.username];
+      
+      if (data===undefined){
+        //This is a new player
+        user_id = game_controller.create_new_user(
+                                    socket, 
+                                    msg.content.username, 
+                                    msg.content.password);            
+
+      } else {
+        //This is a previously created player.
+        //Check if the password is correct:
+        if (data.props.password===msg.content.password){
+          //Password is correct
+          user_id = game_controller.load_existing_user(
+                                    socket, 
+                                    msg.content.username);
+        } else {
+          //Password incorrect
+          let message = {            
+            content: {is_login_successful: false}
+          }    
+          socket.emit('Login Message', message);
+          //End login
+        }
+        
+      }
+
+    } else {
+      //This is an active player.
+      //Check password
+      let user = World.world.get_instance(user_id);
+
+      if (user.password===msg.content.password){
+        //Password correct, change socket
+        user.socket = socket;
+        user.send_chat_msg_to_client('Reconnected.');
+
+      } else {
+        //Password incorrect
+        let message = {          
+          content: {is_login_successful: false}
+        }    
+        socket.emit('Login Message', message);
+      }
+    }
+  });
+
+  socket.on('User Input Message', (msg)=>{
+    game_controller.process_user_input(msg.content, user_id);        
+  });
+
+  socket.on('Settings Message', (msg)=>{
+    let user = World.world.get_instance(user_id);
+    user.set_description(msg.content.description);
+  });
+
+  socket.on('disconnect', () => {
+    //This is an unxpected close of connection (user didn't press 'close')
+    //find the user with the socket and remove from the world.
+    
+    for (const user of World.world.users.values()){
+      
+      if (user.socket===socket){ //TODO: maybe compare socket ids?
+        user.disconnect_from_game();
+      }
+    }
+  });
+});
+
 
 /*
 TODO:
@@ -26,14 +121,6 @@ https://web.dev/sign-in-form-best-practices/
 //todo: place user in room, fix spawn_entity parameters?
 */
 
-
-//-- HTML 
-//Serving the demo client to the browser
-app.use(express.static('public'));
-app.get('/', function(req, res){
-  res.sendFile('/public/index.html', { root: __dirname })
-});
-
 class Game_Controller {
   constructor(){
     this.user_save_counter=   USER_SAVE_INTERVAL;    
@@ -43,11 +130,6 @@ class Game_Controller {
   init_game(){    
     this.load_users_db();
     this.load_world();  
-    
-    app.listen(5000, ()=>{
-      console.log(`Server listening on port 5000`);
-    }); //Ready to recive connections.
-    
     this.game_loop();      
   }
 
@@ -292,15 +374,15 @@ class Game_Controller {
     }  
   }  
 
-  create_new_user(ws_client, username, password){
-    //Create a new user, spawned at spawn room, and associate the ws_client with it.
+  create_new_user(socket, username, password){
+    //Create a new user, spawned at spawn room, and associate the socket with it.
     //Returns the ID of the created user (String)
     let props = {
       name:         username,
       password:     password,      
     }
 
-    let user = new Classes.User(props, ws_client);
+    let user = new Classes.User(props, socket);
     user.send_login_msg_to_client(true);
 
     //Send a welcome message, and a Status message to init the health bar.
@@ -311,16 +393,16 @@ class Game_Controller {
     return user.id;
   }
 
-  load_existing_user(ws_client, username){
+  load_existing_user(soclet, username){
     //Load the user from the registered users database, and associate
-    //the ws_client with it.
+    //the socket with it.
     //Return the ID of the retrived user (String)
     
     console.log('Loading existing user');
 
     let user_data = World.world.users_db.users[username]; //user_data= {id:, props:}
 
-    let user = new Classes.User(user_data.props, ws_client, user_data.id);
+    let user = new Classes.User(user_data.props, socket, user_data.id);
 
     //Spawn the items the users carries
     let inv_arr = user.get_all_items_on_body();
@@ -344,94 +426,3 @@ class Game_Controller {
 }
 
 let game_controller=  new Game_Controller();
-
-//-- WebSockets
-wss.on('connection', (ws_client) => {    
-  var user_id;
-
-  ws_client.onmessage = (event) => {
-    let incoming_msg = JSON.parse(event.data);
-    
-    switch (incoming_msg.type){
-      
-      case ('Login'):
-        //Try to find an active user with the same username.
-        user_id = World.world.get_user_id_by_username(incoming_msg.content.username);
-        
-        if (user_id===null){
-          //This is not an active player
-          //Check if it is a preveiouly created player.
-          let data = World.world.users_db.users[incoming_msg.content.username];
-          
-          if (data===undefined){
-            //This is a new player
-            user_id = game_controller.create_new_user(
-                                        ws_client, 
-                                        incoming_msg.content.username, 
-                                        incoming_msg.content.password);            
-
-          } else {
-            //This is a previously created player.
-            //Check if the password is correct:
-            if (data.props.password===incoming_msg.content.password){
-              //Password is correct
-              user_id = game_controller.load_existing_user(
-                ws_client, 
-                incoming_msg.content.username);
-            } else {
-              //Password incorrect
-              let message = {
-                type:    'Login',      
-                content: {is_login_successful: false}
-              }    
-              ws_client.send(JSON.stringify(message));
-              //End login
-            }
-            
-          }
-        } else {
-          //This is an active player.
-          //Check password
-          let user = World.world.get_instance(user_id);
-
-          if (user.password===incoming_msg.content.password){
-            //Password correct, change ws_client
-            user.ws_client = ws_client;
-            user.send_chat_msg_to_client('Reconnected.');
-
-          } else {
-            //Password incorrect
-            let message = {
-              type:    'Login',      
-              content: {is_login_successful: false}
-            }    
-            ws_client.send(JSON.stringify(message));
-          }
-        }
-        break;
-                
-      case ("User Input"):        
-        game_controller.process_user_input(incoming_msg.content, user_id);        
-        break;
-
-      case ("Settings"):
-        let user = World.world.get_instance(user_id);
-        user.set_description(incoming_msg.content.description);
-        break;
-    }
-  }
-
-  ws_client.on('close', () => {
-    //This is an unxpected close of connection (user didn't press 'close')
-    //find the user with the ws_client and remove from the world.
-    
-    for (const user of World.world.users.values()){
-      
-      if (user.ws_client===ws_client){
-        user.disconnect_from_game();
-      }
-    }
-
-  });
-  
-});
