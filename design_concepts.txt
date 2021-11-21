@@ -91,3 +91,10 @@ Software Architecture:
   He tells him about planet nine (vaugely), tells him to take stuff and sends the user to the town, to the mayor. Tells him
   they need every pair of hands. Tells if the user sees a mechanical spider, don't be afraid.
   The spider will be in a room with basic equipement.
+
+  Creation mechanics
+  The inventory has a built in recipe book.
+  User clicks, gets a list of things he can currently make.
+  Each new item found adds a new recipe. If clicked, the fail messages shows what's missing.
+  The ingridiantes need to be on the user or in the same room.
+  
