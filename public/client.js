@@ -1,53 +1,43 @@
-//Note: On page load, the Login Modal is already displayed.
-//      If login was successfull, we remove the modal.
+let chat=                 document.getElementById('Chat');
+let dashboard_text=       document.getElementById('dashboard_text');
+let freeze_btn=           document.getElementById('freeze_btn');
+let parent=               document.getElementById('Parent');
+let login_modal=          document.getElementById("login_modal");
+let submit_btn=           document.getElementById("submit_btn");
+let username_input =      document.getElementById("username_input");
+let password_input =      document.getElementById("password_input");
+let warning_text=         document.getElementById("warning_text");
+let input_field=          document.getElementById("input_field");
+let inv_btn=              document.getElementById("inv_btn");
+let settings_btn=         document.getElementById("settings_btn");
+let settings_modal=       document.getElementById("settings_modal");
+let settings_submit_btn=  document.getElementById("settings_submit_btn");
+let settings_cancel_btn=  document.getElementById("settings_cancel_btn");
+let description_input=    document.getElementById("description_input");
+let input_form=           document.getElementById("input_form");
 
-//Handle WS messages from the server.
-// socket.on('chat message', (msg) => {
-//   console.log('message: ' + msg);
-// });
-
-// let text = {
-//   content: "BBB"
-// }
-
-// socket.emit('chat message', text);
-
-
-
-let chat=                       document.getElementById('Chat');
-let dashboard_text=                document.getElementById('dashboard_text');
-let freeze_btn=               document.getElementById('freeze_btn');
-let parent=                   document.getElementById('Parent');
-let login_modal=  document.getElementById("login_modal");
-let submit_btn=   document.getElementById("submit_btn");
-let username_input = document.getElementById("username_input");
-let password_input = document.getElementById("password_input");
-let warning_text= document.getElementById("warning_text");
-let input_field= document.getElementById("input_field");
-let inv_btn= document.getElementById("inv_btn");
-let settings_btn= document.getElementById("settings_btn");
-let settings_modal= document.getElementById("settings_modal");
-let settings_submit_btn= document.getElementById("settings_submit_btn");
-let settings_cancel_btn= document.getElementById("settings_cancel_btn");
-let description_input= document.getElementById("description_input");
-let input_form= document.getElementById("input_form");
+const CLIENT_VERSION=     0.1;
 
 let stop_chat_scroll=       false;
 let current_chat_bg_color=  "white";
 let status_obj = {
-  holding: "",
-  head: "",
-  torso: "",
-  legs: "",
-  feet: "",
-  slots: ""
+  holding:  "",
+  head:     "",
+  torso:    "",
+  legs:     "",
+  feet:     "",
+  slots:    ""
 };
 
-
+//Open a SOCKETIO connection.
 let socket = io();
 
-socket.on('Chat Message', (msg)=>{
-  //Display the Chat Message as a server_box.
+//Handle Messages From Server
+//------------------------------
+
+//Display the Chat Message as a server_box.
+//msg: {content: html string}
+socket.on('Chat Message', (msg)=>{  
 
   let div = document.createElement("div");
   div.classList.add("box");
@@ -61,15 +51,17 @@ socket.on('Chat Message', (msg)=>{
   }
 });
 
+//Update the status object, health display & background.
+//msg: {content: {inventory obj}}
 socket.on('Status Message', (msg)=>{
-
+  
   status_obj = {
-    holding: msg.content.holding,
-    head: msg.content.wearing.head,
-    torso: msg.content.wearing.torso,
-    legs: msg.content.wearing.legs,
-    feet: msg.content.wearing.feet,
-    slots: msg.content.slots
+    holding:  msg.content.holding,
+    head:     msg.content.wearing.head,
+    torso:    msg.content.wearing.torso,
+    legs:     msg.content.wearing.legs,
+    feet:     msg.content.wearing.feet,
+    slots:    msg.content.slots
   }
 
   let html =  `♥️ ${msg.content.health}`;
@@ -81,8 +73,10 @@ socket.on('Status Message', (msg)=>{
   }
 });
 
+//Check if Login was successful. If true - remove modal. Else - display error.
+//msg: {content: {is_login_successful: bool}}
 socket.on('Login Message', (msg)=>{
-  //Check if Login was successful. If true - remove modal. Else - display error.
+  
   if (msg.content.is_login_successful){        
     login_modal.classList.remove('is-active');
   } else {
@@ -91,13 +85,13 @@ socket.on('Login Message', (msg)=>{
 });
 
 socket.on('disconnect', ()=>{
-  console.log(`Connection Closed.`);
+  console.log(`Connection Closed By Server.`);
 });
  
 //Login Modal
 //----------------------
 
-//Handle Login Modal
+//Handle Login request
 submit_btn.addEventListener('click', ()=>{
 
   let login_msg = {    
@@ -126,6 +120,7 @@ submit_btn.addEventListener('click', ()=>{
 //Game Controls
 //------------------
 
+//A button that freezes the Chat display, for players to read easier.
 freeze_btn.addEventListener('click', ()=>{
   stop_chat_scroll = !stop_chat_scroll;
 
@@ -140,15 +135,17 @@ freeze_btn.addEventListener('click', ()=>{
   }
 })
 
-//Handle clicks.
+//Handle clicks on hyperlinks
 chat.addEventListener('click', (evt)=>{
-
   evt.stopPropagation();
 
+  //Display a cmds box with available commands.
   if (evt.target.dataset.element==="pn_link"){    
-
+    
     let actions = evt.target.dataset.actions.split('_');    
     let list = '';
+
+    //Populate the actions list.
     for (const action of actions){
       list += `<li><span class="pn_action" data-element="pn_action" ` + 
               `data-action="${action}" data-id="${evt.target.dataset.id}" ` + 
@@ -167,8 +164,11 @@ chat.addEventListener('click', (evt)=>{
     if (!stop_chat_scroll){
       div.scrollIntoView();  
     }    
-  
+      
   } else if (evt.target.dataset.element==="pn_action"){
+    //Send a message to the server, in response to a click in the cmds box.
+    //Note: a hyperlink click is translated to an input text message (i.e., the links
+    //      are just an alias to entering textual commands.)
 
     let msg = {      
       content: `${evt.target.dataset.action} ${evt.target.dataset.id}`
@@ -187,6 +187,7 @@ chat.addEventListener('click', (evt)=>{
       div.scrollIntoView();  
     }
     
+    //Send a 1-word command, such as North.
   } else if (evt.target.dataset.element==="pn_cmd"){
 
     let msg = {      
@@ -210,6 +211,7 @@ chat.addEventListener('click', (evt)=>{
   }
 })
 
+//Pressing the inv btn displays an inventory message in the Chat.
 inv_btn.addEventListener('click', ()=>{
 
   let html = 
@@ -233,15 +235,18 @@ inv_btn.addEventListener('click', ()=>{
   }
 })
 
+//Pressing the Settings btn displays the settings modal.
 settings_btn.addEventListener('click', ()=>{
   settings_modal.classList.add('is-active');
   description_input.focus();
 })
 
+//Close the settings modal without submitting to the server.
 settings_cancel_btn.addEventListener('click', ()=>{
   settings_modal.classList.remove('is-active');
 })
 
+//Submit settings to the server.
 settings_submit_btn.addEventListener('click', ()=>{
 
   if (description_input.value!==''){
@@ -253,10 +258,8 @@ settings_submit_btn.addEventListener('click', ()=>{
   }  
 })
 
-
-//Handle user input in the game i/f.
-input_field.addEventListener('submit', (evt)=> { 
-    
+//Handle user text input in the game i/f.
+input_field.addEventListener('submit', (evt)=> {     
   evt.preventDefault();    
   
   let msg = {    

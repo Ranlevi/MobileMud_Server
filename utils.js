@@ -1,8 +1,15 @@
+/*
+Utils.js
+--------
+Various utility functions.
+*/
+
 const World=    require('./world');
 const Classes=  require('./classes');
 
 //Keeps tracks of current ID, and generates a new one.
-//IDs are Strings, generated in sequencal order.
+//IDs are Strings, generated from randnom lowercase & numerical chars.
+//Each entity type has it's own prefix.
 //There is a single ID_Generator instance.
 class ID_Generator {
   constructor(){
@@ -10,6 +17,9 @@ class ID_Generator {
     this.characters= 'abcdefghijklmnopqrstuvwxyz0123456789';//lowercase since input is always lowercase.  
   }
   
+  //Returns a random 16 char string with a pre-determined prefix.
+  //entity_type: String
+  //id: String
   get_new_id(entity_type){
     let id = ``;
 
@@ -41,6 +51,9 @@ class ID_Generator {
 }
 const id_generator_instance = new ID_Generator();
 
+//Returns the opposite from a given direction.
+//direction: string
+//return: string
 function get_opposite_direction(direction){  
   switch(direction){
     case('north'):
@@ -58,6 +71,8 @@ function get_opposite_direction(direction){
   }
 }
 
+//Deep Copy of a given Object.
+//Returns an object.
 function deepCopyFunction(inObject){
   let outObject, value, key;
 
@@ -78,15 +93,19 @@ function deepCopyFunction(inObject){
   return outObject
 }
 
+//State Machine for NPCs.
+//A machine as a current state, and a function that transition it 
+//from the current state to the next state according to given event.
 class StateMachine {
-  //A machine as a current state, and a function that transition it 
-  //from the current state to the next state according to given event.
+  
   constructor(owner_id, stm_definition){
     this.owner_id=      owner_id;
     this.initial_state= stm_definition.initialState;
     this.machine=       this.createMachine(owner_id, stm_definition);    
   }
 
+  //Create an instance of a state machine, according to definition
+  //given in the Types.js file.
   createMachine(owner_id, stm_definition){
     const machine = {
       current_state: {},

@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
-    <title>Planet Nine Client</title>
-    <meta charset="utf-8"> <!-- For Hebrew support on old browsers -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Support IE browsers -->
-    <meta name="viewport"              content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">        
-    <link rel="stylesheet" href="./style.css"> 
+    <title>Planet Nine MUD</title>
+    <meta   charset="utf-8"> <!-- For Hebrew support on old browsers -->
+    <meta   http-equiv="X-UA-Compatible" content="IE=edge"> <!-- Support IE browsers -->
+    <meta   name="viewport"              content="width=device-width, initial-scale=1">
+    <link   rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link   rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">        
+    <link   rel="stylesheet"  href="./style.css"> 
     <script src="/socket.io/socket.io.js"></script>
-    <script type="module"   src="./client.js" defer></script>
+    <script type="module"     src="./client.js" defer></script>
     </head>
   <body>
 
+    <!-- For console debug on mobile browsers -->
     <!-- <script src="//cdn.jsdelivr.net/npm/eruda"></script> -->
     <!-- <script>eruda.init();</script> -->    
     
+    <!-- Game Area -->
    <div id="Parent">
     <div id="Chat" class="is-align-self-stretch"></div>
 
@@ -36,8 +38,7 @@
       
     </div> 
               
-    <div id="Dashboard">
-      
+    <div id="Dashboard">      
       <div id="dashboard_text">♥️</div>
 
       <div id="freeze_btn" class="icon is-large has-text-success">        
@@ -51,14 +52,14 @@
       <div id="inv_btn" class="icon is-large">
         <i class="mdi mdi-24px mdi-human"></i>        
       </div>  
-
-    </div>
-    
+    </div>    
    </div>
    
+   <!-- Login Modal -->
    <div id="login_modal" class="modal is-active">
     <div class="modal-background"></div>
-    <div id="modal_content" class="modal-content">      
+    <div id="modal_content" class="modal-content">
+      
       <div class="has-text-white has-text-centered">Welcome to</div>
       <div class="has-text-white is-size-2 has-text-centered">Planet Nine</div>
       <div class="has-text-white has-text-centered">
@@ -102,15 +103,19 @@
     </div>      
   </div>
 
+  <!-- Settings Modal  -->
   <div id="settings_modal" class="modal">
     <div class="modal-background"></div>
-    <div id="settings_modal_content" class="modal-content">      
-            
+
+    <div id="settings_modal_content" class="modal-content">            
       <div class="login_input">
         <label class="label has-text-white">Enter a new description for your charecter:</label>
         <div class="control">
-          <textarea id="description_input" class="textarea" rows="3"
-                 placeholder="e.g A Lumberjack: I sleep all night and work all day!"></textarea>
+          <textarea 
+            id="description_input" 
+            class="textarea" rows="3"
+            placeholder="e.g A Lumberjack: I sleep all night and work all day!">
+          </textarea>
         </div>
       </div>
       

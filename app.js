@@ -1,6 +1,24 @@
+/*
+Apps.js
+-------
+Entry point for the server.
+Handles serving the Client to users, user login
+and user input.
+
+TODO:
+in client, health changes color when changed
+create_cmd i/f
+add disconnect btn
+save user creditials in the browser
+https://developers.google.com/web/fundamentals/security/credential-management/save-forms
+https://web.dev/sign-in-form-best-practices/
+*/
+
+const SERVER_VERSION=  0.2;
+
 const fs=         require('fs');
-const Classes=    require('./game/classes');
-const World=      require('./game/world');
+const Classes=    require('./classes');
+const World=      require('./world');
 
 const express=    require('express');
 const app=        express();
@@ -8,9 +26,10 @@ const http =      require('http');
 const server =    http.createServer(app);
 const { Server }= require("socket.io");
 const io=         new Server(server);
+ 
+//Serving the client to the browser
+//--------------------------------
 
-//-- HTML 
-//Serving the demo client to the browser
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {  
@@ -21,15 +40,17 @@ server.listen(5000, () => {
   console.log('listening on *:5000');
 });
 
+//Game Parameters
 const ENABLE_USER_SAVE=   false;
 const USER_SAVE_INTERVAL= 10;
-const VERSION=            0.01;
 
-//Socket.IO Connections and messages.
+//Handle Socket.IO Connections and messages.
+//-----------------------------------------
 
 io.on('connection', (socket) => {
   console.log('a user connected');
 
+  //Create a new user or load a new one.
   socket.on('Login Message', (msg)=>{
 
     //Try to find an active user with the same username.
@@ -60,10 +81,8 @@ io.on('connection', (socket) => {
           let message = {            
             content: {is_login_successful: false}
           }    
-          socket.emit('Login Message', message);
-          //End login
-        }
-        
+          socket.emit('Login Message', message);          
+        }        
       }
 
     } else {
@@ -86,10 +105,12 @@ io.on('connection', (socket) => {
     }
   });
 
+  //Send text inputs for processing.
   socket.on('User Input Message', (msg)=>{
     game_controller.process_user_input(msg.content, user_id);        
   });
 
+  //Set the user's description field.
   socket.on('Settings Message', (msg)=>{
     let user = World.world.get_instance(user_id);
     user.set_description(msg.content.description);
@@ -108,33 +129,23 @@ io.on('connection', (socket) => {
   });
 });
 
-
-/*
-TODO:
-
-in client, health changes color when changed
-create_cmd i/f
-improve client UI, add disconnect btn
-save user creditials in the browser
-https://developers.google.com/web/fundamentals/security/credential-management/save-forms
-https://web.dev/sign-in-form-best-practices/
-//todo: place user in room, fix spawn_entity parameters?
-*/
-
+//Init the game world, handle users login, process inputs.
 class Game_Controller {
   constructor(){
-    this.user_save_counter=   USER_SAVE_INTERVAL;    
+    this.user_save_counter= USER_SAVE_INTERVAL;    
     this.init_game();
   }
 
+  //Runs when the server is created. 
+  //Loads databases, starts the game loop.
   init_game(){    
     this.load_users_db();
     this.load_world();  
     this.game_loop();      
   }
 
-  load_users_db(){
-    //Load the database of existing users.
+  //Load the database of existing users.
+  load_users_db(){   
 
     if (fs.existsSync('./users_db.json')){
 
@@ -155,8 +166,8 @@ class Game_Controller {
     }
   }
   
-  load_world(){
-    //Load all rooms and entities (except users) from the save file.
+  //Load all rooms and entities (except users) from the database.
+  load_world(){    
     let path = `./generic_world.json`;
     
     if (fs.existsSync(path)){      
@@ -189,8 +200,9 @@ class Game_Controller {
     
   }
 
-  save_users_to_file(){
-    //Save all the users and the entities they carry on them.    
+  //Called periodicaly
+  //Save all the users and the entities they carry on them.    
+  save_users_to_file(){    
 
     if (!ENABLE_USER_SAVE) return;
 
@@ -198,8 +210,8 @@ class Game_Controller {
     for (const user of World.world.users.values()){
 
       World.world.users_db.users[user.props.name] = {
-        id: user.id,
-        props: user.props
+        id:     user.id,
+        props:  user.props
       }
 
       let inv_arr = user.get_all_items_on_body();        
@@ -207,8 +219,7 @@ class Game_Controller {
         //obj: {id: string, location: string}
         let entity = World.world.get_instance(obj.id);
         World.world.users_db.items[entity.id] = entity.props;
-      }     
-      
+      }           
     }
        
     fs.writeFile(`./users_db.json`, 
@@ -218,9 +229,10 @@ class Game_Controller {
     console.log('Users saved.');    
   }  
   
-  game_loop(){
-    //Note: the loop technique allows for a minimum fixed length between
-    //loop iterations, regardless of content of the loop.
+  //Timer for game loop.
+  //Note: the loop technique allows for a minimum fixed length between
+  //loop iterations, regardless of content of the loop.
+  game_loop(){   
     
     let timer_id = setTimeout(
       function update(){
@@ -240,8 +252,8 @@ class Game_Controller {
     );
   }
 
-  run_simulation_tick(){
-    //Iterate on all entities, and process their tick actions.    
+  //Iterate on all entities, and process their tick actions (or handle a fight)
+  run_simulation_tick(){    
 
     World.world.world.forEach(
       (entity) => {
@@ -267,16 +279,19 @@ class Game_Controller {
       }
     });
   }
-              
-  process_user_input(text, user_id){
-    //Takes the text recived via the webSockets interface,
-    //and the user_id who sent it. Parses the text.
+    
+  //Takes the text recived via the webSockets interface,
+  //and the user_id who sent it. Parses the text, and calls the required 
+  //command method from Use.
+  process_user_input(text, user_id){    
 
     if (text==='') return;//Ignore empty messages.
   
-    let normalized_text= text.trim().toLowerCase();  
-    let re = /\s+/g; //search for all white spaces.
-    let input_arr = normalized_text.split(re);
+    //All input text is changed to lower case, and split by
+    //white spaces.
+    let normalized_text=  text.trim().toLowerCase();  
+    let re=               /\s+/g; //search for all white spaces.
+    let input_arr =       normalized_text.split(re);
     
     //Assume the first word is always a Command, and everything that
     //comes after that is a target.
@@ -364,6 +379,7 @@ class Game_Controller {
       case "tell":
       case "'":
       case "t":
+        //Assumes the 2nd word is the username to send a message to.
         let username = input_arr[1];
         let content = input_arr.slice(2).join(' ');
         user.tell_cmd(username, content);
@@ -374,9 +390,10 @@ class Game_Controller {
     }  
   }  
 
+  //Create a new user, spawned at spawn room, and associate the socket with it.
+  //Returns the ID of the created user (String)
   create_new_user(socket, username, password){
-    //Create a new user, spawned at spawn room, and associate the socket with it.
-    //Returns the ID of the created user (String)
+    
     let props = {
       name:         username,
       password:     password,      
@@ -393,16 +410,15 @@ class Game_Controller {
     return user.id;
   }
 
+  //Load the user from the registered users database, and associate
+  //the socket with it.
+  //Return the ID of the retrived user (String)
   load_existing_user(soclet, username){
-    //Load the user from the registered users database, and associate
-    //the socket with it.
-    //Return the ID of the retrived user (String)
     
     console.log('Loading existing user');
 
-    let user_data = World.world.users_db.users[username]; //user_data= {id:, props:}
-
-    let user = new Classes.User(user_data.props, socket, user_data.id);
+    let user_data=  World.world.users_db.users[username]; //user_data= {id:, props:}
+    let user=       new Classes.User(user_data.props, socket, user_data.id);
 
     //Spawn the items the users carries
     let inv_arr = user.get_all_items_on_body();
@@ -425,4 +441,5 @@ class Game_Controller {
   }
 }
 
+//Start Game Server
 let game_controller=  new Game_Controller();
