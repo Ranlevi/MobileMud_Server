@@ -1,7 +1,45 @@
 Game Design:
 ============
+
+Game Philosophy:
+----------------
 - encourage role playing
-- Long messages can be broken into multiple msgs. Next, End commands.
+- There is a process of discovery happening for players on the planet. We need millions
+  of rooms, so probably a random romm generator with diferent bioms, like
+  minecraft.
+- Quests will lead to the discovery of the story's apex. We ask the
+  players to keep it a secret from others. It won't work but will create
+  better cohesion with the players who take the game seriously. 
+- Going deeper into the planet makes it more dangeours, thus creating 
+  a natural leveling/zoning system.
+- Users will have no classes/gender: only self description and items owned.
+- Curiosity will be awarded with new recipies for creating unique and helpful
+  items.
+- We want to engage the user's imagination, to make them 'see' the world in their
+  mind's eye. So we ned to create strong signals for linking the text to 'mental
+  pictures'. 
+    - Backgroud color of the chat interface.
+    - Messages boxes: different colors, border thickness and color,
+      shapes, whitespace.
+    - Typography for the text.
+  This will not be random, but will have some intenral logic.
+
+
+
+Economics:
+--------------
+
+- The economy is based on raw materials mined/found in the deeper levels.
+- the basic 'source' of new value are the materials. It has a natural
+    feedback loop: more players = more mining = more value.
+- This casues inflation, so we need a sink to remove value from the game to
+    prevent the coin being less and less valuable. 
+- Two sinks: one is player growth, which creates demand for coin and thus
+    fights inflation. The other is items being 
+    broken/vanishing, which removes value from the game.
+- We can create a link between the number of new players in the game
+    to the rate of new mateial discovery, rate of decay of items.
+
 
 - Coins:
   Digital economy. The coins are kept in a balance.
@@ -12,57 +50,20 @@ Game Design:
   User says 'buy'. shopkeeper gives a messgage chain with numbered list. say 'buy 1' buys.
   same for 'sell' -> 'sell 1'.
 
-- look cmd can accept ids for specific item selection. (look and inv should
-return id as metadata, and client should enable copying it for long numbers.)
 
-Architecture:
+Software Architecture:
 ==================
-
-- Search order is always from close to far: hold, wear, slots, room.
-
-- Client for sending inputs and displaying content only. All game
-  logic is handled on the backend.
-  - demo client assumes text input only
-
-- The base class for everything in the world is Item. 
-    Every item in the game has some basic default parameters and methods.
-    Every Item has an ID number. Almost all functions accept ids as inputs.
-    Every Item can be a container, and so has methods for adding/removing other entities.
-  Under item: 
-    -Room.
-    -Entity.
-      Everything which is not a room is an entity. 
-      An entity is always in a container (a room or some other container.)
-      It has an inventory (although by default it can't be used.) A non-Human
-      entity will usually have only slots.
-      By default, it doesn't have a name.
-  Under Entity:
-    -AnimatedObject:
-      All NPCs that can interact with the users. 
-      It has health and damage, and can do battles. 
-      It has a name.
-  Under AnimatedObject:
-    - User: 
-      Has a standard inventory.
-      Has a message Queue.
-      Has a password.
-      
-- All Items are stored in a World Map() object, as id:instance pairs.
-
-- Some common component of the game are implemented as Singletons, so a single
-  instance can be used in all parts of the game (e.g. Message Sender, Message Formatter, etc.)
-
-- All items are independant, and take care of their own internal state via proces_tick().
-  When something that requires synchorization with another item ocurrs (e.g. battle),
-  the game_loop() ignores the process_tick and handles the actions directly.
-
-- Messages are sent async. Game has a 1 sec tick for entities.
+- Thin client: 
+    - display messages from server and send messages from users. 
+    - All game logic is in the server.
+    - Client allows CSS customization for visuals. 
 
 - Composition is key. Keep mechanics simple, and build with them.
 
 - Game content creation should be flexable, to allow any to create new games 
   using existing types.
   - defined by loading a JSON when the engine boots. 
+  
 - Two basic modes: 
   - Adventure: users interact with the world, create stuff according
     to what's available.
@@ -71,118 +72,17 @@ Architecture:
     - set/release ownership of rooms and objects.
   The two can be in the same game, but in different zones. 
 
-Note: if the texts are too long for the chat interface, consider using emojies as aliases,
-and cutting off extra unneeded texts.
+- Classes and Entities:
+    - Everything in the world is an Entity.
+    - Entity can be of several types: e.g. Room, NPC, User, Item.
+    - NPC and Item can have sub-types, with more specific parameters.
+    - Every entity is as encapsulated as possible: everything effecting it should 
+      be handled by the class itself.
+    - Every Entity has a 16-digit ID, (String)
+    - All entities are stored in a World Map() object, as id:instance pairs.
 
-
-- Save/Load user.
-  sim calles user.get_data_obj(), which returns an object with All
-  the user props. 
-  The inventory returns it's own data_obj, with two keys - wear_hold (obj) and
-  slots (array). Instead of the usuall ids, we have entitiy objects.
-
-  When a registered user logs in, the new_client_connected() method is called. 
-  A new user is created, with the saved user props passed to the constructor.
-  The new user has some default props. 
-  The inventory is created with the props passed as parameter.
-    the inventory is created, and then the props.inventory are overriden.
-
-  then the override_props() method is called with all the props.
-  the props are called one by one. 
-  If it's the inventory - ignored, since the inventory has it already.
-  If it's a container_id, the item is moved to the new container.
-
-- Save/load world.
-  
-
-//TODO: simplify. get rid of inventory class. maybe make one giant Item class.,
-//with this.props that can be written and read as one.
-                                                           
-- Development phases:
-  - Basic World, single user moving around. look command.
-    - changing client backgroud dynamically.
-    - assigning typography according to type.   
-    - saving and loading users.
-  - Add objects and basic interactions: look, get, drop, hold, use.
-    - Add inventory, slots to user.
-  - Add NPCs and basic interactions: look, say. user sees what npc does.
-    - handle damage, death (corpse is an entity)
-  - Add object creation: create (based on objects in inventory)
-  - Add economy: coins, player wallet. buy/sell from inventory to npc.
-  - add inter-user interactions: tell. 
-  - Add tests
--There is a process of discovery happening for players on the planet. We need millions
-of rooms, so probably a random romm generator with diferent bioms, like
-minecraft.
--Quests will lead to the discovery of the story's apex. We ask the
-players to keep it a secret from others. It won't work but will create
-better cohesion with the players who take the game seriously. 
-- Going deeper into the planet makes it more dangeours, thus creating 
-a natural leveling/zoning system.
-
-
-- The economy is based on raw materials mined/found in the deeper levels.
-  - the basic 'source' of new value are the materials. It has a natural
-    feedback loop: more players = more mining = more value.
-  - This casues inflation, so we need a sink to remove value from the game to
-    prevent the coin being less and less valuable. 
-    Two sinks: one is player growth, which creates demand for coin and thus
-    fights inflation. The other is items being 
-    broken/vanishing, which removes value from the game.
-  - We can create a link between the number of new players in the game
-    to the rate of new mateial discovery, rate of decay of items.
-- Users will have no classes/gender: only self description and items owned.
-  - Curiosity will be awarded with new recipies for creating unique and helpful
-    items.
-- Recipe book will use the concept of chained messages: messages with a 
-  next/back button (or next/back commands). 
-  This will allow short messages that will not force the user to read loading
-  messages, which are equal to 'being blind'. 
-- We want to engage the user's imagination, to make them 'see' the world in their
-  mind's eye. So we ned to create strong signals for linking the text to 'mental
-  pictures'. 
-    - Backgroud color of the chat interface.
-    - Messages boxes: different colors, border thickness and color,
-      shapes, whitespace.
-    - Typography for the text.
-  This will not be random, but will have some intenral logic.
-
-  Spawning
-  --------
-  A keycard needs to disappear when out of the spaceship.
-  A new one needs to spawn when Larry's room doesn't have one. (minus the body of users)
-  Food needs to spawn in the storage, and disappear after some time. 
-  
-  The logic needs to be related to the the room, else there can be cases where several copies
-  of the item exist outside the room and we'll need to sync them.
-
-  So a room has spawn_items props. Every tick we check for them, and if not exist,
-  we create new ones.
-
-  Also, each item has a expiration period and counter props. Each tick we incremente and
-  check. 
 
  // https://kentcdodds.com/blog/implementing-a-simple-state-machine-library-in-javascript
-
-  Save Users
-  ---------
-  Users and the items they carry are saved to users_db.json.
-  It is loaded on init to an object.
-  Every so often the object is updated with new players created.
-  
-  
-  Spawning
-  --------
-  Scenarios:
-  1. New user: has wsclient, no id, no props.
-
-
-  1. load world from JSON
-  2. Spawn ingame 
-  3. Load user from JSON
-  4. New user
-  6. existing user.
-
 
   Game story
   -----------

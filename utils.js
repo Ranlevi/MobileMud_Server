@@ -121,8 +121,7 @@ class StateMachine {
 
         const next_state_definition = stm_definition[next_state];
         
-        //Perform the actions.   
-        
+        //Perform the actions.        
         next_state_definition.action(owner_id, sender_id, params_obj);        
 
         //return the next state.
@@ -134,17 +133,20 @@ class StateMachine {
     return machine;
   }
 
+  //A current state is tied to a given sender_id, so that
+  //the NPC can have multiple interactrions with multiple users.
+  //This method get's an event and transitions the STM for the specified user.
   recive_event(sender_id, event, params_obj=null){
     
     if (this.machine.current_state[sender_id]===undefined){
       this.machine.current_state[sender_id] = this.initial_state;
     }
 
-    //Now we have the current state for the specific entity.
-    // console.log(this.machine.current_state[sender_id], sender_id, event, params_obj);
+    //Now we have the current state for the specific entity.    
     this.machine.transition(this.machine.current_state[sender_id], sender_id, event, params_obj);
   }
   
+  //A tick is a sort of an event that can triggerthe state machine.
   do_tick(owner_id){
 
     if (this.machine.current_state[owner_id]===undefined){

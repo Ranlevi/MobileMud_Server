@@ -40,6 +40,7 @@ class Room {
     // Add To world.
     World.world.add_to_world(this);
 
+    //Spawn the entities in the room.
     this.do_spawn(true);
   }
     
@@ -197,8 +198,7 @@ class Room {
   
 }
 
-class User {
-  
+class User {  
   constructor(props, socket=null, id=null){
 
     //Default Constants
@@ -247,7 +247,7 @@ class User {
   }
 
   do_tick(){
-    
+
     //Hunger mechanism. Reduce health over time.
     //If counter is zero, the user is dead.
     this.tick_counter += 1;
@@ -270,15 +270,16 @@ class User {
   }   
 
   //Aux. Methods.
-  calc_damage(){
-    //Returns how much damage the user does when attacking (Num)
+  //--------------
+  //Returns how much damage the user does when attacking (Num)
+  calc_damage(){    
     return this.BASE_DAMAGE;
   }
 
-  recieve_damage(damage_from_opponent){ 
-    //Returns how much damage the user recives, after taking into account
-    //shields, etc. (Num),
-    //or null if the user is dead.
+  //Returns how much damage the user recives, after taking into account
+  //shields, etc. (Num),
+  //or null if the user is dead.
+  recieve_damage(damage_from_opponent){     
     this.props.health -= damage_from_opponent;
     if (this.props.health<0){
       this.props.health = 0;
@@ -286,8 +287,8 @@ class User {
     return damage_from_opponent;  
   }
 
-  get_name(){
-    //Returns an HTML string for the name of the entity.
+  //Returns an HTML string for the name of the entity.
+  get_name(){    
     let html = 
       `<span `+
       `class="pn_link" `+
@@ -302,11 +303,104 @@ class User {
     return html;
   }
 
-  //Inventory Manipulation Methods
+  //Return a String message with what other see when they look at the user.
+  get_look_string(){    
 
+    let msg = `<h1>${this.get_name()}</h1>` +
+              `<p>${this.props.description}</p>` +
+              `<p>Wearing: `;
+
+    let text = '';
+
+    for (const id of Object.values(this.props.wearing)){
+      if (id!==null){
+        let entity = World.world.get_instance(id);
+        text += `${entity.get_name()} `; 
+      }      
+    }
+    
+    if (text==='') text = 'Plain cloths.';
+    msg += text;
+    msg += `</p>`;
+
+    msg += `<p>Holding: `;
+    if (this.props.holding!==null){
+      let item = World.world.get_instance(this.props.holding);
+      msg += `${item.get_name()} `;
+    } else {
+      msg += "Nothing.";
+    }
+    msg += `</p>`;
+
+    return msg;
+  }
+
+  //The user is dead. Drop items to the room, reset and respawn
+  do_death(){
+  
+    let room = World.world.get_instance(this.props.container_id);
+
+    //Move the items to the room.
+    let inv_arr = this.get_all_items_on_body();
+    for (const obj of inv_arr){
+      //obj is of the form {id: string, location: string}
+      this.remove_item(obj.id, obj.location);
+      room.add_entity(obj.id);
+      let item = World.world.get_instance(obj.id);
+      item.set_container_id(room.id);
+    }
+
+    //Reset the user
+    room.remove_entity(this.id);
+    let spawn_room = World.world.get_instance(World.FIRST_ROOM_ID);
+    spawn_room.add_entity(this.id);
+    this.props.container_id=     World.FIRST_ROOM_ID;
+    this.props.is_fighting_with= null;
+    this.props.health = this.BASE_HEALTH;    
+
+    //Send messages
+    this.send_chat_msg_to_client(`You respawned, losing all your inventory.`);
+    this.send_msg_to_room(`${this.get_name()} respawns.`);
+  }
+
+  //Perform a round of fighting with the NPC.
+  //Note: we're handling only the blows the user strikes the opponent,
+  //not blows recived.
+  do_battle(){
+    let opponent = World.world.get_instance(this.props.is_fighting_with);
+    
+    //Do damage.
+    let damage_dealt=     this.calc_damage(); 
+    let damage_recieved=  opponent.recieve_damage(damage_dealt);
+
+    //Send messages
+    this.send_chat_msg_to_client(`You strike, dealing ${damage_recieved} HP of damage.`);
+    this.send_msg_to_room(
+      `${this.get_name()} strikes ${opponent.get_name},`+
+      `dealing ${damage_recieved} HP of damage.`
+      );
+
+    //Check  & Handle death of the opponent.
+    if (opponent.props.health===0){
+      //Opponent has died
+      //Stop battle
+      this.props.is_fighting_with = null;   
+      
+      //Messages
+      this.send_chat_msg_to_client(`${opponent.props.name} is DEAD!`);
+      this.send_msg_to_room(`kills ${opponent.props.name}.`);
+      
+      opponent.do_death();
+    }    
+  }
+
+  //Inventory Manipulation Methods
+  //--------------------------------
+  
+  //Returns an array of objects: {id: string, location: string}
+  //Results will be ordered by holding->wearing->slots.
   get_all_items_on_body(){
-    //Returns an array of objects: {id: string, location: string}
-    //Results will be ordered by holding->wearing->slots.
+    
     let inv_arr = [];
 
     if (this.props.holding!==null){
@@ -386,6 +480,7 @@ class User {
   }
 
   //Handle Client Commands.
+  //-----------------------------
 
   move_cmd(direction){
     let current_room=   World.world.get_instance(this.props.container_id);
@@ -441,10 +536,10 @@ class User {
     this.send_msg_to_room(`enters from ${Utils.get_opposite_direction(direction)}.`);
   }
 
-  look_cmd(target=null){
-    //search for a target on the user's body or in the room.
-    //target can be an id, a subtype or a name.
-    //returns a string message.   
+  //search for a target on the user's body or in the room.
+  //target can be an id, a subtype or a name.
+  //returns a string message.   
+  look_cmd(target=null){    
     let room= World.world.get_instance(this.props.container_id);   
 
     if (target===null || 
@@ -475,8 +570,8 @@ class User {
     this.send_chat_msg_to_client(entity.get_look_string());
   }
 
-  get_cmd(target=null){
-    //Pick an item from the room, and place it in a slot.
+  //Pick an item from the room, and place it in a slot.
+  get_cmd(target=null){    
 
     if (target===null){   
       this.send_chat_msg_to_client(`What do you want to get?`);   
@@ -518,8 +613,8 @@ class User {
     this.send_msg_to_room(`gets ${entity.get_name()}`);
   }
 
-  drop_cmd(target=null){
-    //search for target on body and drop the target to the room.
+  //search for target on body and drop the target to the room.
+  drop_cmd(target=null){    
 
     if (target===null){      
       this.send_chat_msg_to_client(`What do you want to drop?`);
@@ -549,8 +644,8 @@ class User {
     this.send_msg_to_room(`drops ${entity.get_name}.`);    
   }
 
-  hold_cmd(target=null){
-    //Search for target on body and room, and hold it.
+  //Search for target on body and room, and hold it.
+  hold_cmd(target=null){    
     
     if (target===null){
       this.send_chat_msg_to_client(`What do you want to hold?`);      
@@ -604,8 +699,8 @@ class User {
     this.send_msg_to_room(`holds ${entity.get_name()}.`);
   }
 
-  wear_cmd(target=null){
-    //get an item from the slots or room, and wear it.
+  //get an item from the slots or room, and wear it.
+  wear_cmd(target=null){    
 
     if (target===null){
       this.send_chat_msg_to_client(`What do you want to wear?`);      
@@ -683,8 +778,8 @@ class User {
     this.send_msg_to_room(`wears ${entity.get_name()}`);
   }
 
-  remove_cmd(target=null){
-    //get a target from the wearing or holding slots and place it in the slots.
+  //get a target from the wearing or holding slots and place it in the slots.
+  remove_cmd(target=null){    
 
     if (target===null){  
       this.send_chat_msg_to_client(`What do you want to remove?`);    
@@ -725,8 +820,8 @@ class User {
     this.send_msg_to_room(`removes ${entity.get_name()}`); 
   }
 
-  kill_cmd(target=null){
-    //The user starts a fight with an NPC in the same room.
+  //The user starts a fight with an NPC in the same room.
+  kill_cmd(target=null){    
     
     if (target===null){
       this.send_chat_msg_to_client(`Who do you want to kill?`);      
@@ -761,9 +856,9 @@ class User {
     entity.props.is_fighting_with= this.id;
   }
 
-  consume_cmd(target=null){
-    //eat/drink food that's in the wear,hold or slots or room.
-    //Restore health.
+  //eat/drink food that's in the wear,hold or slots or room.
+  //Restore health.
+  consume_cmd(target=null){    
 
     if (target===null){  
       this.send_chat_msg_to_client(`What do you want to consume?`);    
@@ -816,6 +911,7 @@ class User {
     this.send_msg_to_room(`consumes ${entity.get_name()}`);    
   }
 
+  //Say something that will be heard by all entities in the room.
   say_cmd(target=null){
 
     if (target===null){    
@@ -828,9 +924,8 @@ class User {
     this.send_msg_to_room(`says: ${target}`);
   }
 
-  tell_cmd(username, content=null){
-
-    console.log(username, content);
+  //Say something to a specific user.
+  tell_cmd(username, content=null){    
 
     if (username===undefined){
       this.send_chat_msg_to_client(`Who do you want to talk to?`);
@@ -855,6 +950,7 @@ class User {
     user.get_msg(this.id, `tells you: ${content}`);
   }
 
+  //Emote something that will be seen by all the room.
   emote_cmd(target=null){
     if (target===null){    
       this.send_chat_msg_to_client(`What do you want to emote?`);  
@@ -864,99 +960,9 @@ class User {
     this.send_chat_msg_to_client(`You emote: ${target}`);
     this.send_msg_to_room(`${target}`);
   }
-
-  get_look_string(){
-    //Return a String message with what other see when they look at the user.
-
-    let msg = `<h1>${this.get_name()}</h1>` +
-              `<p>${this.props.description}</p>` +
-              `<p>Wearing: `;
-
-    let text = '';
-
-    for (const id of Object.values(this.props.wearing)){
-      if (id!==null){
-        let entity = World.world.get_instance(id);
-        text += `${entity.get_name()} `; 
-      }      
-    }
-    
-    if (text==='') text = 'Plain cloths.';
-    msg += text;
-    msg += `</p>`;
-
-    msg += `<p>Holding: `;
-    if (this.props.holding!==null){
-      let item = World.world.get_instance(this.props.holding);
-      msg += `${item.get_name()} `;
-    } else {
-      msg += "Nothing.";
-    }
-    msg += `</p>`;
-
-    return msg;
-  }  
-
-  do_death(){
-    //The user is dead. Drop items to the room, reset and respawn
-    let room = World.world.get_instance(this.props.container_id);
-
-    //Move the items to the room.
-    let inv_arr = this.get_all_items_on_body();
-    for (const obj of inv_arr){
-      //obj is of the form {id: string, location: string}
-      this.remove_item(obj.id, obj.location);
-      room.add_entity(obj.id);
-      let item = World.world.get_instance(obj.id);
-      item.set_container_id(room.id);
-    }
-
-    //Reset the user
-    room.remove_entity(this.id);
-    let spawn_room = World.world.get_instance(World.FIRST_ROOM_ID);
-    spawn_room.add_entity(this.id);
-    this.props.container_id=     World.FIRST_ROOM_ID;
-    this.props.is_fighting_with= null;
-    this.props.health = this.BASE_HEALTH;    
-
-    //Send messages
-    this.send_chat_msg_to_client(`You respawned, losing all your inventory.`);
-    this.send_msg_to_room(`${this.get_name()} respawns.`);
-  }
-
-  do_battle(){
-    //Perform a round of fighting with the NPC.
-    //Note: we're handling only the blows the user strikes the opponent,
-    //not blows recived.
-
-    let opponent = World.world.get_instance(this.props.is_fighting_with);
-    
-    //Do damage.
-    let damage_dealt=     this.calc_damage(); 
-    let damage_recieved=  opponent.recieve_damage(damage_dealt);
-
-    //Send messages
-    this.send_chat_msg_to_client(`You strike, dealing ${damage_recieved} HP of damage.`);
-    this.send_msg_to_room(
-      `${this.get_name()} strikes ${opponent.get_name},`+
-      `dealing ${damage_recieved} HP of damage.`
-      );
-
-    //Check  & Handle death of the opponent.
-    if (opponent.props.health===0){
-      //Opponent has died
-      //Stop battle
-      this.props.is_fighting_with = null;   
-      
-      //Messages
-      this.send_chat_msg_to_client(`${opponent.props.name} is DEAD!`);
-      this.send_msg_to_room(`kills ${opponent.props.name}.`);
-      
-      opponent.do_death();
-    }    
-  }
   
   //Handle Messages
+  //--------------------
 
   send_chat_msg_to_client(content){
     let message = {      
@@ -1499,72 +1505,3 @@ exports.Item=             Item;
 exports.User=             User;
 exports.Room=             Room;
 exports.NPC=              NPC;
-
-// switch(type){
-//   case ("Screwdriver"):
-//     this.props = {
-//       "name":           "A Screwdriver",
-//       "type":           type,
-//       "type_string":    "A Screwdriver",
-//       "description":    "A philips screwdriver.",        
-//       "container_id":   "0",
-//       "is_consumable":  false,
-//       "hp_restored":    null, //Num,
-//       "is_holdable":    true,
-//       "wear_slot":      null,
-//       "is_gettable":    true,
-//       "key_code":       null,
-//     }
-//     break;
-
-//   case ("Candy"):
-//     this.props = {
-//       "name":           "A Candy",
-//       "type":           type,
-//       "type_string":    "A Candy",
-//       "description":    "A sweet candy bar.",        
-//       "container_id":   "0",
-//       "is_consumable":  true,
-//       "hp_restored":    50,
-//       "is_holdable":    true,
-//       "wear_slot":      null,
-//       "is_gettable":    true,
-//       "key_code":       null,
-//     }
-//     break;
-
-//   case ("T-Shirt"):
-//     this.props = {
-//       "name":           "A T-Shirt",
-//       "type":           type,
-//       "type_string":    "A T-Shirt",
-//       "description":    "A plain red T-Shirt.",        
-//       "container_id":   "0",
-//       "is_consumable":  false,
-//       "hp_restored":    null,
-//       "is_holdable":    false,
-//       "wear_slot":      "Torso",
-//       "is_gettable":    true,
-//       "key_code":       null,
-//     }
-//     break;
-
-//   case ("Keycard"):
-//     this.props = {
-//       "name":           "A Keycard",
-//       "type":           type,
-//       "type_string":    "A Keycard",
-//       "description":    "A small rectangular plastic card.",        
-//       "container_id":   "0",
-//       "is_consumable":  false,
-//       "hp_restored":    null,
-//       "is_holdable":    true,
-//       "wear_slot":      null,
-//       "is_gettable":    true,
-//       "key_code":       "000000",
-//     }
-//     break;
-  
-//   default:
-//     console.error(`Item constructor: unknown type - ${type}`);
-// }
