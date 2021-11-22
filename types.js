@@ -217,6 +217,57 @@ const Types = {
       }
     }    
   },
+  Wheat_Paste: {
+    props: {
+      name:           "Wheat Paste",
+      type:           'Item',
+      subtype:        "Wheat Paste",
+      description:    "A squeezable tube, filled with a thick white paste.",        
+      container_id:   null,
+      is_consumable:  true,
+      hp_restored:    5,
+      is_holdable:    true,
+      wear_slot:      null,
+      is_gettable:    true,
+      key_code:       null,
+      expiration_counter: 0,
+      expiration_limit:   100, //or null
+    }
+  },
+  Water_Bottle: {
+    props: {
+      name:           "Water Bottle",
+      type:           'Item',
+      subtype:        "Water Bottle",
+      description:    "A small, single-use bottle of water.",        
+      container_id:   null,
+      is_consumable:  true,
+      hp_restored:    5,
+      is_holdable:    true,
+      wear_slot:      null,
+      is_gettable:    true,
+      key_code:       null,
+      expiration_counter: 0,
+      expiration_limit:   null, //or null
+    }
+  },
+  Bread: {
+    props: {
+      name:           "Bread",
+      type:           'Item',
+      subtype:        "Bread",
+      description:    "A round, smooth roll of bread.",        
+      container_id:   null,
+      is_consumable:  true,
+      hp_restored:    10,
+      is_holdable:    true,
+      wear_slot:      null,
+      is_gettable:    true,
+      key_code:       null,
+      expiration_counter: 0,
+      expiration_limit:   100, //or null
+    }
+  },
 }
 
 exports.Types = Types;

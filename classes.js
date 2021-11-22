@@ -1,6 +1,7 @@
 const Utils= require('./utils');
 const World= require('./world');
 const Types= require('./types');
+const Recpies= require('./recpies');
 
 class Room {
   constructor(props=null, id=null){
@@ -62,7 +63,7 @@ class Room {
     }    
   }
   
-  get_entities(){
+  get_all_items(){
     //Returns an array of objects, of the form: {id: string, location: "room"}
     let inv_arr = [];
     for (const id of this.props.entities){
@@ -70,7 +71,7 @@ class Room {
     }
     return inv_arr;
   }  
-
+  
   search_for_target(target){
     //Search the entities in the room for a given target.
     //Target can be name, usbtype or id.
@@ -232,6 +233,7 @@ class User {
 
       slots_size_limit: 10,
       is_fighting_with: null,//ID, String.
+      known_recipes:    ["Bread"],
     }
     
    //Overwrite props with saved props.         
@@ -341,7 +343,7 @@ class User {
     let room = World.world.get_instance(this.props.container_id);
 
     //Move the items to the room.
-    let inv_arr = this.get_all_items_on_body();
+    let inv_arr = this.get_all_items();
     for (const obj of inv_arr){
       //obj is of the form {id: string, location: string}
       this.remove_item(obj.id, obj.location);
@@ -394,12 +396,33 @@ class User {
     }    
   }
 
+  get_recipe(target){
+    //Check if recipe exists
+    let recipe = Recpies.recipes[target];
+
+    if (recipe===undefined){
+      //No such recipe exists
+      return undefined;
+    }
+
+    //Recipe exists
+    
+    if (!this.props.known_recipes.includes(target)){
+      //The user does not know this recipe yet.
+      return null;
+    }
+
+    //The user knows the recipe.    
+    return recipe;
+
+  }
+
   //Inventory Manipulation Methods
   //--------------------------------
   
   //Returns an array of objects: {id: string, location: string}
   //Results will be ordered by holding->wearing->slots.
-  get_all_items_on_body(){
+  get_all_items(){
     
     let inv_arr = [];
 
@@ -436,7 +459,7 @@ class User {
   search_for_target(target){
   
     //Get all entities on the user's body and in the room.
-    let inv_arr = this.get_all_items_on_body();
+    let inv_arr = this.get_all_items();
 
     //Search for the target.
     for (const obj of inv_arr){
@@ -497,7 +520,7 @@ class User {
     //Check if locked, and if true - check for key on the user's body.
     if (next_room_obj.code!==null){
       //This door requires a key.
-      let inv_arr = this.get_all_items_on_body();
+      let inv_arr = this.get_all_items();
       
       //Check for a key
       let key_exists = false;
@@ -960,6 +983,49 @@ class User {
     this.send_chat_msg_to_client(`You emote: ${target}`);
     this.send_msg_to_room(`${target}`);
   }
+
+  create_cmd(target=null){
+    if (target===null){    
+      this.send_chat_msg_to_client(`What do you want to create?`);  
+      return;
+    }
+
+    //Target is not null.
+    let recipe = this.get_recipe(target);
+    
+    if (recipe===undefined){
+      this.send_chat_msg_to_client(`No such recipe exists.`);  
+      return;
+    } else if (recipe===null){
+      this.send_chat_msg_to_client(`You don't know how to create it, yet.`);  
+      return;
+    }
+
+    //The user knows how to make the target.
+    //recipe = [{ingrediant: string, amount: num},{...}] 
+
+    let ingrediants = {}; //"bread": {required: num, found: num}
+    for (const obj of recipe){ //Init the ingrediants object.
+      ingrediants[obj.ingrediant] = {required_amount: obj.amount, found_amount: 0};
+      
+    }
+    
+    //Get all items on the user and in the room.
+    let inv_arr=  this.get_all_items();
+    let room=     World.world.get_instance(this.props.container_id);
+    inv_arr=      inv_arr.concat(room.get_all_items());
+    
+    //Check if the ingrediants exists in the room or on the user.
+    //If an ingrediant was found, store it's information in a temp array.
+    let ingrediants_arr = [];
+    for (const obj of inv_arr){
+      //obj: {id, location}
+      let item = World.world.get_instance(obj.id);
+      
+    }
+
+
+  }
   
   //Handle Messages
   //--------------------
@@ -1061,7 +1127,7 @@ class User {
       props: this.props
     }
 
-    let inv_arr = this.get_all_items_on_body();        
+    let inv_arr = this.get_all_items();        
     for (const obj of inv_arr){
       //obj: {id: string, location: string}
       let entity = World.world.get_instance(obj.id);
@@ -1129,7 +1195,7 @@ class Item {
 
     if (container instanceof User){
       //Find the location of the item on the user's body.
-      let inv_arr = container.get_all_items_on_body();
+      let inv_arr = container.get_all_items();
       for (const obj of inv_arr){
         //{id, location}
         if (this.id===obj.id){
@@ -1196,7 +1262,7 @@ class Item {
     let container=     World.world.get_instance(this.props.container_id);
 
     if (container instanceof Room){
-      let ids_arr=  container.get_entities();
+      let ids_arr=  container.get_all_items();
       //array of objects, of the form: {id: string, location: "room"}
 
       for (const obj of ids_arr){

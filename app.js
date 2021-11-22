@@ -385,6 +385,11 @@ class Game_Controller {
         user.tell_cmd(username, content);
         break;
 
+      case "create":
+      case "cr":
+        user.create_cmd(target);
+        break;
+
       default:
         user.send_chat_msg_to_client(`Unknown command: ${text}`);        
     }  
@@ -421,7 +426,7 @@ class Game_Controller {
     let user=       new Classes.User(user_data.props, socket, user_data.id);
 
     //Spawn the items the users carries
-    let inv_arr = user.get_all_items_on_body();
+    let inv_arr = user.get_all_items();
 
     for (const obj of inv_arr){
       let props = World.world.users_db.items[obj.id];
