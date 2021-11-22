@@ -5,8 +5,8 @@
       "type":     "Room",
       "subtype":  "Room",
       "spawned_entities": [
-        {"type": "Item", "subtype": "Wheat Paste", "amount": 1},
-        {"type": "Item", "subtype": "Water Bottle", "amount": 1}
+        {"type": "Item", "subtype": "Wheat_Paste", "amount": 1},
+        {"type": "Item", "subtype": "Water_Bottle", "amount": 1}
       ],
       "description": 
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner.",

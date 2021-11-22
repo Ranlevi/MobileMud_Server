@@ -221,7 +221,7 @@ const Types = {
     props: {
       name:           "Wheat Paste",
       type:           'Item',
-      subtype:        "Wheat Paste",
+      subtype:        "Wheat_Paste",
       description:    "A squeezable tube, filled with a thick white paste.",        
       container_id:   null,
       is_consumable:  true,
@@ -238,7 +238,7 @@ const Types = {
     props: {
       name:           "Water Bottle",
       type:           'Item',
-      subtype:        "Water Bottle",
+      subtype:        "Water_Bottle",
       description:    "A small, single-use bottle of water.",        
       container_id:   null,
       is_consumable:  true,

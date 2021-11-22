@@ -24,6 +24,29 @@ Game Philosophy:
     - Typography for the text.
   This will not be random, but will have some intenral logic.
 
+- The game should have:
+  - a lot of content, for players who want discoveries and exploration.
+  - holodecks for creators.
+  - 'follow' function for social players.
+  - powerful items for players who love the payoffs and grind.
+
+- Holodeck:
+  - Each player has a private holodeck. 
+  - Other users can visit it if allowed.
+  - Users should be able to create anything. 
+  - What is anything?
+    - Items: with all the props.
+    - NPCs: with custom statemachine.
+    - Rooms: with custome props.
+  - How to create? 
+    Maybe a dedicate interface outside of the game, that creates an entity
+    that can be 'called' in the game.
+    Or an ingame mechanism? no, that will make the game more complicated.
+
+    Assume outside interface. 
+    Items can be imported as JSON.
+    NPCs need actions. We can use many atomic actions for composition.
+
 
 
 Economics:

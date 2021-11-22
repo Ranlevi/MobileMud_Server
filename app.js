@@ -9,6 +9,8 @@ TODO:
 in client, health changes color when changed
 create_cmd i/f
 add disconnect btn
+add report abuse to user's cmds
+State machines: if waiting for player response, repeat the state when user returns to room.
 save user creditials in the browser
 https://developers.google.com/web/fundamentals/security/credential-management/save-forms
 https://web.dev/sign-in-form-best-practices/

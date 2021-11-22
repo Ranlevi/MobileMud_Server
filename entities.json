@@ -1,0 +1,191 @@
+{
+  "Keycard": {
+    "props": {
+      "name":               "A Keycard",
+      "type":               "Item",
+      "subtype":            "Keycard",
+      "description":        "A small rectangular plastic card.",        
+      "container_id":       null,
+      "is_consumable":      false,
+      "hp_restored":        null,
+      "is_holdable":        true,
+      "wear_slot":          null,
+      "is_gettable":        true,
+      "key_code":           "00000000",
+      "expiration_counter": 0,
+      "expiration_limit":   100
+    }
+  },
+  "Larry_Clarke": {
+    "props": {
+      "name":             "Larry Clarke",  
+      "type":             "NPC",
+      "subtype":          "Larry_Clarke",      
+      "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
+      "container_id":     null,      
+      "wearing": {
+        "head":           null,
+        "torso":          null,
+        "legs":           null,
+        "feet":           null
+      },
+      "holding":          {
+        "hands":          null
+      },
+      "slots":            [],
+      "slots_size_limit": 10,
+      "is_fighting_with": null,
+      "state_variables":  {},
+      "is_killable":      false
+    },
+    "stm_definition": {
+      "initialState": "Idle",
+
+      "Idle": {
+        "actions": null,
+        "transitions": {          
+          "user_enters_room": {
+            "parameters": null,
+            "next_state": "Greeting_2"   
+          }
+        }
+      },
+
+      "Greeting_1": {
+        "actions": [
+          { "function": "emote", 
+            "parameters": {
+              "content": "raises his head from the screen. His penetrating gaze scans your face and body."
+            }
+          },
+          { "function": "say", 
+            "parameters": {
+              "content": "So, **USERNAME**, you survived the Big Sleep. Not everyone was so lucky."
+            }
+          },
+          { "function": "say", 
+            "parameters": {
+              "content": "I'm guessing you're still having memory problems. That will go away in time...assuming there's no   permenent brain damage, of course."
+            }
+          },
+          {
+            "function": "text response hint",
+            "parameters": {
+              "content": "Say Where am I?"
+            }
+          }
+        ],
+        "transitions": {
+          "user speaks" : {
+            "parameters": { "content": "where am i"},
+            "next_state": "Greeting_2"
+          }
+        }
+      },
+        
+      "Greeting_2": {
+        "actions": [
+          { "function": "say", 
+            "parameters": {
+              "content": "You're on Planet Nine. You've been asleep for almost twenty years: 17 years of space voyage, and 3 more years since we arrived to our Solar System's ninth planet and erected our very first colony."
+            }
+          },
+          { "function": "emote",
+            "parameters": {
+              "content": "scratches his head."
+            }
+          },
+          { "function": "say",
+            "parameters": {
+              "content": "You have a lot to catch up. We discovered some very...unusual things on this planet. But you're probably still tired and hungry, so this might not be the best time for lengthy explanations."
+            }
+          },
+          { "function":"text response hint",
+            "parameters": {
+              "content": "Say what do I do now?"
+            }
+          }
+        ],
+        "transitions": {
+          "user speaks" : {
+            "parameters": {"content": "what do i do now"},
+            "next_state": "Greeting_3"
+          }
+        }
+      },
+       
+      "Greeting_3": {
+        "actions": [
+          { "function": "emote",
+            "parameters": {
+              "content": "points towards the door."
+            }
+          },
+          { "function": "say",
+            "parameters": {
+              "content": "To the North you'll find a room marked as 'Storage': take what you need from it, and than head East to the tunnel that leads to the colony. Find the Mayor and tell her that you just woke up. She'll set you up."
+            }
+          },
+          { "function": "emote",
+            "parameters": {
+              "content": "points to a keycard laying on the table."
+            }
+          },
+          { "function": "say",
+            "parameters": {
+              "content": "Take this with you: you'll need it to open the AirLock."
+            }
+          },
+          { "function": "say",
+            "parameters": {
+              "content": "Ah, and one more thing: if you a sort of a...emmm...spider-thingy crawling around the ship, don't freak out. Her name is Lamar, and unlike some of her kind, she's well behaved."
+            }
+          },
+          { "function": "say",
+            "parameters": {
+              "content": "`That's it for now. Good Luck, **USERNAME**."
+            }
+          }
+        ],
+        "transitions": {
+          "tick": {
+            "parameters": null,
+            "next_state": "Done"
+          }
+        }
+      },
+
+      "Done": {
+        "actions": [],
+        "transitions": {
+          "user_enters_room": {
+            "parameters": null,
+            "next_state": "Hasten Player"   
+          }
+        }        
+      }, 
+
+      "Hasten Player": {
+        "actions": [
+          { "function": "emote", 
+            "parameters": {
+              "content": "looks at you."
+            }
+          },
+          { "function": "say", 
+            "parameters": {
+              "content": "No time to waste, **USERNAME**, the colony needs your help."
+            }
+          }
+        ],
+        "transition": {
+          "tick": {
+            "parameters": null,
+            "next_state": "Done"
+          }
+        }
+      }
+        
+    }
+  }
+}

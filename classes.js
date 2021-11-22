@@ -42,7 +42,7 @@ class Room {
     World.world.add_to_world(this);
 
     //Spawn the entities in the room.
-    this.do_spawn(true);
+    this.do_spawn();
   }
     
   //Inventory Manipulation Methods
@@ -135,8 +135,10 @@ class Room {
     return msg;
   }
 
-  do_spawn(is_initial_spawn=false){
+  do_spawn(){
 
+    //continue here
+/*
     this.spawn_counter += 1;
 
     if (this.spawn_counter===this.SPAWN_DELAY || is_initial_spawn){
@@ -191,6 +193,7 @@ class Room {
         }
       }
     }
+    */
   }
 
   do_tick(){
@@ -396,26 +399,26 @@ class User {
     }    
   }
 
-  get_recipe(target){
-    //Check if recipe exists
-    let recipe = Recpies.recipes[target];
+  // get_recipe(target){
+  //   //Check if recipe exists
+  //   let recipe = Recpies.recipes[target];
 
-    if (recipe===undefined){
-      //No such recipe exists
-      return undefined;
-    }
+  //   if (recipe===undefined){
+  //     //No such recipe exists
+  //     return undefined;
+  //   }
 
-    //Recipe exists
+  //   //Recipe exists
     
-    if (!this.props.known_recipes.includes(target)){
-      //The user does not know this recipe yet.
-      return null;
-    }
+  //   if (!this.props.known_recipes.includes(target)){
+  //     //The user does not know this recipe yet.
+  //     return null;
+  //   }
 
-    //The user knows the recipe.    
-    return recipe;
+  //   //The user knows the recipe.    
+  //   return recipe;
 
-  }
+  // }
 
   //Inventory Manipulation Methods
   //--------------------------------
@@ -985,11 +988,13 @@ class User {
   }
 
   create_cmd(target=null){
+
     if (target===null){    
       this.send_chat_msg_to_client(`What do you want to create?`);  
       return;
     }
 
+    /*
     //Target is not null.
     let recipe = this.get_recipe(target);
     
@@ -1023,7 +1028,7 @@ class User {
       let item = World.world.get_instance(obj.id);
       
     }
-
+    */
 
   }
   
@@ -1094,7 +1099,7 @@ class User {
 
   send_msg_to_room(content){
     let room=     World.world.get_instance(this.props.container_id);
-    let ids_arr=  room.get_entities();
+    let ids_arr=  room.get_all_items();
 
     for (const obj of ids_arr){
       if (obj.id!==this.id){ //Don't send to yourself.
@@ -1552,7 +1557,7 @@ class NPC {
     ///Send a message to all entities in the room.
     let container=  World.world.get_instance(this.props.container_id);
     
-    let ids_arr=  container.get_entities();
+    let ids_arr=  container.get_all_items();
     //array of objects, of the form: {id: string, location: "room"}
 
     for (const obj of ids_arr){
