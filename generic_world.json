@@ -5,8 +5,8 @@
       "type":     "Room",
       "subtype":  "Room",
       "spawned_entities": [
-        {"type": "Item", "subtype": "Wheat_Paste", "amount": 1},
-        {"type": "Item", "subtype": "Water_Bottle", "amount": 1}
+        {"type": "Item", "subtype": "wheat paste", "amount": 1},
+        {"type": "Item", "subtype": "water bottle", "amount": 1}
       ],
       "description": 
         "You open your eyes slowly, fighting against your body's will to go back to sleep. You are laying in what seems like a hospital bed - one of several identical beds lined up against the room's wall. There's a plain, four legged table standing in one of the room's corner.",
@@ -48,8 +48,8 @@
       "type":     "Room",
       "subtype":  "Room",
       "spawned_entities": [
-        {"type": "Item", "subtype": "Keycard",       "amount": 1},
-        {"type": "NPC",  "subtype": "Larry_Clarke",  "amount": 1}],
+        {"type": "Item", "subtype": "keycard",       "amount": 1},
+        {"type": "NPC",  "subtype": "larry clarke",  "amount": 1}],
       "description": 
         "You enter a compact office-like room. A tall, thin man sits behind a table. When you walk in, he raises his eyes from the computer screen in front of him.",
       "entities": [],
@@ -90,7 +90,7 @@
       "type":     "Room", 
       "subtype":  "Room",
       "spawned_entities": [
-        {"type": "NPC", "subtype": "Lamar", "amount": 1}
+        {"type": "NPC", "subtype": "lamar", "amount": 1}
       ],
       "description": 
         "This small room seperates the living quarters area of the ship, from its machinary and engines. A sign on the wall reads: `Qualified Personal Only.`",

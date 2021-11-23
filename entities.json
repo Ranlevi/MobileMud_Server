@@ -1,9 +1,9 @@
 {
-  "Keycard": {
+  "keycard": {
     "props": {
       "name":               "A Keycard",
       "type":               "Item",
-      "subtype":            "Keycard",
+      "subtype":            "keycard",
       "description":        "A small rectangular plastic card.",        
       "container_id":       null,
       "is_consumable":      false,
@@ -16,11 +16,11 @@
       "expiration_limit":   100
     }
   },
-  "Larry_Clarke": {
+  "larry clarke": {
     "props": {
       "name":             "Larry Clarke",  
       "type":             "NPC",
-      "subtype":          "Larry_Clarke",      
+      "subtype":          "larry clarke",      
       "description":      "A tall, thin man. His expression is blank and unreadable, but his dark eyes convey a sense of furious determinism.",      
       "container_id":     null,      
       "wearing": {
@@ -188,11 +188,11 @@
         
     }
   },
-  "Lamar": {
+  "lamar": {
     "props": {
       "name":             "Lamar",  
       "type":             "NPC",   
-      "subtype":          "Lamar", 
+      "subtype":          "lamar", 
       "description":      "It is a mechanical spider-like creature: 30cm tall, with 6 short legs. It is clearly made out of several types of metals, yet to call it 'a robot' wouldn't do it justice: It's various parts are tiny and intricate, not so much connecting with each other than *flowing* into one another. It is as if a clockwork mechanism came to life...You see no visible eyes on the thing, yet Lamar is clearly aware of your presence.",      
       "container_id":     null,      
       "wearing": null,
@@ -205,11 +205,11 @@
     },
     "stm_definition": null    
   },
-  "Wheat_Paste": {
+  "wheat paste": {
     "props": {
       "name":           "Wheat Paste",
       "type":           "Item",
-      "subtype":        "Wheat_Paste",
+      "subtype":        "wheat paste",
       "description":    "A squeezable tube, filled with a thick white paste.",        
       "container_id":   null,
       "is_consumable":  true,
@@ -222,11 +222,11 @@
       "expiration_limit":   100
     }
   },
-  "Water_Bottle": {
+  "water bottle": {
     "props": {
-      "name":           "Water Bottle",
+      "name":           "A Water Bottle",
       "type":           "Item",
-      "subtype":        "Water_Bottle",
+      "subtype":        "water bottle",
       "description":    "A small, single-use bottle of water.",        
       "container_id":   null,
       "is_consumable":  true,
@@ -239,11 +239,11 @@
       "expiration_limit":   null
     }
   },
-  "Bread": {
+  "bread": {
     "props": {
       "name":           "Bread",
       "type":           "Item",
-      "subtype":        "Bread",
+      "subtype":        "bread",
       "description":    "A round, smooth roll of bread.",        
       "container_id":   null,
       "is_consumable":  true,

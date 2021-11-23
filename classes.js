@@ -982,11 +982,41 @@ class User {
   }
 
   create_cmd(target=null){
-
+    
     if (target===null){    
       this.send_chat_msg_to_client(`What do you want to create?`);  
       return;
     }
+
+    let entity_definition = World.world.entities_db[target];
+    
+    if (entity_definition===undefined){
+      this.send_chat_msg_to_client(`That's not something you can create.`);  
+      return;
+    }
+
+    //Target is creatable. Spawn it.
+    let props = {
+      container_id: this.props.container_id
+    }
+
+    let entity;
+    
+    switch (entity_definition.props.type){
+      case("Item"):
+        entity = new Item(entity_definition.props.subtype, props);
+        break;
+
+      case('NPC'):
+        entity = new NPC(entity_definition.props.subtype, props);                  
+        break;                
+
+      default:
+        console.error(`classes.js->User.create_cmd: unknown type ${entity_definition.props.type}`);
+    }              
+        
+    entity.send_msg_to_room(`has spawned here.`);
+
 
     /*
     //Target is not null.
