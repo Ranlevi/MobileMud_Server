@@ -142,8 +142,8 @@ class Game_Controller {
   //Loads databases, starts the game loop.
   init_game(){    
     this.load_users_db();
-    this.load_world();  
     this.load_entities_db();
+    this.load_world();      
     this.game_loop();      
   }
 
@@ -177,24 +177,7 @@ class Game_Controller {
       let parsed_info = JSON.parse(fs.readFileSync(path));
       
       for (const [id, data] of Object.entries(parsed_info)){   
-        
-        switch (data.props.type){
-          case("Item"):
-            new Classes.Item(data.props.subtype, data.props, id);
-            break;
-
-          case('NPC'):
-            new Classes.NPC(data.props.subtype, data.props, id);
-            break;
-
-          case("Room"):
-            new Classes.Room(data.props, id);
-            break;
-
-          default:
-            console.error(`app.js->load_world: unknown type ${data.props.type}`);
-        }
-        
+        new Classes.Room(data.props, id);        
       }     
               
     } else {
@@ -205,7 +188,7 @@ class Game_Controller {
 
   load_entities_db(){
     if (fs.existsSync(`./entities.json`)){      
-      World.world.entities_db = JSON.parse(fs.readFileSync("./entities.json"));              
+      World.world.entities_db = JSON.parse(fs.readFileSync("./entities.json"));      
     } else {
       console.error(`app.load_entities -> entities.js does not exist.`);
     }

@@ -110,8 +110,7 @@ class StateMachine {
     const machine = {
       current_state: {}, //entitiy_id: current state
 
-      transition(current_state, event){
-
+      transition(current_state, event){        
         const current_state_definition= stm_definition[current_state];
         const event_defenition=         current_state_definition.transitions[event.type];    
         
@@ -121,7 +120,7 @@ class StateMachine {
           return;
         }
 
-        const next_state=null;
+        let next_state=null;
 
         switch(event.type){
           case ("user_enters_room"):
@@ -136,6 +135,10 @@ class StateMachine {
             }
             break;
 
+          case ("tick"):
+            next_state = event_defenition.next_state;
+            break;
+
           default:
             return;
         }
@@ -144,19 +147,31 @@ class StateMachine {
         
         //Perform the actions.
         let owner=  World.world.get_instance(owner_id);
-        let entity= World.world.get_instance(sender_id);
+        let entity= World.world.get_instance(event.sender_id);
 
         for (const action_obj of next_state_definition.actions){
-          if (action_obj["function"]==="emote"){
-            owner.emote_cmd(action_obj.parameters.content);
-          }          
+
+          switch(action_obj["function"]){
+            case ("emote"):
+              owner.emote_cmd(action_obj.parameters.content);
+              break;
+              
+            case ("say"):
+              owner.say_cmd(action_obj.parameters.content);
+              break;  
+              
+            case ("text response hint"):
+              let html =  `<p><span class="pn_link" data-element="pn_cmd" `+
+                          `data-actions="${action_obj.parameters.content}"`+
+                          `>${action_obj.parameters.content}</span></p>`;
+              entity.send_chat_msg_to_client(html);
+              break;
+          }
         }
 
-        // next_state_definition.action(owner_id, sender_id, params_obj);        
-
         //return the next state.
-        machine.current_state[sender_id] = next_state;
-        return machine.current_state[sender_id];
+        machine.current_state[event.sender_id] = next_state;
+        return machine.current_state[event.sender_id];
       }      
     }
     
@@ -168,24 +183,27 @@ class StateMachine {
   //This method get's an event and transitions the STM for the specified user.
   recive_event(event){
     
-    if (this.machine.current_state[sender_id]===undefined){
-      this.machine.current_state[sender_id] = this.initial_state;
+    if (this.machine.current_state[event.sender_id]===undefined){
+      this.machine.current_state[event.sender_id] = this.initial_state;
     }
 
-    let current_state = this.machine.current_state[sender_id];
+    let current_state = this.machine.current_state[event.sender_id];
     //Now we have the current state for the specific entity.    
     this.machine.transition(current_state, event);
   }
   
-  //A tick is a sort of an event that can triggerthe state machine.
-  do_tick(owner_id){
+  //A tick is a sort of an event that can trigger the state machine.
+  do_tick(){
 
-    if (this.machine.current_state[owner_id]===undefined){
-      this.machine.current_state[owner_id] = this.initial_state;
-    }
-    
-    for (const id of Object.keys(this.machine.current_state)){      
-      this.recive_event(id, "tick");
+    for (const id of Object.keys(this.machine.current_state)){   
+      
+      let event = {
+        type:       "tick",
+        content:    null,
+        sender_id:  id
+      }
+
+      this.recive_event(event);
     }
 
   }

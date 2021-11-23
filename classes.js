@@ -42,7 +42,7 @@ class Room {
     World.world.add_to_world(this);
 
     //Spawn the entities in the room.
-    this.do_spawn();
+    this.do_spawn(true);
   }
     
   //Inventory Manipulation Methods
@@ -135,17 +135,13 @@ class Room {
     return msg;
   }
 
-  do_spawn(){
+  do_spawn(is_init_spawn=false){
 
-    
-/*
     this.spawn_counter += 1;
 
-    if (this.spawn_counter===this.SPAWN_DELAY || is_initial_spawn){
+    if (this.spawn_counter===this.SPAWN_DELAY || is_init_spawn){
 
-      if (!is_initial_spawn){
-        this.spawn_counter = 0;
-      }
+      this.spawn_counter = 0;
 
       if (this.props.spawned_entities!==null){
         
@@ -189,11 +185,9 @@ class Room {
               entity.send_msg_to_room(`has spawned here.`);
             }
           }
-            
         }
       }
     }
-    */
   }
 
   do_tick(){
@@ -1293,9 +1287,14 @@ class NPC {
 
     //Load the subtype
     // let subtype_data=      Types.Types[subtype];
-    let subtype_data=      World.world.entities_db[subtype];
+    let subtype_data=      World.world.entities_db[subtype];    
     this.props=           Utils.deepCopyFunction(subtype_data.props);
-    this.state_machine= new Utils.StateMachine(this.id, subtype_data.stm_definition);
+
+    this.state_machine = null;
+
+    if (subtype_data.stm_definition!==null){
+      this.state_machine= new Utils.StateMachine(this.id, subtype_data.stm_definition);
+    }
         
     // {//Mandatory props for every NPC
     //   "name":             "An NPC",
@@ -1446,7 +1445,11 @@ class NPC {
   }  
 
   do_tick(){
-    this.state_machine.do_tick(this.id);
+
+    if (this.state_machine!==null){
+      this.state_machine.do_tick();
+    }
+    
   }
 
   do_death(){
@@ -1521,21 +1524,23 @@ class NPC {
   
   get_msg(sender_id, msg){
 
-    let event = {
-      type:       null,
-      content:    null,
-      sender_id:  sender_id
-    };
-
-    if (msg.includes('enters from')){
-      event.type = "user_enters_room";
-    } else if (msg.includes('says')){
-        // event = msg;
-        event.type = "user speaks";
-        event.content = msg;
-    }
-
-    this.state_machine.recive_event(event);    
+    if (this.state_machine!==null){
+      let event = {
+        type:       null,
+        content:    null,
+        sender_id:  sender_id
+      };
+  
+      if (msg.includes('enters from')){
+        event.type = "user_enters_room";
+      } else if (msg.includes('says')){
+          // event = msg;
+          event.type = "user speaks";
+          event.content = msg;
+      }
+  
+      this.state_machine.recive_event(event);    
+    }    
   }
 
   say_cmd(msg){

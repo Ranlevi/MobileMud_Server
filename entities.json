@@ -46,7 +46,7 @@
         "transitions": {          
           "user_enters_room": {
             "parameters": null,
-            "next_state": "Greeting_2"   
+            "next_state": "Greeting_1"   
           }
         }
       },
@@ -60,7 +60,7 @@
           },
           { "function": "say", 
             "parameters": {
-              "content": "So, **USERNAME**, you survived the Big Sleep. Not everyone was so lucky."
+              "content": "So, you survived the Big Sleep. Not everyone was so lucky."
             }
           },
           { "function": "say", 
@@ -143,7 +143,7 @@
           },
           { "function": "say",
             "parameters": {
-              "content": "`That's it for now. Good Luck, **USERNAME**."
+              "content": "That's it for now. Good Luck."
             }
           }
         ],
@@ -174,11 +174,11 @@
           },
           { "function": "say", 
             "parameters": {
-              "content": "No time to waste, **USERNAME**, the colony needs your help."
+              "content": "No time to waste. the colony needs your help."
             }
           }
         ],
-        "transition": {
+        "transitions": {
           "tick": {
             "parameters": null,
             "next_state": "Done"
