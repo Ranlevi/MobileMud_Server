@@ -10,7 +10,8 @@ class World {
     this.users_db = {
       users: {}, //username: {id:, props:}
       items: {}  //id: props
-    }
+    },
+    this.entities_db = null;
   }
 
   get_instance(instance_id){

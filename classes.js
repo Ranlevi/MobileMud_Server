@@ -137,7 +137,7 @@ class Room {
 
   do_spawn(){
 
-    //continue here
+    
 /*
     this.spawn_counter += 1;
 
@@ -1159,7 +1159,8 @@ class Item {
     this.props= {};
 
     //Set default porps according to subtype.
-    let subtype_data=  Types.Types[subtype];    
+    // let subtype_data=  Types.Types[subtype];    
+    let subtype_data=  World.world.entities_db[subtype];    
     this.props=     Utils.deepCopyFunction(subtype_data.props);
 
     //Overwrite the default props with the saved ones.
@@ -1291,8 +1292,9 @@ class NPC {
     this.id= (id===null)? Utils.id_generator.get_new_id() : id;
 
     //Load the subtype
-    let subtype_data=      Types.Types[subtype];
-    this.props=         Utils.deepCopyFunction(subtype_data.props);
+    // let subtype_data=      Types.Types[subtype];
+    let subtype_data=      World.world.entities_db[subtype];
+    this.props=           Utils.deepCopyFunction(subtype_data.props);
     this.state_machine= new Utils.StateMachine(this.id, subtype_data.stm_definition);
         
     // {//Mandatory props for every NPC
@@ -1519,14 +1521,21 @@ class NPC {
   
   get_msg(sender_id, msg){
 
-    let event;
+    let event = {
+      type:       null,
+      content:    null,
+      sender_id:  sender_id
+    };
+
     if (msg.includes('enters from')){
-      event = "user_enters_room";
+      event.type = "user_enters_room";
     } else if (msg.includes('says')){
-        event = msg;
+        // event = msg;
+        event.type = "user speaks";
+        event.content = msg;
     }
 
-    this.state_machine.recive_event(sender_id, event);    
+    this.state_machine.recive_event(event);    
   }
 
   say_cmd(msg){

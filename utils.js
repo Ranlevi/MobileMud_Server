@@ -105,24 +105,54 @@ class StateMachine {
   }
 
   //Create an instance of a state machine, according to definition
-  //given in the Types.js file.
+  
   createMachine(owner_id, stm_definition){
     const machine = {
-      current_state: {},
+      current_state: {}, //entitiy_id: current state
 
-      transition(current_state, sender_id, event, params_obj){        
-        const currentStateDefinition= stm_definition[current_state];
-        const next_state=             currentStateDefinition.transitions[event];    
+      transition(current_state, event){
+
+        const current_state_definition= stm_definition[current_state];
+        const event_defenition=         current_state_definition.transitions[event.type];    
         
-        if (next_state===undefined){
-          //If the given event does not trigger a transition, return early.
+        //Check if the event triggered a transition to new state.
+        //If the given event does not trigger a transition, return early.
+        if (event_defenition===undefined){          
           return;
+        }
+
+        const next_state=null;
+
+        switch(event.type){
+          case ("user_enters_room"):
+            next_state = event_defenition.next_state;
+            break;
+
+          case ("user speaks"):
+            if (event.content.toLowerCase().includes(event_defenition.parameters.content)){
+              next_state = event_defenition.next_state;
+            } else {
+              return;
+            }
+            break;
+
+          default:
+            return;
         }
 
         const next_state_definition = stm_definition[next_state];
         
-        //Perform the actions.        
-        next_state_definition.action(owner_id, sender_id, params_obj);        
+        //Perform the actions.
+        let owner=  World.world.get_instance(owner_id);
+        let entity= World.world.get_instance(sender_id);
+
+        for (const action_obj of next_state_definition.actions){
+          if (action_obj["function"]==="emote"){
+            owner.emote_cmd(action_obj.parameters.content);
+          }          
+        }
+
+        // next_state_definition.action(owner_id, sender_id, params_obj);        
 
         //return the next state.
         machine.current_state[sender_id] = next_state;
@@ -136,14 +166,15 @@ class StateMachine {
   //A current state is tied to a given sender_id, so that
   //the NPC can have multiple interactrions with multiple users.
   //This method get's an event and transitions the STM for the specified user.
-  recive_event(sender_id, event, params_obj=null){
+  recive_event(event){
     
     if (this.machine.current_state[sender_id]===undefined){
       this.machine.current_state[sender_id] = this.initial_state;
     }
 
+    let current_state = this.machine.current_state[sender_id];
     //Now we have the current state for the specific entity.    
-    this.machine.transition(this.machine.current_state[sender_id], sender_id, event, params_obj);
+    this.machine.transition(current_state, event);
   }
   
   //A tick is a sort of an event that can triggerthe state machine.
@@ -160,6 +191,74 @@ class StateMachine {
   }
    
 }
+
+
+
+
+// class StateMachine {
+  
+//   constructor(owner_id, stm_definition){
+//     this.owner_id=      owner_id;
+//     this.initial_state= stm_definition.initialState;
+//     this.machine=       this.createMachine(owner_id, stm_definition);    
+//   }
+
+//   //Create an instance of a state machine, according to definition
+//   //given in the Types.js file.
+//   createMachine(owner_id, stm_definition){
+//     const machine = {
+//       current_state: {},
+
+//       transition(current_state, sender_id, event, params_obj){        
+//         const currentStateDefinition= stm_definition[current_state];
+//         const next_state=             currentStateDefinition.transitions[event];    
+        
+//         if (next_state===undefined){
+//           //If the given event does not trigger a transition, return early.
+//           return;
+//         }
+
+//         const next_state_definition = stm_definition[next_state];
+        
+//         //Perform the actions.        
+//         next_state_definition.action(owner_id, sender_id, params_obj);        
+
+//         //return the next state.
+//         machine.current_state[sender_id] = next_state;
+//         return machine.current_state[sender_id];
+//       }      
+//     }
+    
+//     return machine;
+//   }
+
+//   //A current state is tied to a given sender_id, so that
+//   //the NPC can have multiple interactrions with multiple users.
+//   //This method get's an event and transitions the STM for the specified user.
+//   recive_event(sender_id, event, params_obj=null){
+    
+//     if (this.machine.current_state[sender_id]===undefined){
+//       this.machine.current_state[sender_id] = this.initial_state;
+//     }
+
+//     //Now we have the current state for the specific entity.    
+//     this.machine.transition(this.machine.current_state[sender_id], sender_id, event, params_obj);
+//   }
+  
+//   //A tick is a sort of an event that can triggerthe state machine.
+//   do_tick(owner_id){
+
+//     if (this.machine.current_state[owner_id]===undefined){
+//       this.machine.current_state[owner_id] = this.initial_state;
+//     }
+    
+//     for (const id of Object.keys(this.machine.current_state)){      
+//       this.recive_event(id, "tick");
+//     }
+
+//   }
+   
+// }
     
 exports.id_generator=           id_generator_instance;
 exports.get_opposite_direction= get_opposite_direction;

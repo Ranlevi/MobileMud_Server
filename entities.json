@@ -187,5 +187,73 @@
       }
         
     }
+  },
+  "Lamar": {
+    "props": {
+      "name":             "Lamar",  
+      "type":             "NPC",   
+      "subtype":          "Lamar", 
+      "description":      "It is a mechanical spider-like creature: 30cm tall, with 6 short legs. It is clearly made out of several types of metals, yet to call it 'a robot' wouldn't do it justice: It's various parts are tiny and intricate, not so much connecting with each other than *flowing* into one another. It is as if a clockwork mechanism came to life...You see no visible eyes on the thing, yet Lamar is clearly aware of your presence.",      
+      "container_id":     null,      
+      "wearing": null,
+      "holding": null,
+      "slots":   [],
+      "slots_size_limit": 1,
+      "is_fighting_with": null,
+      "state_variables":  {},
+      "is_killable":      false
+    },
+    "stm_definition": null    
+  },
+  "Wheat_Paste": {
+    "props": {
+      "name":           "Wheat Paste",
+      "type":           "Item",
+      "subtype":        "Wheat_Paste",
+      "description":    "A squeezable tube, filled with a thick white paste.",        
+      "container_id":   null,
+      "is_consumable":  true,
+      "hp_restored":    5,
+      "is_holdable":    true,
+      "wear_slot":      null,
+      "is_gettable":    true,
+      "key_code":       null,
+      "expiration_counter": 0,
+      "expiration_limit":   100
+    }
+  },
+  "Water_Bottle": {
+    "props": {
+      "name":           "Water Bottle",
+      "type":           "Item",
+      "subtype":        "Water_Bottle",
+      "description":    "A small, single-use bottle of water.",        
+      "container_id":   null,
+      "is_consumable":  true,
+      "hp_restored":    5,
+      "is_holdable":    true,
+      "wear_slot":      null,
+      "is_gettable":    true,
+      "key_code":       null,
+      "expiration_counter": 0,
+      "expiration_limit":   null
+    }
+  },
+  "Bread": {
+    "props": {
+      "name":           "Bread",
+      "type":           "Item",
+      "subtype":        "Bread",
+      "description":    "A round, smooth roll of bread.",        
+      "container_id":   null,
+      "is_consumable":  true,
+      "hp_restored":    10,
+      "is_holdable":    true,
+      "wear_slot":      null,
+      "is_gettable":    true,
+      "key_code":       null,
+      "expiration_counter": 0,
+      "expiration_limit":   100
+    }
   }
 }

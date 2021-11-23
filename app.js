@@ -143,6 +143,7 @@ class Game_Controller {
   init_game(){    
     this.load_users_db();
     this.load_world();  
+    this.load_entities_db();
     this.game_loop();      
   }
 
@@ -200,6 +201,15 @@ class Game_Controller {
       console.error(`app.load_world -> ${path} does not exist.`);
     }
     
+  }
+
+  load_entities_db(){
+    if (fs.existsSync(`./entities.json`)){      
+      World.world.entities_db = JSON.parse(fs.readFileSync("./entities.json"));              
+    } else {
+      console.error(`app.load_entities -> entities.js does not exist.`);
+    }
+
   }
 
   //Called periodicaly
